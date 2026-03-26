@@ -98,21 +98,20 @@ export function OwnerPropertyForm() {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleImageUpload = (type: keyof Omit<ImageUploadState, "gallery">) => {
-    // Simulate image upload
-    const mockImages: Record<string, string> = {
-      cover: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&h=300&fit=crop",
-      kitchen: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=300&fit=crop",
-      bathroom: "https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?w=400&h=300&fit=crop",
-      bedroom: "https://images.unsplash.com/photo-1616594039964-ae9021a400a0?w=400&h=300&fit=crop",
-      livingRoom: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=300&fit=crop",
-      exterior: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400&h=300&fit=crop",
-    }
-    setImages((prev) => ({ ...prev, [type]: mockImages[type] }))
+  const handleImageUpload = (type: keyof Omit<ImageUploadState, "gallery">, file: File) => {
+    const url = URL.createObjectURL(file)
+    setImages((prev) => {
+      // Revoke old URL if it exists
+      if (prev[type]) URL.revokeObjectURL(prev[type]!)
+      return { ...prev, [type]: url }
+    })
   }
 
   const removeImage = (type: keyof Omit<ImageUploadState, "gallery">) => {
-    setImages((prev) => ({ ...prev, [type]: null }))
+    setImages((prev) => {
+      if (prev[type]) URL.revokeObjectURL(prev[type]!)
+      return { ...prev, [type]: null }
+    })
   }
 
   const ImageUploadBox = ({
@@ -123,45 +122,67 @@ export function OwnerPropertyForm() {
     type: keyof Omit<ImageUploadState, "gallery">
     label: string
     image: string | null
-  }) => (
-    <div className="space-y-2">
-      <Label>{label}</Label>
-      <div
-        className={`
-          relative aspect-video rounded-lg border-2 border-dashed border-border 
-          bg-muted/50 transition-all hover:border-primary/50 hover:bg-muted
-          ${image ? "border-solid border-primary/30" : "cursor-pointer"}
-        `}
-        onClick={() => !image && handleImageUpload(type)}
-      >
-        {image ? (
-          <>
-            <Image
-              src={image}
-              alt={label}
-              fill
-              className="rounded-lg object-cover"
-            />
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                removeImage(type)
-              }}
-              className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-md"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </>
-        ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-            <Upload className="h-8 w-8 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Cliquer pour uploader</span>
-          </div>
-        )}
+  }) => {
+    const inputId = `image-upload-${type}`
+
+    const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (file) {
+        handleImageUpload(type, file)
+      }
+    }
+
+    return (
+      <div className="space-y-2">
+        <Label htmlFor={inputId}>{label}</Label>
+        <div
+          className={`
+            relative aspect-video rounded-lg border-2 border-dashed border-border 
+            bg-muted/50 transition-all hover:border-primary/50 hover:bg-muted
+            ${image ? "border-solid border-primary/30" : "cursor-pointer"}
+          `}
+          onClick={() => {
+            if (!image) {
+              document.getElementById(inputId)?.click()
+            }
+          }}
+        >
+          <input
+            id={inputId}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={onChange}
+          />
+          {image ? (
+            <>
+              <Image
+                src={image}
+                alt={label}
+                fill
+                className="rounded-lg object-cover"
+              />
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  removeImage(type)
+                }}
+                className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-md transition-transform hover:scale-110"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </>
+          ) : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+              <Upload className="h-8 w-8 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Cliquer pour uploader</span>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  )
+    )
+  }
 
   return (
     <div className="p-6">
