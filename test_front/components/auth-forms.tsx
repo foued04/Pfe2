@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from "react"
 import { useAuth, type UserRole } from "@/lib/auth-context"
-import { Eye, EyeOff, Home, UserCheck, ArrowRight, ShieldCheck } from "lucide-react"
+import { Eye, EyeOff, Home, ArrowRight, ShieldCheck, Mail, KeyRound, CheckCircle2 } from "lucide-react"
 import Image from "next/image"
 
 // ─── Types ──────────────────────────────────────────────────────────────────
-type View = "login" | "register"
+type View = "login" | "register" | "forgot-password" | "verify-code" | "reset-password"
 type Role = "owner" | "tenant"
 
 // ─── Animations ─────────────────────────────────────────────────────────────
@@ -58,7 +58,6 @@ function LeftPanel() {
     >
       <style>{animations}</style>
       
-      {/* Logo Container */}
       <div className="animate-fade-in stagger-1" style={{
         width: "90px", height: "90px",
         background: "rgba(255,255,255,0.12)",
@@ -71,7 +70,6 @@ function LeftPanel() {
         <Home size={44} color="#fff" />
       </div>
 
-      {/* Brand Name */}
       <h2 className="animate-fade-in stagger-2" style={{
         fontSize: "40px", fontWeight: 800,
         margin: "0 0 12px",
@@ -90,7 +88,6 @@ function LeftPanel() {
         Gérez vos biens et contrats en toute simplicité
       </p>
 
-      {/* Professional Symbolic Illustration */}
       <div className="animate-fade-in stagger-4 animate-float" style={{
         position: "relative",
         width: "100%",
@@ -119,7 +116,7 @@ function LeftPanel() {
 }
 
 // ─── Input Component ────────────────────────────────────────────────────────
-function FormInput({ label, type, placeholder, value, onChange, showEye, onToggleEye, className }: any) {
+function FormInput({ label, type, placeholder, value, onChange, showEye, onToggleEye, className, required = true }: any) {
   return (
     <div className={className} style={{ display: "flex", flexDirection: "column", gap: "10px", width: "100%" }}>
       <label style={{ fontSize: "14px", fontWeight: 600, color: "#1f2937" }}>{label}</label>
@@ -129,7 +126,7 @@ function FormInput({ label, type, placeholder, value, onChange, showEye, onToggl
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          required
+          required={required}
           style={{
             width: "100%", padding: "16px 18px", borderRadius: "14px",
             border: "1.5px solid #e5e7eb", background: "#f9fafb",
@@ -157,6 +154,7 @@ export function AuthForms() {
   const [isAdminLogin, setIsAdminLogin] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [successMsg, setSuccessMsg] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
 
@@ -164,27 +162,112 @@ export function AuthForms() {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  
+  // Password Reset Fields
+  const [resetCode, setResetCode] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  
+  // Captcha State
+  const [captchaAnswer, setCaptchaAnswer] = useState("")
+  const [captchaExpected, setCaptchaExpected] = useState(0)
+  const [captchaQuestion, setCaptchaQuestion] = useState("")
 
   useEffect(() => {
     setIsMounted(true)
+    generateCaptcha()
   }, [])
+
+  const generateCaptcha = () => {
+    const a = Math.floor(Math.random() * 10) + 1
+    const b = Math.floor(Math.random() * 10) + 1
+    setCaptchaQuestion(`Combien font ${a} + ${b} ?`)
+    setCaptchaExpected(a + b)
+    setCaptchaAnswer("")
+  }
+
+  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+
+  const handleGoogleLogin = async () => {
+    // Stub for Google Auth flow
+    setIsLoading(true)
+    try {
+      // In a real app, you would use a Google Provider here and get the token.
+      alert("Ce bouton nécessite une ClientID Google valide en production. Intégration backend préparée sur /api/auth/google.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+    setSuccessMsg("")
     setIsLoading(true)
 
     try {
       if (view === "login") {
         const loginRole = isAdminLogin ? "admin" : role
-        const ok = await login(email, password, loginRole)
-        if (!ok) setError("Email ou mot de passe incorrect")
-      } else {
-        const ok = await register({ name, email, phone: "", password, role: role as UserRole })
-        if (!ok) setError("Cet email existe déjà")
+        const { success, message } = await login(email, password, loginRole)
+        if (!success) setError(message || "Email ou mot de passe incorrect")
+      } 
+      else if (view === "register") {
+        if (parseInt(captchaAnswer) !== captchaExpected) {
+          setError("Réponse de vérification humaine incorrecte.")
+          generateCaptcha()
+          setIsLoading(false)
+          return
+        }
+        const { success, message } = await register({ name, email, phone: "", password, role: role as UserRole })
+        if (!success) {
+          setError(message || "Erreur lors de l'inscription")
+          generateCaptcha()
+        }
+      }
+      else if (view === "forgot-password") {
+        const res = await fetch(`${BASE_URL}/auth/forgot-password`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        })
+        const data = await res.json()
+        if (res.ok) {
+          setSuccessMsg(data.message)
+          setView("verify-code")
+        } else {
+          setError(data.message || "Erreur lors de la demande")
+        }
+      }
+      else if (view === "verify-code") {
+        const res = await fetch(`${BASE_URL}/auth/verify-reset-code`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, code: resetCode }),
+        })
+        const data = await res.json()
+        if (res.ok) {
+          setSuccessMsg("Code vérifié avec succès.")
+          setView("reset-password")
+        } else {
+          setError(data.message || "Code invalide ou expiré")
+        }
+      }
+      else if (view === "reset-password") {
+        const res = await fetch(`${BASE_URL}/auth/reset-password`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, code: resetCode, newPassword }),
+        })
+        const data = await res.json()
+        if (res.ok) {
+          setSuccessMsg("Mot de passe mis à jour ! Vous pouvez vous connecter.")
+          setView("login")
+          setPassword("")
+        } else {
+          setError(data.message || "Erreur lors de la réinitialisation")
+        }
       }
     } catch {
-      setError("Une erreur est survenue")
+      setError("Une erreur de connexion est survenue")
     } finally {
       setIsLoading(false)
     }
@@ -206,8 +289,28 @@ export function AuthForms() {
     background: role === r && !isAdminLogin ? "#fffbeb" : "#fff",
     color: role === r && !isAdminLogin ? "#f59e0b" : "#6b7280",
     boxShadow: role === r && !isAdminLogin ? "0 4px 12px rgba(245,158,11,0.15)" : "none",
-    transform: role === r && !isAdminLogin ? "scale(1.02)" : "scale(1)",
   })
+
+  // ─── Headers based on view ───
+  const getHeader = () => {
+    switch (view) {
+      case "login": return isAdminLogin ? "Accès Admin" : "Connexion"
+      case "register": return "Créer un compte"
+      case "forgot-password": return "Mot de passe oublié"
+      case "verify-code": return "Vérification du code"
+      case "reset-password": return "Nouveau mot de passe"
+    }
+  }
+
+  const getSubtext = () => {
+    switch (view) {
+      case "login": return isAdminLogin ? "Espace sécurisé pour l'administration" : "Bienvenue ! Connectez-vous à votre espace personnel"
+      case "register": return "Inscrivez-vous en 1 minute sur ImmoSmart"
+      case "forgot-password": return "Entrez votre email pour recevoir un code de récupération."
+      case "verify-code": return "Entrez le code à 6 chiffres reçu par email (vérifiez la console locale)."
+      case "reset-password": return "Choisissez un nouveau mot de passe sécurisé."
+    }
+  }
 
   if (!isMounted) return null
 
@@ -225,57 +328,112 @@ export function AuthForms() {
         position: "relative",
       }}>
         <div className="animate-slide" style={{ width: "100%", maxWidth: "440px" }}>
-          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
-            
-            {/* Header */}
-            <div style={{ textAlign: "left" }}>
-              <h1 className="animate-fade-in stagger-1" style={{ fontSize: "32px", fontWeight: 800, color: "#111827", marginBottom: "10px", letterSpacing: "-0.5px" }}>
-                {view === "login" ? (isAdminLogin ? "Accès Admin" : "Connexion") : "Créer un compte"}
-              </h1>
-              <p className="animate-fade-in stagger-2" style={{ color: "#4b5563", fontSize: "16px", fontWeight: 400 }}>
-                {view === "login" 
-                  ? (isAdminLogin ? "Espace sécurisé pour l'administration de la plateforme" : "Bienvenue ! Connectez-vous à votre espace personnel") 
-                  : "Inscrivez-vous en 1 minute sur ImmoSmart"}
-              </p>
-            </div>
+          
+          <div style={{ textAlign: "left", marginBottom: "28px" }}>
+            <h1 className="animate-fade-in stagger-1" style={{ fontSize: "32px", fontWeight: 800, color: "#111827", marginBottom: "10px", letterSpacing: "-0.5px" }}>
+              {getHeader()}
+            </h1>
+            <p className="animate-fade-in stagger-2" style={{ color: "#4b5563", fontSize: "16px", fontWeight: 400 }}>
+              {getSubtext()}
+            </p>
+          </div>
 
-            {/* Role Selection */}
-            {!isAdminLogin && (
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            
+            {/* Role Selection (Only on Login/Register) */}
+            {(view === "login" || view === "register") && !isAdminLogin && (
               <div className="animate-fade-in stagger-2">
                 <label style={{ fontSize: "14px", fontWeight: 700, color: "#1f2937", marginBottom: "12px", display: "block", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                   Je suis un(e)
                 </label>
                 <div style={{ display: "flex", gap: "16px" }}>
-                  <button type="button" onClick={() => setRole("owner")} style={roleBtnStyle("owner")}>
-                    🏡 Propriétaire
-                  </button>
-                  <button type="button" onClick={() => setRole("tenant")} style={roleBtnStyle("tenant")}>
-                    🔑 Locataire
-                  </button>
+                  <button type="button" onClick={() => setRole("owner")} style={roleBtnStyle("owner")}>Propriétaire</button>
+                  <button type="button" onClick={() => setRole("tenant")} style={roleBtnStyle("tenant")}>Locataire</button>
                 </div>
               </div>
             )}
 
-            {/* Fields */}
+            {/* Dynamic Fields */}
             <div className="animate-fade-in stagger-3" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
               {view === "register" && (
                 <FormInput label="Nom complet" placeholder="Ex: Mohamed Ben Ali" value={name} onChange={setName} />
               )}
-              <FormInput label="Email" type="email" placeholder={isAdminLogin ? "admin@immosmart.tn" : "votre@email.tn"} value={email} onChange={setEmail} />
-              <FormInput 
-                label="Mot de passe" 
-                type={showPassword ? "text" : "password"} 
-                placeholder="6 caractères minimum" 
-                value={password} 
-                onChange={setPassword}
-                showEye={showPassword}
-                onToggleEye={() => setShowPassword(!showPassword)}
-              />
+              
+              {(view === "login" || view === "register" || view === "forgot-password") && (
+                <FormInput label="Email" type="email" placeholder={isAdminLogin ? "admin@immosmart.tn" : "votre@email.tn"} value={email} onChange={setEmail} />
+              )}
+
+              {(view === "login" || view === "register") && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <FormInput 
+                    label="Mot de passe" 
+                    type={showPassword ? "text" : "password"} 
+                    placeholder="6 caractères minimum" 
+                    value={password} 
+                    onChange={setPassword}
+                    showEye={showPassword}
+                    onToggleEye={() => setShowPassword(!showPassword)}
+                  />
+                  {view === "login" && !isAdminLogin && (
+                    <div style={{ textAlign: "right" }}>
+                      <button 
+                        type="button" 
+                        onClick={() => { setView("forgot-password"); setError(""); setSuccessMsg("") }}
+                        style={{ color: "#4a5e3a", fontSize: "13px", fontWeight: 600, background: "none", border: "none", cursor: "pointer" }}
+                      >
+                        Mot de passe oublié ?
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {view === "verify-code" && (
+                <FormInput label="Code de vérification (6 chiffres)" type="text" placeholder="Ex: 123456" value={resetCode} onChange={setResetCode} />
+              )}
+
+              {view === "reset-password" && (
+                <FormInput 
+                  label="Nouveau mot de passe" 
+                  type={showPassword ? "text" : "password"} 
+                  placeholder="Nouveau mot de passe" 
+                  value={newPassword} 
+                  onChange={setNewPassword}
+                  showEye={showPassword}
+                  onToggleEye={() => setShowPassword(!showPassword)}
+                />
+              )}
+
+              {/* Bot Check for Register */}
+              {view === "register" && (
+                 <div style={{ background: "#f3f4f6", padding: "16px", borderRadius: "14px", border: "1px dashed #d1d5db" }}>
+                   <label style={{ fontSize: "13px", fontWeight: 700, color: "#374151", marginBottom: "8px", display: "block" }}>
+                     Anti-bot : {captchaQuestion}
+                   </label>
+                   <input
+                     type="number"
+                     value={captchaAnswer}
+                     onChange={(e) => setCaptchaAnswer(e.target.value)}
+                     required
+                     placeholder="Votre réponse"
+                     style={{
+                       width: "100%", padding: "10px 14px", borderRadius: "8px",
+                       border: "1px solid #d1d5db", fontSize: "14px", outline: "none"
+                     }}
+                   />
+                 </div>
+              )}
             </div>
 
+            {/* Messages */}
             {error && (
-              <div style={{ padding: "16px", background: "#fef2f2", border: "1px solid #fee2e2", borderRadius: "14px", color: "#dc2626", fontSize: "14px", fontWeight: 500 }}>
+              <div style={{ padding: "14px", background: "#fef2f2", border: "1px solid #fee2e2", borderRadius: "12px", color: "#dc2626", fontSize: "14px", fontWeight: 500 }}>
                 ⚠️ {error}
+              </div>
+            )}
+            {successMsg && (
+              <div style={{ padding: "14px", background: "#ecfdf5", border: "1px solid #d1fae5", borderRadius: "12px", color: "#059669", fontSize: "14px", fontWeight: 500, display: "flex", gap: "8px", alignItems: "center" }}>
+                <CheckCircle2 size={18} /> {successMsg}
               </div>
             )}
 
@@ -289,62 +447,97 @@ export function AuthForms() {
                 background: isAdminLogin ? "#111827" : "#4a5e3a",
                 color: "#fff", fontWeight: 700, fontSize: "16px",
                 border: "none", cursor: "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center", gap: "12px",
-                transition: "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
-                boxShadow: `0 10px 15px -3px ${isAdminLogin ? "rgba(17,24,39,0.3)" : "rgba(74,94,58,0.3)"}`,
+                display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
+                transition: "all 0.3s",
+                boxShadow: `0 8px 15px -3px ${isAdminLogin ? "rgba(17,24,39,0.3)" : "rgba(74,94,58,0.3)"}`,
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-4px) scale(1.02)"; e.currentTarget.style.boxShadow = `0 15px 25px -5px ${isAdminLogin ? "rgba(17,24,39,0.4)" : "rgba(74,94,58,0.4)"}` }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0) scale(1)"; e.currentTarget.style.boxShadow = `0 10px 15px -3px ${isAdminLogin ? "rgba(17,24,39,0.3)" : "rgba(74,94,58,0.3)"}` }}
             >
-              {isLoading ? "Vérification..." : (view === "login" ? "Se connecter" : "Créer mon compte")}
-              {!isLoading && <ArrowRight size={20} />}
+              {isLoading ? "Traitement..." : (
+                view === "login" ? "Se connecter" : 
+                view === "register" ? "Créer mon compte" : 
+                view === "forgot-password" ? "Envoyer le code" :
+                view === "verify-code" ? "Vérifier le code" : "Confirmer le mot de passe"
+              )}
+              {!isLoading && (view === "login" || view === "register") && <ArrowRight size={20} />}
             </button>
 
-            {/* Switch View */}
-            <div className="animate-fade-in stagger-4" style={{ textAlign: "center", fontSize: "15px", color: "#6b7280" }}>
+            {/* Google Authentication (Only Login/Register) */}
+            {(view === "login" || view === "register") && !isAdminLogin && (
+              <div className="animate-fade-in stagger-4">
+                <div style={{ display: "flex", alignItems: "center", margin: "16px 0", color: "#9ca3af", fontSize: "14px", fontWeight: 500 }}>
+                  <div style={{ flex: 1, height: "1px", background: "#e5e7eb" }} />
+                  <span style={{ padding: "0 12px" }}>ou</span>
+                  <div style={{ flex: 1, height: "1px", background: "#e5e7eb" }} />
+                </div>
+                
+                <button
+                  type="button"
+                  disabled={isLoading}
+                  onClick={handleGoogleLogin}
+                  style={{
+                    width: "100%", padding: "14px", borderRadius: "14px",
+                    background: "#fff", color: "#374151", fontWeight: 600, fontSize: "15px",
+                    border: "1.5px solid #e5e7eb", cursor: "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: "12px",
+                    transition: "all 0.2s",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "#f9fafb"; e.currentTarget.style.borderColor = "#d1d5db" }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.borderColor = "#e5e7eb" }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 48 48">
+                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                  </svg>
+                  Continuer avec Google
+                </button>
+              </div>
+            )}
+
+            {/* Bottom Links */}
+            <div className="animate-fade-in stagger-4" style={{ textAlign: "center", fontSize: "14px", color: "#6b7280", marginTop: "8px" }}>
               {view === "login" ? (
                 <>
                   Pas encore inscrit ?{" "}
-                  <button type="button" onClick={() => { setView("register"); setIsAdminLogin(false) }} style={{ color: "#f59e0b", fontWeight: 800, background: "none", border: "none", cursor: "pointer", padding: "0 4px", transition: "all 0.2s" }}>
+                  <button type="button" onClick={() => { setView("register"); setIsAdminLogin(false); setError("") }} style={{ color: "#f59e0b", fontWeight: 800, background: "none", border: "none", cursor: "pointer", transition: "all 0.2s" }}>
                     S&apos;inscrire
                   </button>
                 </>
-              ) : (
+              ) : view === "register" ? (
                 <>
                   Déjà membre ?{" "}
-                  <button type="button" onClick={() => setView("login")} style={{ color: "#f59e0b", fontWeight: 800, background: "none", border: "none", cursor: "pointer", padding: "0 4px" }}>
+                  <button type="button" onClick={() => { setView("login"); setError("") }} style={{ color: "#f59e0b", fontWeight: 800, background: "none", border: "none", cursor: "pointer" }}>
                     Se connecter
                   </button>
                 </>
+              ) : (
+                <button type="button" onClick={() => { setView("login"); setError(""); setSuccessMsg("") }} style={{ color: "#6b7280", fontWeight: 600, background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
+                  Retour à la connexion
+                </button>
               )}
             </div>
 
             {/* Bottom Admin Toggle */}
-            <div className="animate-fade-in stagger-4" style={{ marginTop: "10px" }}>
-               <button 
-                 type="button" 
-                 onClick={() => { setIsAdminLogin(!isAdminLogin); setView("login"); setError("") }}
-                 style={{ 
-                   margin: "0 auto", 
-                   display: "flex", 
-                   alignItems: "center", 
-                   gap: "8px", 
-                   fontSize: "13px", 
-                   color: "#9ca3af", 
-                   background: "rgba(243,244,246,0.5)", 
-                   padding: "8px 16px",
-                   borderRadius: "100px",
-                   border: "1px solid #f3f4f6",
-                   cursor: "pointer",
-                   transition: "all 0.2s"
-                 }}
-                 onMouseEnter={(e) => { e.currentTarget.style.color = "#4b5563"; e.currentTarget.style.background = "#f3f4f6"; e.currentTarget.style.transform = "scale(1.05)" }}
-                 onMouseLeave={(e) => { e.currentTarget.style.color = "#9ca3af"; e.currentTarget.style.background = "rgba(243,244,246,0.5)"; e.currentTarget.style.transform = "scale(1)" }}
-               >
-                 <ShieldCheck size={16} />
-                 {isAdminLogin ? "Retour au portail public" : "Accès réservé à l'administration"}
-               </button>
-            </div>
+            {(view === "login" || view === "register") && (
+              <div className="animate-fade-in stagger-4" style={{ marginTop: "10px" }}>
+                <button 
+                  type="button" 
+                  onClick={() => { setIsAdminLogin(!isAdminLogin); setView("login"); setError("") }}
+                  style={{ 
+                    margin: "0 auto", display: "flex", alignItems: "center", gap: "8px", 
+                    fontSize: "13px", color: "#9ca3af", background: "rgba(243,244,246,0.5)", 
+                    padding: "8px 16px", borderRadius: "100px", border: "1px solid #f3f4f6",
+                    cursor: "pointer", transition: "all 0.2s"
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "#4b5563"; e.currentTarget.style.background = "#f3f4f6" }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = "#9ca3af"; e.currentTarget.style.background = "rgba(243,244,246,0.5)" }}
+                >
+                  <ShieldCheck size={16} />
+                  {isAdminLogin ? "Retour au portail public" : "Accès réservé à l'administration"}
+                </button>
+              </div>
+            )}
 
           </form>
         </div>

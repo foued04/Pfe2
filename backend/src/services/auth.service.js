@@ -1,0 +1,94 @@
+const bcrypt = require('bcryptjs');
+const User = require('../models/User.model');
+const ApiError = require('../utils/ApiError');
+
+const createUser = async (userData) => {
+  if (await User.findOne({ email: userData.email })) {
+    throw new ApiError(400, 'L\'adresse email est déjà utilisée');
+  }
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(userData.password, salt);
+  
+  const user = await User.create({
+    ...userData,
+    password: hashedPassword,
+  });
+  return user;
+};
+
+const loginUserWithEmailAndPassword = async (email, password) => {
+  const user = await User.findOne({ email });
+  if (!user || !(await bcrypt.compare(password, user.password))) {
+    throw new ApiError(401, 'Email ou mot de passe incorrect');
+  }
+  return user;
+};
+
+// ─── Password Reset ────────────────────────────────────────────────────────
+
+const generateResetCode = async (email) => {
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new ApiError(404, 'Aucun utilisateur trouvé avec cette adresse email');
+  }
+  
+  // Generate a random 6-digit code
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  
+  // Save code and set expiration to 15 minutes from now
+  user.resetPasswordCode = code;
+  user.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
+  await user.save();
+  
+  // Log it so the user can see it in terminal (since we don't send emails yet)
+  console.log(`\n======================================================`);
+  console.log(`🔑 PASSWORD RESET CODE FOR ${email}: ${code}`);
+  console.log(`======================================================\n`);
+  
+  return code;
+};
+
+const verifyResetCode = async (email, code) => {
+  const user = await User.findOne({ 
+    email,
+    resetPasswordCode: code,
+    resetPasswordExpires: { $gt: Date.now() } // Ensure code hasn't expired
+  });
+  
+  if (!user) {
+    throw new ApiError(400, 'Code de vérification invalide ou expiré');
+  }
+  
+  return true;
+};
+
+const resetPassword = async (email, code, newPassword) => {
+  const user = await User.findOne({ 
+    email,
+    resetPasswordCode: code,
+    resetPasswordExpires: { $gt: Date.now() }
+  });
+
+  if (!user) {
+    throw new ApiError(400, 'Code de vérification invalide ou expiré');
+  }
+
+  // Hash new password
+  const salt = await bcrypt.genSalt(10);
+  user.password = await bcrypt.hash(newPassword, salt);
+  
+  // Clear reset fields
+  user.resetPasswordCode = undefined;
+  user.resetPasswordExpires = undefined;
+  await user.save();
+
+  return user;
+};
+
+module.exports = {
+  createUser,
+  loginUserWithEmailAndPassword,
+  generateResetCode,
+  verifyResetCode,
+  resetPassword,
+};

@@ -6,7 +6,6 @@ import {
   Building2,
   CheckCircle2,
   Key,
-  DollarSign,
   FileText,
   TrendingUp,
   TrendingDown,
@@ -43,8 +42,7 @@ const stats = [
   },
   {
     key: "dashboard.estimatedRevenue",
-    value: "€24,500",
-    icon: DollarSign,
+    value: "24 500 TND",
     trend: "+12%",
     trendUp: true,
     color: "text-primary",
@@ -79,7 +77,7 @@ export function SummaryCards() {
                   stat.bgColor
                 )}
               >
-                <stat.icon className={cn("h-5 w-5", stat.color)} />
+                {stat.icon && <stat.icon className={cn("h-5 w-5", stat.color)} />}
               </div>
               <div
                 className={cn(

@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { useI18n } from "@/lib/i18n"
 import { type Property } from "@/lib/property-data"
-import { MapPin, Home, X, ExternalLink, Navigation } from "lucide-react"
+import { MapPin } from "lucide-react"
+import { InteractiveMap } from "./interactive-map"
 
 interface PropertyMapProps {
   properties: Property[]
@@ -18,180 +18,72 @@ export function PropertyMap({
   properties, 
   selectedProperty,
   onPropertySelect,
-  height = "400px" 
+  height = "500px" 
 }: PropertyMapProps) {
   const { lang } = useI18n()
-  const [hoveredProperty, setHoveredProperty] = useState<Property | null>(null)
-  
-  // Monastir center coordinates
-  const mapCenter = { lat: 35.7768, lng: 10.8108 }
-  
-  // Calculate relative positions for markers (simplified map visualization)
-  const getMarkerPosition = (property: Property) => {
-    const latDiff = property.lat - mapCenter.lat
-    const lngDiff = property.lng - mapCenter.lng
-    
-    // Scale to fit in the map container (roughly)
-    const x = 50 + (lngDiff * 150)
-    const y = 50 - (latDiff * 150)
-    
-    return { x: Math.max(5, Math.min(95, x)), y: Math.max(5, Math.min(95, y)) }
-  }
-
-  const statusColors = {
-    available: "bg-green-500",
-    rented: "bg-primary",
-    maintenance: "bg-yellow-500",
-  }
 
   return (
-    <Card className="overflow-hidden">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <MapPin className="w-5 h-5 text-primary" />
-          {lang === "fr" ? "Carte de Monastir" : "Monastir Map"}
+    <Card className="overflow-hidden shadow-lg">
+      <CardHeader className="pb-3 bg-gradient-to-r from-primary/10 to-primary/5 border-b">
+        <CardTitle className="text-xl flex items-center gap-2 text-primary">
+          <MapPin className="w-6 h-6" />
+          <span>{lang === "fr" ? "Carte Interactive - Monastir" : "Interactive Map - Monastir"}</span>
         </CardTitle>
+        <p className="text-xs text-muted-foreground mt-1">
+          {lang === "fr" 
+            ? "Explorez les biens disponibles à Monastir" 
+            : "Explore available properties in Monastir"}
+        </p>
       </CardHeader>
-      <CardContent className="p-0">
-        <div 
-          className="relative bg-secondary/30 overflow-hidden"
-          style={{ height }}
-        >
-          {/* Map background with Monastir stylized representation */}
-          <div className="absolute inset-0">
-            {/* Mediterranean Sea (top) */}
-            <div className="absolute top-0 left-0 right-0 h-1/4 bg-blue-200/40" />
-            
-            {/* Main land area */}
-            <div className="absolute bottom-0 left-0 right-0 h-3/4 bg-secondary/20" />
-            
-            {/* Port/Marina area */}
-            <div className="absolute top-1/4 right-1/4 w-16 h-12 bg-blue-300/30 rounded-full" />
-            
-            {/* Road grid pattern */}
-            <svg className="absolute inset-0 w-full h-full opacity-10">
-              <defs>
-                <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="0.5"/>
-                </pattern>
-              </defs>
-              <rect width="100%" height="100%" fill="url(#grid)" />
-            </svg>
-
-            {/* City center indicator */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-              <div className="w-4 h-4 rounded-full bg-accent/30 animate-pulse" />
+      <CardContent className="p-0 relative" style={{ height }}>
+        <InteractiveMap
+          properties={properties}
+          selectedProperty={selectedProperty}
+          onPropertySelect={onPropertySelect}
+          height={height}
+        />
+        
+        {/* Legend overlay - Professional Design */}
+        <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm rounded-xl p-4 border border-gray-200 shadow-xl z-40 min-w-max">
+          <div className="font-semibold mb-3 text-gray-900 text-sm">
+            {lang === "fr" ? "Légende des Statuts" : "Status Legend"}
+          </div>
+          <div className="flex flex-col gap-2.5">
+            <div className="flex items-center gap-3">
+              <div className="w-4 h-4 rounded-full bg-green-500 shadow-sm ring-2 ring-green-200" />
+              <span className="text-gray-700 text-sm font-medium">
+                {lang === "fr" ? "Disponible" : "Available"}
+              </span>
+              <span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded">✓</span>
             </div>
-            
-            {/* Label - Monastir */}
-            <div className="absolute bottom-4 left-4 text-xs font-medium text-muted-foreground bg-background/80 px-2 py-1 rounded">
-              <div className="flex items-center gap-1">
-                <Navigation className="w-3 h-3" />
-                Monastir, Tunisie
-              </div>
+            <div className="flex items-center gap-3">
+              <div className="w-4 h-4 rounded-full bg-blue-500 shadow-sm ring-2 ring-blue-200" />
+              <span className="text-gray-700 text-sm font-medium">
+                {lang === "fr" ? "Loué" : "Rented"}
+              </span>
+              <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">◉</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-4 h-4 rounded-full bg-yellow-500 shadow-sm ring-2 ring-yellow-200" />
+              <span className="text-gray-700 text-sm font-medium">
+                {lang === "fr" ? "Entretien" : "Maintenance"}
+              </span>
+              <span className="text-xs bg-yellow-50 text-yellow-700 px-2 py-0.5 rounded">⚙</span>
             </div>
           </div>
-
-          {/* Property markers */}
-          {properties.map((property) => {
-            const pos = getMarkerPosition(property)
-            const isSelected = selectedProperty?.id === property.id
-            const isHovered = hoveredProperty?.id === property.id
-            
-            return (
-              <button
-                key={property.id}
-                onClick={() => onPropertySelect?.(property)}
-                onMouseEnter={() => setHoveredProperty(property)}
-                onMouseLeave={() => setHoveredProperty(null)}
-                className={`absolute transform -translate-x-1/2 -translate-y-1/2 transition-all z-10 ${
-                  isSelected || isHovered ? "z-20 scale-125" : ""
-                }`}
-                style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
-              >
-                <div className={`relative`}>
-                  {/* Marker pin */}
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shadow-lg border-2 border-white ${
-                    isSelected ? "bg-primary" : statusColors[property.status]
-                  }`}>
-                    <Home className="w-4 h-4 text-white" />
-                  </div>
-                  
-                  {/* Price tag */}
-                  {(isSelected || isHovered) && (
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-foreground text-background text-xs font-bold px-2 py-1 rounded whitespace-nowrap">
-                      {property.rent} DT
-                    </div>
-                  )}
-                </div>
-              </button>
-            )
-          })}
-
-          {/* Property info popup */}
-          {(hoveredProperty || selectedProperty) && (
-            <div className="absolute bottom-4 right-4 w-64 z-30">
-              <Card className="shadow-xl border-primary/20">
-                <CardContent className="p-3">
-                  <div className="flex gap-3">
-                    <div 
-                      className="w-16 h-16 rounded-lg bg-cover bg-center flex-shrink-0"
-                      style={{ backgroundImage: `url(${(hoveredProperty || selectedProperty)?.images.cover})` }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-sm truncate">
-                        {(hoveredProperty || selectedProperty)?.title}
-                      </h4>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {(hoveredProperty || selectedProperty)?.address}
-                      </p>
-                      <p className="text-sm font-bold text-primary mt-1">
-                        {(hoveredProperty || selectedProperty)?.rent} DT/{lang === "fr" ? "mois" : "month"}
-                      </p>
-                    </div>
-                  </div>
-                  {selectedProperty && (
-                    <div className="flex gap-2 mt-3">
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="flex-1 text-xs"
-                        onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${selectedProperty.lat},${selectedProperty.lng}`, '_blank')}
-                      >
-                        <ExternalLink className="w-3 h-3 mr-1" />
-                        Google Maps
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        className="flex-1 text-xs"
-                        onClick={() => onPropertySelect?.(selectedProperty)}
-                      >
-                        {lang === "fr" ? "Details" : "Details"}
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {/* Legend */}
-          <div className="absolute top-4 left-4 bg-background/90 rounded-lg p-2 text-xs">
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-green-500" />
-                <span>{lang === "fr" ? "Disponible" : "Available"}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-primary" />
-                <span>{lang === "fr" ? "Loue" : "Rented"}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                <span>{lang === "fr" ? "Entretien" : "Maintenance"}</span>
-              </div>
-            </div>
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <p className="text-xs text-gray-600">
+              {lang === "fr" 
+                ? "Cliquez sur un marqueur pour voir les détails" 
+                : "Click on a marker for details"}
+            </p>
           </div>
+        </div>
+
+        {/* Monastir badge - bottom right */}
+        <div className="absolute bottom-4 right-4 bg-primary text-primary-foreground rounded-full px-3 py-1 text-xs font-semibold shadow-lg z-40 flex items-center gap-1">
+          <MapPin className="w-3 h-3" />
+          Monastir
         </div>
       </CardContent>
     </Card>

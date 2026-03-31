@@ -50,8 +50,24 @@ export function TenantPropertyCard({
     maintenance: "bg-red-500/10 text-red-700 border-red-200",
   }
 
+  const handleCardActivate = () => {
+    onViewDetails(property)
+  }
+
   return (
-    <Card className="group overflow-hidden border-border bg-card transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:shadow-primary/10">
+    <Card
+      className="group overflow-hidden border-border bg-card transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:shadow-primary/10 cursor-pointer focus-within:ring-2 focus-within:ring-primary/40"
+      onClick={handleCardActivate}
+      tabIndex={0}
+      role="button"
+      aria-label={`${property.title} - ${property.address}`}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          handleCardActivate()
+        }
+      }}
+    >
       {/* Image Container */}
       <div className="relative aspect-[4/3] overflow-hidden">
         <Image
@@ -158,7 +174,10 @@ export function TenantPropertyCard({
         {/* Actions */}
         <div className="flex gap-2">
           <Button
-            onClick={() => onViewDetails(property)}
+            onClick={(e) => {
+              e.stopPropagation()
+              onViewDetails(property)
+            }}
             variant="outline"
             className="flex-1 gap-2 border-border hover:bg-secondary"
           >
@@ -166,7 +185,10 @@ export function TenantPropertyCard({
             {t("property.viewDetails")}
           </Button>
           <Button
-            onClick={() => onContact(property)}
+            onClick={(e) => {
+              e.stopPropagation()
+              onContact(property)
+            }}
             className="flex-1 gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
           >
             <MessageSquare className="h-4 w-4" />

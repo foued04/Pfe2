@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState } from "react"
 import { useI18n } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -52,46 +52,75 @@ interface ImageUploadState {
   gallery: string[]
 }
 
-export function OwnerPropertyForm() {
+interface OwnerPropertyFormProps {
+  initialData?: any
+  onSave?: (data: any) => void
+  onCancel?: () => void
+}
+
+export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerPropertyFormProps) {
   const { t } = useI18n()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  
   const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    city: "",
-    department: "",
-    address: "",
-    rent: "",
-    deposit: "",
-    type: "",
-    surface: "",
-    bedrooms: "",
-    bathrooms: "",
-    livingRooms: "",
-    equippedKitchen: false,
-    balcony: false,
-    parking: false,
-    furnished: false,
-    availability: "",
+    title: initialData?.title || "",
+    description: initialData?.description || "",
+    city: initialData?.city || "",
+    department: initialData?.department || "",
+    address: initialData?.address || "",
+    rent: initialData?.rent?.toString() || "",
+    deposit: initialData?.deposit?.toString() || "",
+    type: initialData?.type || "",
+    surface: initialData?.surface?.toString() || "",
+    bedrooms: initialData?.bedrooms?.toString() || "",
+    bathrooms: initialData?.bathrooms?.toString() || "",
+    livingRooms: initialData?.livingRooms?.toString() || "",
+    equippedKitchen: initialData?.equippedKitchen || false,
+    balcony: initialData?.balcony || false,
+    parking: initialData?.parking || false,
+    furnished: initialData?.furnished || false,
+    status: initialData?.status || "available",
   })
 
+  // Pre-load images if they exist in initial data
   const [images, setImages] = useState<ImageUploadState>({
-    cover: null,
-    kitchen: null,
-    bathroom: null,
-    bedroom: null,
-    livingRoom: null,
-    exterior: null,
-    gallery: [],
+    cover: initialData?.images?.cover || null,
+    kitchen: initialData?.images?.kitchen || null,
+    bathroom: initialData?.images?.bathroom || null,
+    bedroom: initialData?.images?.bedroom || null,
+    livingRoom: initialData?.images?.livingRoom || null,
+    exterior: initialData?.images?.exterior || null,
+    gallery: initialData?.images?.gallery || [],
   })
 
+  // Map state
   const [mapPosition, setMapPosition] = useState({ lat: 36.8065, lng: 10.1815 })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    setIsSubmitting(false)
+    
+    // Simulate API call
+    setTimeout(() => {
+      setIsSubmitting(false)
+      
+      if (onSave) {
+        // Compile final data to match mockProperties structure
+        const finalData = {
+          ...(initialData || {}), // preserve ID and owner email
+          ...formData,
+          rent: Number(formData.rent),
+          surface: Number(formData.surface),
+          bedrooms: Number(formData.bedrooms),
+          bathrooms: Number(formData.bathrooms),
+          images: {
+            cover: images.cover || "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80",
+            gallery: images.gallery,
+          }
+        }
+        onSave(finalData)
+      }
+    }, 800)
   }
 
   const updateField = (field: string, value: string | boolean) => {
@@ -99,9 +128,10 @@ export function OwnerPropertyForm() {
   }
 
   const handleImageUpload = (type: keyof Omit<ImageUploadState, "gallery">, file: File) => {
+    // In a real app, this would upload to a server and return a URL
     const url = URL.createObjectURL(file)
     setImages((prev) => {
-      // Revoke old URL if it exists
+      // Clean up old object URL to avoid memory leaks
       if (prev[type]) URL.revokeObjectURL(prev[type]!)
       return { ...prev, [type]: url }
     })
@@ -176,7 +206,7 @@ export function OwnerPropertyForm() {
           ) : (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
               <Upload className="h-8 w-8 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Cliquer pour uploader</span>
+              <span className="text-sm text-muted-foreground text-center px-2">Cliquer pour uploader</span>
             </div>
           )}
         </div>
@@ -193,8 +223,14 @@ export function OwnerPropertyForm() {
               <Plus className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <CardTitle className="text-xl">Ajouter une Propriété</CardTitle>
-              <CardDescription>Remplissez les informations de votre bien immobilier</CardDescription>
+              <CardTitle className="text-xl">
+                {initialData ? (t("lang") === "fr" ? "Modifier la Propriété" : "Edit Property") : "Ajouter une Propriété"}
+              </CardTitle>
+              <CardDescription>
+                {initialData 
+                  ? (t("lang") === "fr" ? "Mettez à jour les informations de votre bien" : "Update your property's details")
+                  : "Remplissez les informations de votre bien immobilier"}
+              </CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -248,18 +284,20 @@ export function OwnerPropertyForm() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="availability">{t("form.availability")}</Label>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="availability"
-                        type="date"
-                        value={formData.availability}
-                        onChange={(e) => updateField("availability", e.target.value)}
-                        className="pl-10"
-                        required
-                      />
-                    </div>
+                    <Label>Statut</Label>
+                    <Select
+                      value={formData.status}
+                      onValueChange={(value) => updateField("status", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner le statut" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="available">Disponible</SelectItem>
+                        <SelectItem value="rented">Loué</SelectItem>
+                        <SelectItem value="maintenance">En Maintenance</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </div>
@@ -301,20 +339,6 @@ export function OwnerPropertyForm() {
                     placeholder="15 Avenue Habib Bourguiba, Tunis 1000"
                     required
                   />
-                </div>
-              </div>
-
-              {/* Map Placeholder */}
-              <div className="rounded-lg border border-border bg-muted/50 p-4">
-                <div className="aspect-video rounded-lg bg-secondary flex items-center justify-center relative overflow-hidden">
-                  <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1524661135-423995f22d0b?w=800&h=400&fit=crop')] bg-cover bg-center opacity-50" />
-                  <div className="relative z-10 text-center">
-                    <MapPin className="h-12 w-12 text-primary mx-auto mb-2" />
-                    <p className="text-sm text-foreground font-medium">Cliquez pour placer le marqueur</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Lat: {mapPosition.lat.toFixed(4)} | Lng: {mapPosition.lng.toFixed(4)}
-                    </p>
-                  </div>
                 </div>
               </div>
             </div>
@@ -460,7 +484,7 @@ export function OwnerPropertyForm() {
                 Images
               </h3>
               <p className="text-sm text-muted-foreground">
-                Ajoutez au moins 6 images de votre propriété (couverture, cuisine, salle de bain, chambre, salon, extérieur)
+                Ajoutez les images de votre propriété. En cas d'oubli, des images par défaut seront utilisées.
               </p>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <ImageUploadBox type="cover" label={t("form.coverImage")} image={images.cover} />
@@ -474,7 +498,7 @@ export function OwnerPropertyForm() {
 
             {/* Submit */}
             <div className="flex gap-4 pt-4 border-t border-border">
-              <Button type="button" variant="outline" className="flex-1">
+              <Button type="button" variant="outline" className="flex-1" onClick={onCancel}>
                 {t("form.cancel")}
               </Button>
               <Button
@@ -487,7 +511,7 @@ export function OwnerPropertyForm() {
                 ) : (
                   <>
                     <Send className="h-4 w-4" />
-                    {t("form.submit")}
+                    {"Publier l'annonce"}
                   </>
                 )}
               </Button>

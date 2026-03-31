@@ -104,8 +104,8 @@ export const mockProperties: Property[] = [
     ownerName: "Fatima Trabelsi",
     ownerEmail: "fatima.trabelsi@email.com",
     ownerPhone: "+216 73 520 456",
-    lat: 35.7897,
-    lng: 10.7654,
+    lat: 35.7850,
+    lng: 10.8350,
     createdAt: "2024-01-10",
   },
   {
@@ -139,8 +139,8 @@ export const mockProperties: Property[] = [
     ownerName: "Ahmed Karim",
     ownerEmail: "ahmed.karim@email.com",
     ownerPhone: "+216 73 348 999",
-    lat: 35.8924,
-    lng: 10.5932,
+    lat: 35.8320,
+    lng: 10.8480,
     createdAt: "2024-01-05",
   },
   {
@@ -174,8 +174,8 @@ export const mockProperties: Property[] = [
     ownerName: "Leila Sassi",
     ownerEmail: "leila.sassi@email.com",
     ownerPhone: "+216 73 505 678",
-    lat: 35.7234,
-    lng: 10.8456,
+    lat: 35.7620,
+    lng: 10.8210,
     createdAt: "2024-01-08",
   },
   {
@@ -244,8 +244,8 @@ export const mockProperties: Property[] = [
     ownerName: "Nadia Hamdi",
     ownerEmail: "nadia.hamdi@email.com",
     ownerPhone: "+216 73 521 333",
-    lat: 35.7589,
-    lng: 10.7534,
+    lat: 35.7620,
+    lng: 10.7820,
     createdAt: "2024-01-18",
   },
   {

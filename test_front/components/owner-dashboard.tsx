@@ -25,7 +25,13 @@ import {
   LogOut,
   Map,
   MapPin,
+  ShoppingCart,
 } from "lucide-react"
+
+import { FurnitureOrderModule } from "./furniture-order-module"
+import { RentalRequestsModule } from "./rental-requests-module"
+import { MessagesModule } from "./messages-module"
+import { OwnerProfile } from "./owner-profile"
 
 const navItems = [
   { key: "overview", icon: LayoutDashboard, label: "nav.overview" },
@@ -35,35 +41,82 @@ const navItems = [
   { key: "requests", icon: FileText, label: "nav.requests", badge: 5 },
   { key: "messages", icon: MessageSquare, label: "nav.messages", badge: 3 },
   { key: "analytics", icon: BarChart3, label: "nav.analytics" },
+  { key: "furniture", icon: ShoppingCart, label: "nav.furniture" },
   { key: "profile", icon: User, label: "nav.profile" },
 ]
 
 export function OwnerDashboard() {
   const { t, lang, setLang } = useI18n()
   const { user, logout } = useAuth()
+  
   const [activeSection, setActiveSection] = useState("overview")
+  const [preSelectedPropertyId, setPreSelectedPropertyId] = useState<string | null>(null)
   const [isChatbotOpen, setIsChatbotOpen] = useState(false)
+
+  // Initialize properties state with mock data so the UI remains populated and functional
+  const [properties, setProperties] = useState<any[]>(
+    mockProperties.filter(p => !user || p.ownerEmail === user.email || true) // fallback to showing all for demo
+  )
+  const [editingProperty, setEditingProperty] = useState<any | null>(null)
+
+  const handleDeleteProperty = (id: string) => {
+    // Cannot delete if there's an active rental or request (simulated logic)
+    const propertyToDelete = properties.find(p => p.id === id || p._id === id)
+    if (propertyToDelete?.status === 'rented') {
+      alert(lang === "fr" ? "Impossible de supprimer un bien actuellement loué." : "Cannot delete a currently rented property.")
+      return
+    }
+    setProperties(prev => prev.filter(p => p.id !== id && p._id !== id))
+  }
+
+  const handleEditProperty = (property: any) => {
+    setEditingProperty(property)
+    setActiveSection("editProperty")
+  }
+
+  const handleSaveProperty = (savedProperty: any) => {
+    if (savedProperty.id) {
+      // Update existing
+      setProperties(prev => prev.map(p => p.id === savedProperty.id ? { ...p, ...savedProperty } : p))
+    } else {
+      // Create new (simulate ID)
+      const newProp = { ...savedProperty, id: "prop-" + Date.now().toString() }
+      setProperties(prev => [newProp, ...prev])
+    }
+    setEditingProperty(null)
+    setActiveSection("properties")
+  }
 
   const renderContent = () => {
     switch (activeSection) {
       case "addProperty":
-        return <OwnerPropertyForm />
+        return <OwnerPropertyForm onSave={handleSaveProperty} onCancel={() => setActiveSection("properties")} />
+      case "editProperty":
+        return <OwnerPropertyForm initialData={editingProperty} onSave={handleSaveProperty} onCancel={() => setActiveSection("properties")} />
+      case "furniture":
+        return <FurnitureOrderModule initialPropertyId={preSelectedPropertyId} />
+      case "requests":
+        return <RentalRequestsModule />
+      case "messages":
+        return <MessagesModule />
+      case "profile":
+        return <OwnerProfile />
       case "map":
         return (
           <div className="p-6">
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
                 <MapPin className="w-6 h-6 text-primary" />
-                {lang === "fr" ? "Mes Proprietes - Carte" : "My Properties - Map"}
+                {lang === "fr" ? "Mes Propriétés - Carte" : "My Properties - Map"}
               </h2>
               <p className="text-muted-foreground mt-1">
                 {lang === "fr" 
-                  ? "Visualisez vos proprietes sur la carte de Monastir" 
+                  ? "Visualisez vos propriétés sur la carte de Monastir" 
                   : "View your properties on the Monastir map"}
               </p>
             </div>
             <PropertyMap 
-              properties={mockProperties.filter(p => p.ownerEmail === user?.email || true)}
+              properties={properties}
               height="500px"
             />
           </div>
@@ -71,15 +124,35 @@ export function OwnerDashboard() {
       case "properties":
         return (
           <div className="p-6">
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold text-foreground">
-                {t("nav.myProperties")}
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                {lang === "fr" ? "Gerez vos biens immobiliers a Monastir" : "Manage your Monastir properties"}
-              </p>
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">
+                  {t("nav.myProperties")}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {lang === "fr" ? "Gérez vos biens immobiliers à Monastir" : "Manage your Monastir properties"}
+                </p>
+              </div>
+              <Button 
+                onClick={() => {
+                  setEditingProperty(null)
+                  setActiveSection("addProperty")
+                }}
+                className="bg-primary hover:bg-primary/90 text-white gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                {lang === "fr" ? "Ajouter un bien" : "Add Property"}
+              </Button>
             </div>
-            <OwnerPropertiesGrid />
+            <OwnerPropertiesGrid 
+              properties={properties}
+              onManageFurniture={(id) => {
+                setPreSelectedPropertyId(id)
+                setActiveSection("furniture")
+              }}
+              onEdit={handleEditProperty}
+              onDelete={handleDeleteProperty}
+            />
           </div>
         )
       default:
@@ -89,15 +162,35 @@ export function OwnerDashboard() {
               <SummaryCards />
             </section>
             <section>
-              <div className="mb-6">
-                <h2 className="text-lg font-semibold text-foreground">
-                  {t("nav.myProperties")}
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  {lang === "fr" ? "Gerez vos biens immobiliers a Monastir" : "Manage your Monastir properties"}
-                </p>
+              <div className="mb-6 flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">
+                    {t("nav.myProperties")}
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    {lang === "fr" ? "Gérez vos biens immobiliers à Monastir" : "Manage your Monastir properties"}
+                  </p>
+                </div>
+                <Button 
+                  onClick={() => {
+                    setEditingProperty(null)
+                    setActiveSection("addProperty")
+                  }}
+                  variant="outline" className="gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  {lang === "fr" ? "Ajouter" : "Add"}
+                </Button>
               </div>
-              <OwnerPropertiesGrid />
+              <OwnerPropertiesGrid 
+                properties={properties.slice(0, 3)} // limit for overview
+                onManageFurniture={(id) => {
+                  setPreSelectedPropertyId(id)
+                  setActiveSection("furniture")
+                }}
+                onEdit={handleEditProperty}
+                onDelete={handleDeleteProperty}
+              />
             </section>
           </main>
         )
@@ -124,11 +217,18 @@ export function OwnerDashboard() {
           <nav className="flex-1 space-y-1 p-4">
             {navItems.map((item) => {
               const Icon = item.icon
-              const isActive = activeSection === item.key
+              let isActive = activeSection === item.key
+              if (item.key === "addProperty" && activeSection === "editProperty") {
+                isActive = true
+              }
+
               return (
                 <button
                   key={item.key}
-                  onClick={() => setActiveSection(item.key)}
+                  onClick={() => {
+                    if (item.key === "addProperty") setEditingProperty(null)
+                    setActiveSection(item.key)
+                  }}
                   className={cn(
                     "flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all duration-200",
                     isActive
@@ -155,7 +255,7 @@ export function OwnerDashboard() {
                 <User className="h-5 w-5" />
               </div>
               <div className="flex-1 truncate">
-                <p className="text-sm font-medium">{user?.name || "Proprietaire"}</p>
+                <p className="text-sm font-medium">{user?.name || "Propriétaire"}</p>
                 <p className="text-xs text-sidebar-foreground/70">{user?.email}</p>
               </div>
             </div>
@@ -166,7 +266,7 @@ export function OwnerDashboard() {
               className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-sidebar-foreground/80 hover:bg-destructive/20 hover:text-destructive transition-all duration-200"
             >
               <LogOut className="h-5 w-5" />
-              <span>{lang === "fr" ? "Deconnexion" : "Logout"}</span>
+              <span>{lang === "fr" ? "Déconnexion" : "Logout"}</span>
             </button>
           </div>
         </div>

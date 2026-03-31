@@ -124,3 +124,58 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Leaflet styles for Next.js */
+.leaflet-container {
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.leaflet-popup-content-wrapper {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  border-radius: var(--radius);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.leaflet-popup-tip {
+  background-color: hsl(var(--background));
+}
+
+.leaflet-popup-content {
+  margin: 0;
+  padding: 0;
+}
+
+.property-popup {
+  font-size: 13px;
+}
+
+.property-popup .leaflet-popup-content-wrapper {
+  padding: 0;
+  border-radius: var(--radius);
+}
+
+.property-popup .leaflet-popup-content {
+  margin: 0;
+}
+
+/* Marker styling */
+.marker-icon {
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.3));
+}
+
+.marker-icon:hover {
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.4));
+}
+
+/* Attribution control styling */
+.leaflet-attribution {
+  padding: 8px;
+  font-size: 11px;
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+.dark .leaflet-attribution {
+  background-color: rgba(45, 58, 46, 0.8);
+}

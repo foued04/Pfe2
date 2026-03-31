@@ -1,0 +1,10 @@
+const dotenv = require('dotenv');
+dotenv.config();
+
+module.exports = {
+  PORT: process.env.PORT || 5000,
+  MONGO_URI: process.env.MONGO_URI,
+  JWT_SECRET: process.env.JWT_SECRET || "default_super_secret",
+  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '1h',
+  ADMIN_SECRET: process.env.ADMIN_SECRET || 'admin123'
+};

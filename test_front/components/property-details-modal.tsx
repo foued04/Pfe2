@@ -1,19 +1,17 @@
 "use client"
 
-import { useState } from "react"
-import { useI18n } from "@/lib/i18n"
+import { useEffect, useState } from "react"
+import dynamic from "next/dynamic"
 import type { Property } from "@/lib/property-data"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
 import {
   X,
-  Heart,
   MapPin,
   Bed,
   Bath,
@@ -22,16 +20,21 @@ import {
   Sofa,
   ChefHat,
   Home,
-  Calendar,
   User,
   Phone,
   Mail,
   ChevronLeft,
   ChevronRight,
-  Check,
+  Send,
+  Star,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
+
+const PropertyMiniMap = dynamic(
+  () => import("./property-mini-map").then((mod) => mod.PropertyMiniMap),
+  { ssr: false }
+)
 
 interface PropertyDetailsModalProps {
   property: Property | null
@@ -40,15 +43,22 @@ interface PropertyDetailsModalProps {
   isFavorite: boolean
   onToggleFavorite: (id: string) => void
   onContact: (property: Property) => void
+  isOwnerView?: boolean
 }
 
 const typeLabels: Record<string, string> = {
-  s0: "S+0 (Studio)",
-  s1: "S+1",
-  s2: "S+2",
-  s3: "S+3",
-  s4: "S+4",
+  s0: "Studio (S+0)",
+  s1: "Appartement S+1",
+  s2: "Appartement S+2",
+  s3: "Appartement S+3",
+  s4: "Appartement S+4",
   villa: "Villa",
+}
+
+const statusConfig: Record<string, { color: string; label: string }> = {
+  available: { color: "bg-emerald-50 text-emerald-700 border-emerald-200", label: "Disponible" },
+  rented: { color: "bg-blue-50 text-blue-700 border-blue-200", label: "Loué" },
+  maintenance: { color: "bg-amber-50 text-amber-700 border-amber-200", label: "En maintenance" },
 }
 
 export function PropertyDetailsModal({
@@ -58,9 +68,13 @@ export function PropertyDetailsModal({
   isFavorite,
   onToggleFavorite,
   onContact,
+  isOwnerView = false,
 }: PropertyDetailsModalProps) {
-  const { t } = useI18n()
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+
+  useEffect(() => {
+    if (isOpen) setCurrentImageIndex(0)
+  }, [property?.id, isOpen])
 
   if (!property) return null
 
@@ -71,216 +85,216 @@ export function PropertyDetailsModal({
     { src: property.images.kitchen, label: "Cuisine" },
     { src: property.images.bathroom, label: "Salle de bain" },
     { src: property.images.exterior, label: "Extérieur" },
-  ]
+  ].filter(img => img.src)
 
-  const nextImage = () => {
+  const nextImage = (e: React.MouseEvent) => {
+    e.stopPropagation()
     setCurrentImageIndex((prev) => (prev + 1) % images.length)
   }
-
-  const prevImage = () => {
+  const prevImage = (e: React.MouseEvent) => {
+    e.stopPropagation()
     setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length)
   }
 
-  const amenities = [
-    { icon: Bed, label: `${property.bedrooms} ${t("property.bedrooms")}`, available: true },
-    { icon: Bath, label: `${property.bathrooms} ${t("property.bathrooms")}`, available: true },
-    { icon: Maximize, label: `${property.surface} m²`, available: true },
-    { icon: Car, label: "Parking", available: property.parking },
-    { icon: Sofa, label: "Meublé", available: property.furnished },
-    { icon: ChefHat, label: "Cuisine Équipée", available: property.equippedKitchen },
-    { icon: Home, label: "Balcon/Terrasse", available: property.balcony },
-  ]
-
-  const statusColors = {
-    available: "bg-green-500/10 text-green-700 border-green-200",
-    rented: "bg-amber-500/10 text-amber-700 border-amber-200",
-    maintenance: "bg-red-500/10 text-red-700 border-red-200",
+  const handleSendRequest = () => {
+    onContact(property)
+    onClose()
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 bg-card">
-        <DialogHeader className="sr-only">
-          <DialogTitle>{property.title}</DialogTitle>
-        </DialogHeader>
-
-        {/* Image Gallery */}
-        <div className="relative aspect-video bg-muted">
-          <Image
-            src={images[currentImageIndex].src}
-            alt={images[currentImageIndex].label}
-            fill
-            className="object-cover"
-          />
+      <DialogContent 
+        className="max-w-[800px] w-[95vw] max-h-[calc(100vh-8rem)] sm:max-h-[80vh] p-0 overflow-hidden flex flex-col rounded-xl bg-white border-0 shadow-2xl"
+        showCloseButton={false}
+      >
+        <DialogTitle className="sr-only">{property.title}</DialogTitle>
+        
+        {/* ─── SCROLLABLE CONTENT ─── */}
+        <div className="flex-1 overflow-y-auto overscroll-contain bg-white custom-scrollbar">
           
-          {/* Navigation Arrows */}
-          <button
-            onClick={prevImage}
-            className="absolute left-4 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-card/80 text-foreground hover:bg-card transition-colors"
-          >
-            <ChevronLeft className="h-6 w-6" />
-          </button>
-          <button
-            onClick={nextImage}
-            className="absolute right-4 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-card/80 text-foreground hover:bg-card transition-colors"
-          >
-            <ChevronRight className="h-6 w-6" />
-          </button>
-
-          {/* Image Label */}
-          <div className="absolute bottom-4 left-4 rounded-full bg-card/80 px-4 py-1 text-sm font-medium text-foreground">
-            {images[currentImageIndex].label} ({currentImageIndex + 1}/{images.length})
-          </div>
-
-          {/* Close Button */}
-          <button
-            onClick={onClose}
-            className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-card/80 text-foreground hover:bg-card transition-colors"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Thumbnail Navigation */}
-        <div className="flex gap-2 overflow-x-auto px-6 py-3 bg-muted/50">
-          {images.map((img, index) => (
+          {/* Main Image */}
+          <div className="relative h-[240px] sm:h-[280px] w-full bg-gray-100 flex-shrink-0">
+            <Image
+              src={images[currentImageIndex].src}
+              alt={images[currentImageIndex].label}
+              fill
+              className="object-cover"
+              priority
+            />
+            
+            {/* Top Badges */}
+            <div className="absolute top-4 left-4 flex flex-wrap gap-2">
+              <Badge className="bg-white/90 backdrop-blur-sm text-gray-800 border-0 px-2.5 py-1 text-xs font-semibold shadow-sm">
+                {typeLabels[property.type]}
+              </Badge>
+              {property.type === "villa" && (
+                <Badge className="bg-amber-100 text-amber-800 border-0 px-2.5 py-1 text-xs font-semibold shadow-sm flex items-center">
+                  <Star className="h-3 w-3 mr-1 fill-current" /> Premium
+                </Badge>
+              )}
+            </div>
+            
+            {/* Close Button */}
             <button
-              key={index}
-              onClick={() => setCurrentImageIndex(index)}
-              className={cn(
-                "relative h-16 w-24 shrink-0 overflow-hidden rounded-lg transition-all",
-                currentImageIndex === index
-                  ? "ring-2 ring-primary"
-                  : "opacity-60 hover:opacity-100"
-              )}
+              onClick={onClose}
+              className="absolute top-4 right-4 h-8 w-8 flex items-center justify-center rounded-full bg-white/90 hover:bg-white backdrop-blur-sm text-gray-700 transition-colors shadow-sm"
             >
-              <Image
-                src={img.src}
-                alt={img.label}
-                fill
-                className="object-cover"
-              />
+              <X className="h-4 w-4" />
             </button>
-          ))}
-        </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-6">
-          {/* Header */}
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <Badge className="bg-primary text-primary-foreground font-semibold">
-                  {typeLabels[property.type]}
-                </Badge>
-                <Badge variant="outline" className={statusColors[property.status]}>
-                  {t(`property.status.${property.status}`)}
-                </Badge>
-              </div>
-              <h2 className="text-2xl font-bold text-foreground">{property.title}</h2>
-              <div className="flex items-center gap-1 mt-2 text-muted-foreground">
-                <MapPin className="h-4 w-4" />
-                <span>{property.address}</span>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-3xl font-bold text-primary">
-                {property.rent} TND
-                <span className="text-base font-normal text-muted-foreground">{t("property.perMonth")}</span>
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {t("property.deposit")}: {property.deposit} TND
-              </p>
-            </div>
-          </div>
-
-          {/* Amenities */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {amenities.map((amenity, index) => {
-              const Icon = amenity.icon
-              return (
-                <div
-                  key={index}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg border border-border p-3",
-                    amenity.available ? "bg-card" : "bg-muted/50 opacity-50"
-                  )}
+            {/* Navigation Arrows */}
+            {images.length > 1 && (
+              <>
+                <button
+                  onClick={prevImage}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded-full bg-white/80 hover:bg-white backdrop-blur-sm shadow-sm text-gray-700 transition-colors"
                 >
-                  <div className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-lg",
-                    amenity.available ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-                  )}>
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <span className="text-sm font-medium text-foreground">{amenity.label}</span>
-                  {amenity.available && <Check className="h-4 w-4 text-green-600 ml-auto" />}
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={nextImage}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 h-8 w-8 flex items-center justify-center rounded-full bg-white/80 hover:bg-white backdrop-blur-sm shadow-sm text-gray-700 transition-colors"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </>
+            )}
+            
+            {/* Counter */}
+            <div className="absolute bottom-3 right-4">
+              <span className="bg-black/50 backdrop-blur-sm text-white px-2 py-0.5 rounded text-[10px] font-medium tracking-wide">
+                {currentImageIndex + 1} / {images.length}
+              </span>
+            </div>
+          </div>
+
+          <div className="p-6 md:p-8 space-y-8">
+            
+            {/* Header & Price */}
+            <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+              <div className="space-y-2 flex-1">
+                <Badge variant="outline" className={cn("px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider", statusConfig[property.status].color)}>
+                  {statusConfig[property.status].label}
+                </Badge>
+                <h1 className="text-2xl font-bold text-gray-900 leading-tight">
+                  {property.title}
+                </h1>
+                <div className="flex items-center gap-1.5 text-gray-500 text-sm">
+                  <MapPin className="h-4 w-4" />
+                  <span>{property.address}, {property.city}</span>
                 </div>
-              )
-            })}
-          </div>
-
-          {/* Description */}
-          <div>
-            <h3 className="font-semibold text-foreground mb-2">{t("property.description")}</h3>
-            <p className="text-muted-foreground leading-relaxed">{property.description}</p>
-          </div>
-
-          {/* Availability */}
-          <div className="flex items-center gap-3 rounded-lg border border-border p-4 bg-secondary/30">
-            <Calendar className="h-5 w-5 text-primary" />
-            <div>
-              <p className="font-medium text-foreground">Disponibilité</p>
-              <p className="text-sm text-muted-foreground">
-                {new Date(property.availability).toLocaleDateString("fr-FR", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                })}
-              </p>
-            </div>
-          </div>
-
-          {/* Owner Contact */}
-          <div className="rounded-lg border border-border p-4 bg-card">
-            <h3 className="font-semibold text-foreground mb-3">{t("property.contact")}</h3>
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <span className="text-foreground">{property.ownerName}</span>
               </div>
-              <div className="flex items-center gap-3">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <span className="text-foreground">{property.ownerEmail}</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <Phone className="h-4 w-4 text-muted-foreground" />
-                <span className="text-foreground">{property.ownerPhone}</span>
+              
+              <div className="text-left md:text-right shrink-0">
+                <div className="text-xs text-gray-500 uppercase tracking-widest mb-1">Loyer mensuel</div>
+                <div className="flex items-baseline md:justify-end gap-1">
+                  <span className="text-3xl font-extrabold text-primary">
+                    {property.rent.toLocaleString()}
+                  </span>
+                  <span className="text-base font-semibold text-gray-700">TND</span>
+                </div>
+                {property.deposit > 0 && (
+                  <div className="text-xs text-gray-500 mt-2">
+                    Dépôt de garantie: <span className="font-semibold text-gray-800">{property.deposit.toLocaleString()} TND</span>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
 
-          {/* Actions */}
-          <div className="flex gap-3 pt-4 border-t border-border">
-            <Button
-              onClick={() => onToggleFavorite(property.id)}
-              variant="outline"
-              className={cn(
-                "flex-1 gap-2",
-                isFavorite && "bg-primary/10 border-primary text-primary"
-              )}
-            >
-              <Heart className={cn("h-5 w-5", isFavorite && "fill-current")} />
-              {isFavorite ? t("tenant.removeFavorite") : t("tenant.addFavorite")}
-            </Button>
-            <Button
-              onClick={() => onContact(property)}
-              className="flex-1 gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              {t("tenant.sendRequest")}
-            </Button>
+            {/* Characteristics Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <FeatureItem icon={Maximize} label="Surface" value={`${property.surface} m²`} />
+              <FeatureItem icon={Bed} label="Chambres" value={property.bedrooms} />
+              <FeatureItem icon={Bath} label="S. de bain" value={property.bathrooms} />
+              <FeatureItem icon={ChefHat} label="Cuisine" value={property.equippedKitchen ? "Équipée" : "Standard"} />
+              <FeatureItem icon={Car} label="Parking" value={property.parking ? "Oui" : "Non"} />
+              <FeatureItem icon={Sofa} label="Meublé" value={property.furnished ? "Oui" : "Non"} />
+              <FeatureItem icon={Home} label="Balcon" value={property.balcony ? "Oui" : "Non"} />
+            </div>
+
+            <hr className="border-gray-100" />
+
+            {/* Layout: Description + Map side by side on desktop */}
+            <div className="grid md:grid-cols-[1.5fr_1fr] gap-8">
+              
+              {/* Description */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
+                  Description
+                </h3>
+                <p className="text-gray-600 text-sm leading-relaxed">
+                  {property.description || "Aucune description détaillée n'a été fournie pour ce bien."}
+                </p>
+              </div>
+
+              {/* Localisation */}
+              <div className="space-y-3 flex flex-col">
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
+                  Localisation
+                </h3>
+                <div className="h-[180px] w-full rounded-lg overflow-hidden border border-gray-200 shrink-0">
+                  <PropertyMiniMap property={property} />
+                </div>
+              </div>
+
+            </div>
+
+            <hr className="border-gray-100" />
+
+            {/* Owner Section */}
+            <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6 bg-gray-50 rounded-lg p-5 border border-gray-100">
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
+                  <User className="h-6 w-6 text-gray-500" />
+                </div>
+                <div>
+                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Propriétaire</div>
+                  <div className="font-semibold text-gray-900">{property.ownerName}</div>
+                </div>
+              </div>
+              
+              <div className="flex flex-col gap-1.5 text-sm">
+                <a href={`mailto:${property.ownerEmail}`} className="flex items-center gap-2 text-gray-600 hover:text-primary transition-colors">
+                  <Mail className="h-4 w-4 shrink-0" />
+                  <span>{property.ownerEmail}</span>
+                </a>
+                <a href={`tel:${property.ownerPhone}`} className="flex items-center gap-2 text-gray-600 hover:text-primary transition-colors">
+                  <Phone className="h-4 w-4 shrink-0" />
+                  <span>{property.ownerPhone}</span>
+                </a>
+              </div>
+            </div>
+
+            {/* CTA */}
+            {!isOwnerView && (
+              <div className="pt-2">
+                <Button 
+                  onClick={handleSendRequest}
+                  className="w-full h-12 rounded-lg bg-primary hover:bg-primary/90 text-white font-semibold transition-all shadow-sm flex items-center justify-center gap-2"
+                >
+                  <Send className="h-4 w-4" />
+                  Envoyer une demande
+                </Button>
+              </div>
+            )}
+
           </div>
         </div>
       </DialogContent>
     </Dialog>
+  )
+}
+
+function FeatureItem({ icon: Icon, label, value }: { icon: any, label: string, value: string | number }) {
+  return (
+    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
+      <div className="flex items-center justify-center text-primary/70">
+        <Icon className="h-5 w-5" />
+      </div>
+      <div>
+        <div className="text-[10px] text-gray-500 uppercase font-medium">{label}</div>
+        <div className="text-sm font-semibold text-gray-900">{value}</div>
+      </div>
+    </div>
   )
 }

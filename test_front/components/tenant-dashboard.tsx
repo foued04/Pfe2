@@ -56,8 +56,10 @@ export function TenantDashboard() {
   }
 
   const handleContact = (property: Property) => {
+    setIsDetailsOpen(false)
     setSelectedProperty(property)
-    setIsContactOpen(true)
+    // Small delay so the detail modal closes smoothly before contact opens
+    setTimeout(() => setIsContactOpen(true), 150)
   }
 
   const handleApplyFilters = () => {
