@@ -291,7 +291,7 @@ const translations = {
   fr: {
     // Roles
     "role.admin": "Admin",
-    "role.owner": "Propriétaire",
+    "role.owner": "Locateur",
     "role.tenant": "Locataire",
     
     // Navigation - Owner
@@ -434,7 +434,7 @@ const translations = {
     "housing.submit": "Envoyer la Demande",
     
     // Contact Form
-    "contact.title": "Contacter le Propriétaire",
+    "contact.title": "Contacter le Locateur",
     "contact.name": "Votre Nom",
     "contact.email": "Email",
     "contact.phone": "Téléphone",
@@ -476,7 +476,7 @@ const translations = {
     "contract.back": "Retour",
     "contract.ref": "Réf. demande",
     "contract.created": "Créé le",
-    "contract.landlord": "Le Bailleur (Propriétaire)",
+    "contract.landlord": "Le Bailleur (Locateur)",
     "contract.tenant": "Le Preneur (Locataire)",
     "contract.designation": "Désignation du Bien",
     "contract.financials": "Conditions Financières",
@@ -486,7 +486,7 @@ const translations = {
     "contract.period": "Période",
     "contract.clauses": "Clauses Générales",
     "contract.signatures": "Signatures",
-    "contract.ownerSign": "Signature du Propriétaire",
+    "contract.ownerSign": "Signature du Locateur",
     "contract.tenantSign": "Signature du Locataire",
     "contract.confirmSign": "Signature confirmée",
     "contract.eSign": "Signé électroniquement",

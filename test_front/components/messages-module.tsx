@@ -30,7 +30,8 @@ import {
   FileSignature,
   ShieldAlert,
   Inbox,
-  Mail
+  Mail,
+  Bell
 } from "lucide-react"
 
 export function MessagesModule() {
@@ -151,16 +152,16 @@ export function MessagesModule() {
     <div className="h-[calc(100vh-4rem)] flex overflow-hidden bg-background">
       
       {/* ─── SIDEBAR (Liste des conversations) ─────────────────────────── */}
-      <div className="w-full md:w-96 flex-shrink-0 border-r border-border/50 flex flex-col bg-card/30">
+      <div className="w-full md:w-[400px] flex-shrink-0 border-r border-border/50 flex flex-col bg-muted/5">
         
         {/* Header & Search */}
-        <div className="p-4 space-y-4 border-b border-border/50 bg-background/50 backdrop-blur-md sticky top-0 z-10">
+        <div className="p-6 space-y-4 border-b border-border/50 bg-background/50 backdrop-blur-md sticky top-0 z-10">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-black text-foreground flex items-center gap-2">
-              <MessageSquare className="w-5 h-5 text-primary" />
-              {lang === "fr" ? "Messagerie" : "Messages"}
+            <h2 className="text-3xl font-black text-foreground flex items-center gap-3 tracking-tighter">
+              <Bell className="w-8 h-8 text-[#158C96]" />
+              {lang === "fr" ? "Notifications" : "Notifications"}
               {getTotalUnreadCount() > 0 && (
-                <Badge className="bg-primary text-primary-foreground text-xs ml-2 rounded-full h-5 px-1.5 border-none">
+                <Badge className="bg-[#158C96] text-white text-[10px] ml-2 rounded-full h-5 px-1.5 border-none font-black flex items-center justify-center">
                   {getTotalUnreadCount()}
                 </Badge>
               )}
@@ -178,7 +179,7 @@ export function MessagesModule() {
         </div>
 
         {/* Categories */}
-        <div className="px-4 py-3 flex gap-2 overflow-x-auto border-b border-border/50 hide-scrollbar bg-background/30">
+        <div className="px-6 py-3 flex gap-2 overflow-x-auto border-b border-border/50 scrollbar-hide bg-background/30">
           {(Object.keys(messageCategoryConfig) as MessageCategory[]).map(cat => {
             const config = messageCategoryConfig[cat]
             const isActive = activeCategory === cat
@@ -187,9 +188,9 @@ export function MessagesModule() {
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
                 className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border",
+                  "flex items-center gap-1.5 px-5 py-2 rounded-full text-[11px] uppercase font-black whitespace-nowrap transition-all border tracking-widest",
                   isActive 
-                    ? `bg-primary text-primary-foreground border-primary shadow-sm shadow-primary/20` 
+                    ? `bg-[#158C96] text-white border-[#158C96] shadow-lg shadow-[#158C96]/20` 
                     : `bg-card text-muted-foreground border-border/50 hover:bg-muted/50 hover:text-foreground`
                 )}
               >
@@ -220,48 +221,47 @@ export function MessagesModule() {
                     key={conv.id}
                     onClick={() => setActiveConversationId(conv.id)}
                     className={cn(
-                      "w-full text-left p-3 rounded-xl transition-all border",
+                      "w-full text-left p-6 rounded-2xl transition-all duration-300 border mb-3",
                       isActive 
-                        ? "bg-primary/5 border-primary/20 shadow-sm"
-                        : "bg-transparent border-transparent hover:bg-muted/50 hover:border-border/50"
+                        ? "bg-white border-primary/20 shadow-xl shadow-primary/5 ring-1 ring-primary/5" 
+                        : "bg-transparent border-transparent hover:bg-white/50 hover:border-border/30"
                     )}
                   >
-                    <div className="flex justify-between items-start mb-1">
-                      <div className="flex items-center gap-2 font-bold text-sm text-foreground">
-                        <span className="truncate max-w-[150px]">{other?.name}</span>
-                        {unreadCount > 0 && (
-                          <span className="h-2 w-2 rounded-full bg-primary flex-shrink-0 animate-pulse" />
-                        )}
-                      </div>
+                    <div className="flex justify-between items-start mb-2">
+                      <Badge className={cn(
+                        "text-[9px] px-2 py-0.5 h-4 font-black uppercase tracking-widest border-transparent",
+                        config.bgColor, config.color
+                      )}>
+                        {lang === "fr" ? config.label_fr : config.label_en}
+                      </Badge>
                       <span className={cn(
-                        "text-[10px] font-bold whitespace-nowrap",
-                        unreadCount > 0 ? "text-primary" : "text-muted-foreground"
+                        "text-[10px] font-black uppercase tracking-widest opacity-60",
+                        unreadCount > 0 ? "text-primary opacity-100" : "text-muted-foreground"
                       )}>
                         {formatDate(conv.lastUpdatedAt)}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <Badge variant="outline" className={cn(
-                        "text-[9px] px-1.5 py-0 h-4 font-bold border-transparent",
-                        config.bgColor, config.color
-                      )}>
-                        {lang === "fr" ? config.label_fr : config.label_en}
-                      </Badge>
-                      {other?.role === "Admin" && (
-                        <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 font-bold text-violet-700 bg-violet-50 border-violet-200">
-                          Support
-                        </Badge>
-                      )}
-                    </div>
+                    <h3 className={cn(
+                      "text-[15px] font-black text-foreground tracking-tight mb-1 line-clamp-1",
+                      unreadCount > 0 ? "opacity-100" : "opacity-80"
+                    )}>
+                      {conv.contextTitle || other?.name}
+                    </h3>
 
                     <p className={cn(
-                      "text-xs truncate",
-                      unreadCount > 0 ? "text-foreground font-semibold" : "text-muted-foreground"
+                      "text-xs line-clamp-2 leading-relaxed mb-3",
+                      unreadCount > 0 ? "text-foreground/80 font-bold" : "text-muted-foreground font-medium"
                     )}>
-                      {lastMessage?.senderId === mockCurrentUser.id && <span className="mr-1">Vous:</span>}
                       {lastMessage?.content || "..."}
                     </p>
+
+                    {unreadCount > 0 && (
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 bg-[#FF4747] rounded-full animate-pulse" />
+                        <span className="text-[10px] font-black text-[#FF4747] uppercase tracking-tighter">Nouveau</span>
+                      </div>
+                    )}
                   </button>
                 )
               })
@@ -273,99 +273,122 @@ export function MessagesModule() {
       {/* ─── MAIN AREA (Conversation active) ───────────────────────────── */}
       <div className="hidden md:flex flex-col flex-1 bg-card/10">
         {!activeConversation ? (
-          <div className="m-auto flex flex-col items-center justify-center text-center p-8 max-w-sm">
-            <div className="h-20 w-20 bg-muted rounded-full flex items-center justify-center mb-6">
-              <MessageSquare className="h-8 w-8 text-muted-foreground/50" />
+          <div className="m-auto flex flex-col items-center justify-center text-center p-8 max-w-sm animate-in fade-in zoom-in duration-700">
+            <div className="h-24 w-24 bg-primary/5 rounded-full flex items-center justify-center mb-8 shadow-inner">
+              <Mail className="h-10 w-10 text-[#158C96] opacity-20" />
             </div>
-            <h3 className="text-xl font-black text-foreground mb-2">
+            <h3 className="text-2xl font-black text-foreground mb-3 tracking-tight">
               {lang === "fr" ? "Vos messages" : "Your messages"}
             </h3>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground leading-relaxed font-medium">
               {lang === "fr" 
-                ? "Sélectionnez une conversation à gauche pour afficher les échanges ou gérer les demandes locatives et de maintenance."
-                : "Select a conversation on the left to view messages or manage rental requests and maintenance."}
+                ? "Sélectionnez une conversation à gauche pour gérer vos échanges, contrats et demandes techniques en toute simplicité."
+                : "Select a conversation on the left to manage your exchanges, contracts and technical requests with ease."}
             </p>
           </div>
         ) : (
           <>
-            {/* Chat Header */}
-            <div className="h-20 px-6 border-b border-border/50 bg-background/50 backdrop-blur-md flex items-center justify-between flex-shrink-0">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="text-primary font-black text-lg">
-                    {otherParticipant?.name.charAt(0)}
-                  </span>
-                </div>
-                <div>
-                  <h3 className="font-bold text-foreground flex items-center gap-2">
-                    {otherParticipant?.name}
-                    {otherParticipant?.role === "Admin" && (
-                      <Badge className="bg-violet-100 text-violet-800 border-violet-200 text-[10px] h-5 px-1.5">Support ImmoSmart</Badge>
-                    )}
-                  </h3>
-                  {activeConversation.contextTitle && (
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5 font-medium">
-                      {getIconForCategory(activeConversation.category)}
-                      <span className="truncate max-w-[300px]">{activeConversation.contextTitle}</span>
-                    </div>
-                  )}
-                </div>
+            {/* Chat Header (Clean style from image) */}
+            <div className="h-20 px-8 border-b border-border/50 bg-background/50 backdrop-blur-md flex items-center justify-between flex-shrink-0">
+              <div className="flex items-center gap-6">
+                <Badge className={cn("px-4 py-1 text-[10px] uppercase font-black border-transparent tracking-[0.2em] shadow-sm", messageCategoryConfig[activeConversation.category].color, messageCategoryConfig[activeConversation.category].bgColor)}>
+                  {lang === "fr" ? messageCategoryConfig[activeConversation.category].label_fr : messageCategoryConfig[activeConversation.category].label_en}
+                </Badge>
               </div>
-              <Button variant="ghost" size="icon" className="text-muted-foreground">
-                <MoreVertical className="w-5 h-5" />
-              </Button>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 text-[11px] font-black text-muted-foreground uppercase tracking-widest opacity-60">
+                   <Clock className="w-4 h-4" />
+                   {formatDate(activeConversation.lastUpdatedAt)}
+                </div>
+                <Badge variant="outline" className="bg-[#E9F7F8] text-[#158C96] border-[#158C96]/20 text-[11px] font-black px-3 py-1 lowercase first-letter:uppercase tracking-normal rounded-full">
+                  {lang === "fr" ? "Vue par le locataire" : "Viewed by tenant"}
+                </Badge>
+                <Button variant="ghost" size="icon" className="text-muted-foreground hover:bg-muted/50 rounded-2xl ml-2">
+                  <MoreVertical className="w-5 h-5" />
+                </Button>
+              </div>
             </div>
 
             {/* Messages Scroll Area */}
-            <ScrollArea className="flex-1 p-6">
-              <div className="space-y-6 max-w-3xl mx-auto">
+            <ScrollArea className="flex-1 p-12 bg-background">
+              <div className="max-w-5xl mx-auto mb-16 animate-in fade-in slide-in-from-right-4 duration-700">
+                <h1 className="text-6xl font-black text-foreground tracking-tighter mb-8 leading-tight">
+                  {activeConversation.contextTitle || (lang === "fr" ? "Discussion libre" : "Open discussion")}
+                </h1>
+                
+                <div className="flex items-center gap-4 mb-16">
+                  <div className="h-14 w-14 rounded-full bg-[#D1F2F4] flex items-center justify-center text-[#158C96] font-black text-2xl shadow-sm ring-4 ring-background">
+                    {otherParticipant?.name.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="text-lg font-black text-foreground">{otherParticipant?.name}</p>
+                    <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em] opacity-60">{otherParticipant?.role === 'Tenant' ? (lang === 'fr' ? 'Locataire' : 'Tenant') : otherParticipant?.role}</p>
+                  </div>
+                </div>
+
+                {/* Timeline Styles / Info Blocks Start Here */}
+                <div className="space-y-12">
+                  <div className="bg-[#F8FAFB] p-10 rounded-[2.5rem] border border-border/30 relative overflow-hidden group">
+                    <div className="flex items-center gap-3 mb-6 text-[11px] font-black text-[#158C96] uppercase tracking-[0.3em]">
+                      <Inbox className="w-5 h-5" />
+                      DÉTAILS DE LA DEMANDE
+                    </div>
+                    <p className="text-2xl text-foreground font-serif italic leading-relaxed opacity-90">
+                      "{lang === "fr" ? "Bonjour; j'ai une fuite au niveau de l'évier de la cuisine depuis ce matin. J'ai coupé l'eau en attendant." : "Details of the request from the image..."}"
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-16 max-w-5xl mx-auto pb-24 relative px-4">
+                {/* Timeline connector (vertical line) */}
+                <div className="absolute left-11 -top-12 bottom-32 w-[2px] bg-[#D1F2F4] hidden md:block" />
+                
                 {activeMessages.map((msg, idx) => {
                   const isMe = msg.senderId === mockCurrentUser.id
-                  const showAvatar = !isMe && (idx === 0 || activeMessages[idx - 1].senderId !== msg.senderId)
-
+                  const showHeader = idx === 0 || activeMessages[idx - 1].senderId !== msg.senderId
+                  
                   return (
-                    <div key={msg.id} className={cn(
-                      "flex gap-3",
-                      isMe ? "justify-end" : "justify-start"
-                    )}>
-                      {/* Avatar placeholder for them */}
-                      {!isMe ? (
-                        <div className="w-8 flex-shrink-0 flex items-end">
-                          {showAvatar && (
-                            <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                              <span className="text-xs font-bold text-muted-foreground">
-                                {otherParticipant?.name.charAt(0)}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      ) : null}
-
-                      {/* Bubble */}
-                      <div className={cn(
-                        "flex flex-col gap-1 max-w-[80%] md:max-w-[70%]",
-                        isMe ? "items-end" : "items-start"
-                      )}>
+                    <div key={msg.id} className="relative pl-0 md:pl-24 animate-in fade-in slide-in-from-bottom-6 duration-600">
+                      {/* Timeline Node (Image style: turquoise circle with check) */}
+                      {showHeader && (
                         <div className={cn(
-                          "px-5 py-3 rounded-2xl text-sm leading-relaxed",
-                          isMe 
-                            ? "bg-primary text-primary-foreground rounded-br-sm shadow-sm"
-                            : "bg-card border border-border/50 text-foreground rounded-bl-sm shadow-sm"
+                          "absolute left-4 top-0 w-14 h-14 rounded-full flex items-center justify-center shadow-lg ring-8 ring-background z-10 hidden md:flex transition-transform hover:scale-110",
+                          isMe ? "bg-[#158C96] text-white" : "bg-white border-2 border-[#158C96] text-[#158C96]"
                         )}>
-                          {msg.content}
+                          {isMe ? <Check className="w-8 h-8" /> : <Mail className="w-7 h-7" />}
                         </div>
-                        <div className={cn("flex items-center gap-2 px-1", isMe ? "flex-row-reverse" : "flex-row")}>
-                          <span className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground">
-                            {msg.source === "email" ? <Mail className="w-3 h-3" /> : <MessageSquare className="w-3 h-3" />}
-                            {msg.source === "email" ? (lang === "fr" ? "Email" : "Email") : (lang === "fr" ? "Plateforme" : "Platform")}
-                            <span className="opacity-50">•</span>
-                            {formatTime(msg.timestamp)}
+                      )}
+
+                      <div className={cn(
+                        "p-10 rounded-[2.5rem] border transition-all duration-300",
+                        isMe 
+                          ? "bg-[#D1F2F4]/30 border-[#158C96]/10 shadow-sm" 
+                          : "bg-white border-border/50 shadow-sm"
+                      )}>
+                        <div className="flex justify-between items-start mb-6">
+                          <div>
+                            <p className={cn(
+                              "text-[11px] font-black uppercase tracking-[0.3em] mb-2",
+                              isMe ? "text-[#158C96]" : "text-violet-600"
+                            )}>
+                              {isMe ? (lang === "fr" ? "LOCATEUR" : "OWNER") : (lang === "fr" ? "LOCATAIRE" : "TENANT")}
+                            </p>
+                            <h4 className="text-3xl font-black text-foreground tracking-tight">
+                              {isMe ? (lang === "fr" ? "Réponse Envoyée" : "Response Sent") : (lang === "fr" ? "Message Reçu" : "Message Received")}
+                            </h4>
+                          </div>
+                        </div>
+
+                        <p className="text-2xl text-foreground font-medium leading-relaxed opacity-90">
+                          {msg.content}
+                        </p>
+
+                        <div className="mt-10 flex items-center gap-6 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] opacity-40">
+                          <span className="flex items-center gap-2">
+                             {msg.source === "email" ? <Mail className="w-4 h-4" /> : <MessageSquare className="w-4 h-4" />}
+                             par {msg.source}
                           </span>
-                          {isMe && (
-                            msg.isRead 
-                              ? <CheckCheck className="w-3.5 h-3.5 text-primary" />
-                              : <Check className="w-3 w-3 text-muted-foreground" />
-                          )}
                         </div>
                       </div>
                     </div>
@@ -376,43 +399,53 @@ export function MessagesModule() {
             </ScrollArea>
 
             {/* Message Input Box */}
-            <div className="p-4 bg-background border-t border-border/50 flex-shrink-0">
-              <div className="max-w-3xl mx-auto flex flex-col gap-2">
-                <div className="relative rounded-2xl bg-muted/30 border border-border/50 focus-within:border-primary focus-within:bg-background transition-all shadow-sm">
+            <div className="p-6 bg-background border-t border-border/50 flex-shrink-0">
+              <div className="max-w-4xl mx-auto flex flex-col gap-4">
+                <div className="relative rounded-[2rem] bg-muted/30 border-2 border-transparent focus-within:border-[#158C96]/20 focus-within:bg-background transition-all shadow-lg overflow-hidden">
                   <Textarea
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder={lang === "fr" ? "Écrivez une trace ou un message..." : "Type a trace or message..."}
-                    className="min-h-[60px] max-h-[200px] w-full resize-none border-0 bg-transparent py-4 pl-4 pr-16 text-sm focus-visible:ring-0 whitespace-pre-wrap"
+                    placeholder={lang === "fr" ? "Écrivez votre message ici..." : "Type your message here..."}
+                    className="min-h-[80px] max-h-[250px] w-full resize-none border-0 bg-transparent py-5 pl-6 pr-20 text-base focus-visible:ring-0 whitespace-pre-wrap font-medium"
                   />
-                  <Button
-                    size="icon"
-                    className={cn(
-                      "absolute right-2 bottom-2 h-10 w-10 rounded-xl transition-all",
-                      newMessage.trim() ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-100" : "bg-muted text-muted-foreground scale-95 opacity-50"
-                    )}
-                    onClick={handleSendMessage}
-                    disabled={!newMessage.trim()}
-                  >
-                    <Send className="w-4 h-4 ml-0.5" />
-                  </Button>
+                  <div className="absolute right-3 bottom-3">
+                    <Button
+                      size="icon"
+                      className={cn(
+                        "h-12 w-12 rounded-2xl transition-all duration-300",
+                        newMessage.trim() 
+                          ? "bg-[#158C96] text-white shadow-xl shadow-[#158C96]/30 scale-100 rotate-0" 
+                          : "bg-muted text-muted-foreground scale-90 opacity-50 -rotate-12"
+                      )}
+                      onClick={handleSendMessage}
+                      disabled={!newMessage.trim()}
+                    >
+                      <Send className="w-5 h-5 ml-0.5" />
+                    </Button>
+                  </div>
                 </div>
                 
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
-                  <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors select-none">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-2">
+                  <label className="flex items-center gap-3 text-xs font-black text-muted-foreground cursor-pointer hover:text-[#158C96] transition-colors select-none uppercase tracking-widest">
+                    <div className={cn(
+                      "w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all",
+                      sendViaEmail ? "bg-[#158C96] border-[#158C96] text-white" : "border-muted-foreground/30 text-transparent"
+                    )}>
+                      <Check className="w-3.5 h-3.5" />
+                    </div>
                     <input 
                       type="checkbox" 
-                      className="rounded border-muted-foreground/30 text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+                      className="hidden"
                       checked={sendViaEmail}
                       onChange={(e) => setSendViaEmail(e.target.checked)}
                     />
                     <Mail className="w-4 h-4" />
                     {lang === "fr" ? "Marquer comme envoyé par email (trace uniquement)" : "Mark as sent via email (trace only)"}
                   </label>
-                  <p className="text-[10px] text-muted-foreground font-medium hidden sm:block">
-                    {lang === "fr" ? "Dossier lié : " : "Linked context: "} {activeConversation.contextTitle || "Général"}
-                  </p>
+                  <Badge variant="outline" className="px-3 py-1 rounded-full border-[#158C96]/10 bg-[#158C96]/5 text-[#158C96] text-[10px] font-black uppercase tracking-tighter self-start sm:self-auto">
+                    {lang === "fr" ? "Dossier : " : "Task: "} {activeConversation?.contextTitle || "Général"}
+                  </Badge>
                 </div>
               </div>
             </div>

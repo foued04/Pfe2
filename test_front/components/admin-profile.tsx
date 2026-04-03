@@ -28,7 +28,12 @@ import {
   PieChart,
   ArrowUpRight,
   TrendingUp,
-  Server
+  Server,
+  ShieldCheck,
+  Building,
+  Activity,
+  AlertCircle,
+  LayoutDashboard
 } from "lucide-react"
 import { Progress } from "./ui/progress"
 

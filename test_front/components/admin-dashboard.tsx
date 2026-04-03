@@ -32,6 +32,14 @@ import {
   Star,
   Search,
   Phone,
+  Sofa,
+  Package,
+  Layers,
+  Check,
+  X,
+  Eye,
+  MoreVertical,
+  User
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { mockProperties } from "@/lib/property-data"
@@ -40,6 +48,9 @@ import {
   PieChart, Pie, Cell, Legend, BarChart, Bar
 } from "recharts"
 import { AdminProfile } from "./admin-profile"
+import { AdminPropertiesManagement } from "./admin-properties-management"
+import { AdminFurnitureManagement } from "./admin-furniture-management"
+import { AdminReports } from "./admin-reports"
 
 const userGrowthData = [
   { month: "Oct", users: 1500, properties: 400 },
@@ -65,10 +76,11 @@ const userRoleData = [
 const navItems = [
   { key: "dashboard", icon: LayoutDashboard, label: "nav.dashboard" },
   { key: "users", icon: Users, label: "nav.users" },
-  { key: "properties", icon: Home, label: "nav.allProperties" },
+  { key: "properties", icon: Building, label: "nav.realEstate" },
+  { key: "furniture", icon: Sofa, label: "nav.furniture" },
   { key: "map", icon: Map, label: "nav.map" },
   { key: "reports", icon: FileText, label: "nav.reports" },
-  { key: "settings", icon: Settings, label: "nav.settings" },
+  { key: "profile", icon: User, label: "nav.profile" },
 ]
 
 const statsData = [
@@ -353,7 +365,13 @@ export function AdminDashboard() {
             </div>
           </div>
         )
-      case "settings":
+      case "properties":
+        return <AdminPropertiesManagement />
+      case "furniture":
+        return <AdminFurnitureManagement />
+      case "reports":
+        return <AdminReports />
+      case "profile":
         return (
           <main className="p-8 space-y-8 animate-in fade-in duration-700">
             <AdminProfile />
