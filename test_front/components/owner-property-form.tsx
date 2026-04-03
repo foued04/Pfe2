@@ -78,7 +78,7 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
     equippedKitchen: initialData?.equippedKitchen || false,
     balcony: initialData?.balcony || false,
     parking: initialData?.parking || false,
-    furnished: initialData?.furnished || false,
+    meuble: initialData?.meuble || false,
     status: initialData?.status || "available",
   })
 
@@ -464,14 +464,14 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="furnished" className="cursor-pointer flex items-center gap-2">
+                  <Label htmlFor="meuble" className="cursor-pointer flex items-center gap-2">
                     <Sofa className="h-4 w-4 text-muted-foreground" />
-                    {t("form.furnished")}
+                    {t("form.meuble")}
                   </Label>
                   <Switch
-                    id="furnished"
-                    checked={formData.furnished}
-                    onCheckedChange={(checked) => updateField("furnished", checked)}
+                    id="meuble"
+                    checked={formData.meuble}
+                    onCheckedChange={(checked) => updateField("meuble", checked)}
                   />
                 </div>
               </div>

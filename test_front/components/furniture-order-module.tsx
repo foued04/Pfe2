@@ -8,7 +8,7 @@ import { FurnitureCatalog } from "./furniture-catalog"
 import { FurnitureCart } from "./furniture-cart"
 import { FurnitureReceipt } from "./furniture-receipt"
 import { CartItem, FurnitureItem, FurnitureOrder, OrderStatus } from "@/lib/furniture-data"
-import { Package, Receipt, ShoppingBag, LayoutGrid } from "lucide-react"
+import { Package, Receipt, ShoppingBag, LayoutGrid, Armchair } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface FurnitureOrderModuleProps {
@@ -84,39 +84,60 @@ export function FurnitureOrderModule({ initialPropertyId }: FurnitureOrderModule
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8 pb-20">
-      {/* Header section */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-border pb-8">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-primary font-bold uppercase tracking-[0.2em] text-xs">
-            <Package className="w-4 h-4" />
-            Module Mobilier
+    <div className="min-h-screen bg-background">
+      <div className="p-6 max-w-[1400px] mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+        {/* Premium Banner */}
+        <div className="relative overflow-hidden rounded-2xl bg-primary p-8 text-white shadow-xl shadow-emerald-900/10 active:scale-[0.99] transition-all">
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-2">
+              <h1 className="text-2xl md:text-3xl font-black tracking-tight flex items-center gap-3">
+                <Armchair className="w-8 h-8 text-secondary" />
+                Catalogue de mobilier premium
+              </h1>
+              <p className="text-emerald-50/80 text-lg font-medium">
+                Équipez vos propriétés avec des meubles de qualité et gérez les commandes en toute simplicité.
+              </p>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-4 items-center">
+              <div className="bg-secondary/20 backdrop-blur-md px-6 py-4 rounded-xl border border-secondary/30 flex items-center gap-4">
+                <div className="p-2 bg-secondary/20 rounded-lg">
+                  <Package className="w-6 h-6 text-secondary" />
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-widest font-black text-secondary">Livraison</p>
+                  <p className="text-sm font-bold text-white">Standard Gratuite</p>
+                </div>
+              </div>
+
+              {/* View Switcher (Tabs) */}
+              <div className="flex bg-black/20 backdrop-blur-md p-1 rounded-xl border border-white/10">
+                <button 
+                  onClick={() => setView("catalog")}
+                  className={cn(
+                    "px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all",
+                    view === "catalog" ? "bg-secondary text-primary" : "text-white/70 hover:text-white"
+                  )}
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                  Catalogue
+                </button>
+                <button 
+                  className={cn(
+                    "px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all opacity-50 cursor-not-allowed",
+                    view === "receipt" ? "bg-secondary text-primary" : "text-white/70"
+                  )}
+                >
+                  <Receipt className="w-4 h-4" />
+                  {t("furn.receipt")}
+                </button>
+              </div>
+            </div>
           </div>
-          <h2 className="text-3xl font-black text-foreground tracking-tight">
-            {t("furn.title")}
-          </h2>
-          <p className="text-muted-foreground max-w-lg">
-            {t("furn.subtitle")}
-          </p>
+          {/* Abstract decoration */}
+          <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-80 h-80 bg-white/5 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-64 h-64 bg-black/10 rounded-full blur-2xl pointer-events-none" />
         </div>
-        
-        <div className="flex bg-muted/50 p-1 rounded-xl border border-border/50 shadow-sm">
-           <div className={cn(
-             "px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all",
-             view === "catalog" ? "bg-background text-primary shadow-md" : "text-muted-foreground"
-           )}>
-             <LayoutGrid className="w-4 h-4" />
-             Catalogue
-           </div>
-           <div className={cn(
-             "px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all opacity-50 cursor-not-allowed",
-             view === "receipt" ? "bg-background text-primary shadow-md" : "text-muted-foreground"
-           )}>
-             <Receipt className="w-4 h-4" />
-             {t("furn.receipt")}
-           </div>
-        </div>
-      </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
         {/* Catalog Side */}
@@ -141,6 +162,7 @@ export function FurnitureOrderModule({ initialPropertyId }: FurnitureOrderModule
             onPaymentMethodChange={setPaymentMethod}
           />
         </div>
+      </div>
       </div>
     </div>
   )

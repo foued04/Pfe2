@@ -208,7 +208,7 @@ export function PropertyDetailsModal({
               <FeatureItem icon={Bath} label="S. de bain" value={property.bathrooms} />
               <FeatureItem icon={ChefHat} label="Cuisine" value={property.equippedKitchen ? "Équipée" : "Standard"} />
               <FeatureItem icon={Car} label="Parking" value={property.parking ? "Oui" : "Non"} />
-              <FeatureItem icon={Sofa} label="Meublé" value={property.furnished ? "Oui" : "Non"} />
+              <FeatureItem icon={Sofa} label="Meublé" value={property.meuble ? "Oui" : "Non"} />
               <FeatureItem icon={Home} label="Balcon" value={property.balcony ? "Oui" : "Non"} />
             </div>
 

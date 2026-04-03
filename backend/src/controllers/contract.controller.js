@@ -4,12 +4,19 @@ const rentalRequestService = require('../services/rentalRequest.service');
 const propertyService = require('../services/property.service');
 const ApiError = require('../utils/ApiError');
 
-const generateContract = asyncHandler(async (req, res) => {
+// @desc    Générer un contrat à partir d'une demande
+// @route   POST /api/contracts/generate
+exports.generateContract = asyncHandler(async (req, res) => {
   const { requestId } = req.body;
   const request = await rentalRequestService.getRentalRequestById(requestId);
 
+  if (!request) {
+    throw new ApiError(404, 'Demande non trouvée');
+  }
+
+  // Vérifier que c'est bien le propriétaire (ou admin) qui génère le contrat
   if (request.property.owner._id.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-    throw new ApiError(403, 'Forbidden');
+    throw new ApiError(403, 'Accès refusé');
   }
 
   const existing = await contractService.getContractByRequestId(requestId);
@@ -29,18 +36,23 @@ const generateContract = asyncHandler(async (req, res) => {
 
   const contract = await contractService.createContract(contractBody);
   await rentalRequestService.updateRentalRequestStatus(requestId, 'Contrat généré');
+  
   res.status(201).send(contract);
 });
 
-const getContract = asyncHandler(async (req, res) => {
+// @desc    Récupérer un contrat par l'ID de la demande
+// @route   GET /api/contracts/request/:requestId
+exports.getContract = asyncHandler(async (req, res) => {
   const contract = await contractService.getContractByRequestId(req.params.requestId);
   if (!contract) {
-    throw new ApiError(404, 'Contract not found');
+    throw new ApiError(404, 'Contrat non trouvé');
   }
   res.send(contract);
 });
 
-const signContract = asyncHandler(async (req, res) => {
+// @desc    Signer un contrat
+// @route   PUT /api/contracts/:contractId/sign
+exports.signContract = asyncHandler(async (req, res) => {
   const { contractId } = req.params;
   const contract = await contractService.updateContract(contractId, { 
     status: req.user.role === 'owner' ? 'SignedByOwner' : 'SignedByBoth' 
@@ -53,9 +65,3 @@ const signContract = asyncHandler(async (req, res) => {
 
   res.send(contract);
 });
-
-module.exports = {
-  generateContract,
-  getContract,
-  signContract,
-};

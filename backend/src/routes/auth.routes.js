@@ -10,7 +10,7 @@ const registerSchema = z.object({
   fullName: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
-  role: z.enum(['admin', 'owner', 'tenant']).optional(),
+  role: z.enum(['owner', 'tenant']).optional(),
   phone: z.string().optional()
 });
 
@@ -26,5 +26,8 @@ router.post('/forgot-password', authController.forgotPassword);
 router.post('/verify-reset-code', authController.verifyResetCode);
 router.post('/reset-password', authController.resetPassword);
 router.post('/google', authController.googleLogin);
+
+router.patch('/profile', auth, authController.updateProfile);
+router.patch('/password', auth, authController.updatePassword);
 
 module.exports = router;

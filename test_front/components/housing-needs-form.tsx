@@ -55,7 +55,7 @@ export function HousingNeedsForm() {
     bedrooms: "",
     moveInDate: "",
     duration: "",
-    furnished: false,
+    meuble: false,
     parking: false,
     nearCenter: false,
     notes: "",
@@ -79,7 +79,7 @@ export function HousingNeedsForm() {
       bedrooms: "",
       moveInDate: "",
       duration: "",
-      furnished: false,
+      meuble: false,
       parking: false,
       nearCenter: false,
       notes: "",
@@ -305,11 +305,11 @@ export function HousingNeedsForm() {
               <h3 className="font-semibold text-foreground">Préférences</h3>
               <div className="space-y-4 rounded-lg border border-border p-4 bg-secondary/20">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="furnished" className="cursor-pointer">{t("housing.furnished")}</Label>
+                  <Label htmlFor="meuble" className="cursor-pointer">{t("housing.meuble")}</Label>
                   <Switch
-                    id="furnished"
-                    checked={formData.furnished}
-                    onCheckedChange={(checked) => updateField("furnished", checked)}
+                    id="meuble"
+                    checked={formData.meuble}
+                    onCheckedChange={(checked) => updateField("meuble", checked)}
                   />
                 </div>
                 <div className="flex items-center justify-between">

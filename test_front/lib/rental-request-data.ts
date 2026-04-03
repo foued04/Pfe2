@@ -219,6 +219,28 @@ export const mockContracts: Contract[] = [
     tenantSignature: "signed",
     createdAt: "2026-03-01",
   },
+  {
+    id: "ctr-003",
+    requestId: "req-003",
+    propertyId: "4",
+    propertyTitle: "Appartement S+3 Familial Khniss",
+    propertyAddress: "Immeuble El Yasmine, Khniss, Monastir 5036",
+    propertyType: "Appartement S+3",
+    propertySurface: 120,
+    propertyRent: 950,
+    propertyDeposit: 1900,
+    ownerName: "Leila Sassi",
+    ownerEmail: "leila.sassi@email.com",
+    ownerPhone: "+216 73 505 678",
+    tenantName: "Sarra Bouaziz",
+    tenantEmail: "sarra.bouaziz@email.com",
+    tenantPhone: "+216 73 462 345",
+    startDate: "2026-04-15",
+    endDate: "2027-04-14",
+    duration: "12 mois",
+    status: "Draft",
+    createdAt: "2026-03-25",
+  },
 ]
 
 // ─── Utility Functions ──────────────────────────────────────────────────────

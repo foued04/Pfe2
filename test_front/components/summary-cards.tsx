@@ -37,12 +37,13 @@ const stats = [
     icon: Key,
     trend: "-1",
     trendUp: false,
-    color: "text-accent-foreground",
-    bgColor: "bg-accent",
+    color: "text-orange-600",
+    bgColor: "bg-orange-100",
   },
   {
     key: "dashboard.estimatedRevenue",
     value: "24 500 TND",
+    icon: TrendingUp,
     trend: "+12%",
     trendUp: true,
     color: "text-primary",
@@ -54,8 +55,8 @@ const stats = [
     icon: FileText,
     trend: "+3",
     trendUp: true,
-    color: "text-amber-600",
-    bgColor: "bg-amber-100",
+    color: "text-orange-600",
+    bgColor: "bg-orange-100",
   },
 ]
 

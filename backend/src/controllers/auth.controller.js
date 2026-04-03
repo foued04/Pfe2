@@ -66,6 +66,17 @@ const googleLogin = asyncHandler(async (req, res) => {
   res.send({ user, accessToken });
 });
 
+const updateProfile = asyncHandler(async (req, res) => {
+  const user = await authService.updateUser(req.user.id, req.body);
+  res.send({ user, message: 'Profil mis à jour avec succès' });
+});
+
+const updatePassword = asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  await authService.updatePassword(req.user.id, currentPassword, newPassword);
+  res.send({ message: 'Mot de passe modifié avec succès' });
+});
+
 module.exports = {
   signup,
   login,
@@ -74,4 +85,6 @@ module.exports = {
   verifyResetCode,
   resetPassword,
   googleLogin,
+  updateProfile,
+  updatePassword,
 };

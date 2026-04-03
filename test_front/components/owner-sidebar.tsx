@@ -8,11 +8,11 @@ import {
   Plus,
   FileText,
   MessageSquare,
-  BarChart3,
   User,
   ChevronLeft,
   ChevronRight,
   Home,
+  Sofa,
 } from "lucide-react"
 import { useState } from "react"
 
@@ -20,9 +20,9 @@ const navItems = [
   { key: "nav.overview", icon: LayoutDashboard, href: "#" },
   { key: "nav.myProperties", icon: Building2, href: "#" },
   { key: "nav.addProperty", icon: Plus, href: "#" },
-  { key: "nav.requests", icon: FileText, href: "#" },
+  { key: "nav.requests", icon: FileText, href: "#", badge: 5 },
   { key: "nav.messages", icon: MessageSquare, href: "#", badge: 3 },
-  { key: "nav.analytics", icon: BarChart3, href: "#" },
+  { key: "nav.furniture", icon: Sofa, href: "#" },
   { key: "nav.profile", icon: User, href: "#" },
 ]
 
@@ -57,21 +57,21 @@ export function OwnerSidebar() {
             className={cn(
               "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
               active === item.key
-                ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-orange-900/20"
                 : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
             )}
           >
             <item.icon
               className={cn(
                 "h-5 w-5 shrink-0 transition-colors",
-                active === item.key ? "text-primary" : "text-sidebar-foreground/60"
+                active === item.key ? "text-sidebar-primary-foreground" : "text-sidebar-foreground/60"
               )}
             />
             {!collapsed && (
               <span className="truncate">{t(item.key)}</span>
             )}
             {!collapsed && item.badge && (
-              <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-medium text-primary-foreground">
+              <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-xs font-bold text-accent-foreground">
                 {item.badge}
               </span>
             )}

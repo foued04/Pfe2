@@ -75,8 +75,8 @@ export function TenantPropertiesGrid({
       }
     }
 
-    // Furnished
-    if (filters.furnished && !property.furnished) {
+    // Meublé
+    if (filters.meuble && !property.meuble) {
       return false
     }
 

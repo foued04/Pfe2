@@ -38,7 +38,7 @@ export function DashboardHeader() {
         </div>
 
         {/* Add Property Button */}
-        <Button className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
+        <Button variant="coral" className="gap-2">
           <Plus className="h-4 w-4" />
           <span className="hidden sm:inline">{t("nav.addProperty")}</span>
         </Button>
@@ -50,7 +50,7 @@ export function DashboardHeader() {
           className="relative text-muted-foreground hover:text-foreground"
         >
           <Bell className="h-5 w-5" />
-          <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary" />
+          <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-orange-500" />
         </Button>
 
         {/* Language Switcher */}

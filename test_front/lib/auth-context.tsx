@@ -7,10 +7,19 @@ export type UserRole = "admin" | "owner" | "tenant"
 interface User {
   id: string
   name: string
+  firstName?: string
+  lastName?: string
   email: string
   phone: string
   role: UserRole
   avatar?: string
+  address?: string
+  birthDate?: string
+  notificationPrefs?: {
+    acceptedRequests: boolean
+    ownerMessages: boolean
+    rentReminders: boolean
+  }
 }
 
 interface AuthContextType {
@@ -21,6 +30,8 @@ interface AuthContextType {
   login: (email: string, password: string, role: UserRole) => Promise<{ success: boolean; message?: string }>
   register: (data: RegisterData) => Promise<{ success: boolean; message?: string }>
   logout: () => void
+  updateProfile: (data: Partial<User>) => Promise<{ success: boolean; message?: string }>
+  updatePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; message?: string }>
 }
 
 interface RegisterData {
@@ -42,11 +53,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isAuthenticated = user !== null
 
+  const mapBackendUser = (backendUser: any): User => {
+    return {
+      id: backendUser._id || backendUser.id,
+      name: backendUser.fullName,
+      firstName: backendUser.firstName || "",
+      lastName: backendUser.lastName || "",
+      email: backendUser.email,
+      phone: backendUser.phone || "",
+      role: backendUser.role as UserRole,
+      avatar: backendUser.avatar || "",
+      address: backendUser.address || "",
+      birthDate: backendUser.birthDate || "",
+      notificationPrefs: backendUser.notificationPrefs || {
+        acceptedRequests: true,
+        ownerMessages: true,
+        rentReminders: true
+      }
+    }
+  }
+
   useEffect(() => {
-    // Check for stored token on initial load
     const checkAuthStatus = async () => {
-      const token = localStorage.getItem("accessToken")
-      if (!token) {
+      const token = typeof window !== 'undefined' ? localStorage.getItem("accessToken") : null
+      
+      if (!token || token === "undefined") {
         setIsLoading(false)
         return
       }
@@ -60,26 +91,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (response.ok) {
           const data = await response.json()
-
-          // Map backend fields to frontend User interface
-          const mappedUser: User = {
-            id: data.user._id || data.user.id,
-            name: data.user.fullName,
-            email: data.user.email,
-            phone: data.user.phone || "",
-            role: data.user.role as UserRole,
+          if (data && data.user) {
+            const mappedUser = mapBackendUser(data.user)
+            setUser(mappedUser)
+            setRole(mappedUser.role)
           }
-
-          setUser(mappedUser)
-          setRole(mappedUser.role)
         } else {
-          // Token is invalid or expired
-          localStorage.removeItem("accessToken")
-          setUser(null)
-          setRole(null)
+          // Token might be expired or invalid
+          if (response.status === 401) {
+             localStorage.removeItem("accessToken")
+             setUser(null)
+             setRole(null)
+          }
         }
       } catch (error) {
-        console.error("Failed to verify authentication:", error)
+        // This handles "Failed to fetch" errors gracefully
+        console.warn("Auth check failed (Server might be down or network issue):", error)
+        // We don't clear the token here in case it's just a temporary network issue
       } finally {
         setIsLoading(false)
       }
@@ -100,7 +128,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (response.ok) {
         const data = await response.json()
 
-        // Ensure the role matches the selectedRole if provided from frontend UI
         if (data.user.role !== selectedRole) {
           return { success: false, message: `Rôle incorrect. Vous essayez de vous connecter en tant que ${selectedRole}.` }
         }
@@ -109,14 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.setItem("accessToken", data.accessToken)
         }
 
-        const mappedUser: User = {
-          id: data.user._id || data.user.id,
-          name: data.user.fullName,
-          email: data.user.email,
-          phone: data.user.phone || "",
-          role: data.user.role as UserRole,
-        }
-
+        const mappedUser = mapBackendUser(data.user)
         setUser(mappedUser)
         setRole(mappedUser.role)
         return { success: true }
@@ -137,7 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          fullName: data.name, // Mapping frontend name back to backend fullName
+          fullName: data.name,
           email: normalizedEmail,
           password: data.password,
           role: data.role,
@@ -152,14 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.setItem("accessToken", responseData.accessToken)
         }
 
-        const mappedUser: User = {
-          id: responseData.user._id || responseData.user.id,
-          name: responseData.user.fullName,
-          email: responseData.user.email,
-          phone: responseData.user.phone || "",
-          role: responseData.user.role as UserRole,
-        }
-
+        const mappedUser = mapBackendUser(responseData.user)
         setUser(mappedUser)
         setRole(mappedUser.role)
         return { success: true }
@@ -173,6 +186,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const updateProfile = async (profileData: Partial<User>): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/api/auth/profile`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...profileData,
+          fullName: profileData.name || user?.name // Backend expects fullName
+        }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        const mappedUser = mapBackendUser(data.user)
+        setUser(mappedUser)
+        return { success: true, message: data.message }
+      }
+
+      const errData = await response.json().catch(() => null)
+      return { success: false, message: errData?.message || "Erreur lors de la mise à jour du profil" }
+    } catch (error) {
+      console.error("Profile update error:", error)
+      return { success: false, message: "Erreur de connexion au serveur" }
+    }
+  }
+
+  const updatePassword = async (currentPassword: string, newPassword: string): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/api/auth/password`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        return { success: true, message: data.message }
+      }
+
+      const errData = await response.json().catch(() => null)
+      return { success: false, message: errData?.message || "Erreur lors du changement de mot de passe" }
+    } catch (error) {
+      console.error("Password update error:", error)
+      return { success: false, message: "Erreur de connexion au serveur" }
+    }
+  }
+
   const logout = () => {
     localStorage.removeItem("accessToken")
     setUser(null)
@@ -180,7 +248,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, role, isAuthenticated, isLoading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, role, isAuthenticated, isLoading, login, register, logout, updateProfile, updatePassword }}>
       {children}
     </AuthContext.Provider>
   )

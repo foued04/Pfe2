@@ -35,76 +35,79 @@ export function FurnitureCatalog({ onAddToCart }: FurnitureCatalogProps) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-        <div className="relative w-full md:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input 
-            placeholder={t("general.search")} 
-            className="pl-9"
+    <div className="space-y-8">
+      {/* Search and Filters Block */}
+      <div className="bg-white p-6 rounded-2xl border border-border/50 shadow-sm space-y-6">
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <Input
+            placeholder={t("general.search")}
+            className="pl-12 h-14 bg-secondary/20 border-none rounded-xl text-lg focus-visible:ring-primary/20"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        
+
         <div className="flex flex-wrap gap-2">
           {categories.map((cat) => (
-            <Button
+            <button
               key={cat}
-              variant={selectedCategory === cat ? "default" : "outline"}
-              size="sm"
               onClick={() => setSelectedCategory(cat)}
-              className="rounded-full h-8"
+              className={cn(
+                "px-5 py-2 rounded-full text-sm font-bold transition-all border",
+                selectedCategory === cat 
+                  ? "bg-primary text-white border-primary shadow-lg shadow-emerald-100" 
+                  : "bg-white text-muted-foreground border-border hover:border-primary/30 hover:text-primary"
+              )}
             >
               {getCategoryLabel(cat)}
-            </Button>
+            </button>
           ))}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {/* Catalog Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredItems.map((item) => (
-          <Card key={item.id} className="overflow-hidden group hover:shadow-lg transition-all duration-300 border-border/50">
-            <div className="aspect-[4/3] overflow-hidden relative">
+          <Card key={item.id} className="overflow-hidden group hover:shadow-xl hover:-translate-y-1 transition-all duration-500 border-none bg-white rounded-2xl shadow-sm">
+            <div className="relative aspect-[16/11] overflow-hidden">
               <img 
                 src={item.image} 
                 alt={item.name} 
-                className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
+                className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700" 
               />
-              <Badge className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm text-foreground hover:bg-background/90 font-medium border-none">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <Badge className="absolute top-4 right-4 bg-white/90 backdrop-blur-md text-primary border-none font-black px-3 py-1">
                 {getCategoryLabel(item.category)}
               </Badge>
             </div>
-            <CardHeader className="p-4 pb-0">
-              <CardTitle className="text-base line-clamp-1">{item.name}</CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 pt-2">
-              <p className="text-sm text-muted-foreground line-clamp-2 h-10">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start mb-2 gap-2">
+                <h3 className="font-extrabold text-lg line-clamp-1 group-hover:text-primary transition-colors">{item.name}</h3>
+                <span className="text-lg font-black text-primary whitespace-nowrap">{item.price.toLocaleString()} DT</span>
+              </div>
+              <p className="text-xs text-muted-foreground line-clamp-2 mb-6 h-8 leading-relaxed">
                 {item.description}
               </p>
-              <div className="mt-4 flex items-center justify-between">
-                <span className="text-lg font-bold text-primary">
-                  {item.price.toLocaleString()} <span className="text-xs font-normal text-muted-foreground">TND</span>
-                </span>
-              </div>
-            </CardContent>
-            <CardFooter className="p-4 pt-0">
+              
               <Button 
-                className="w-full gap-2" 
-                onClick={() => onAddToCart(item)}
+                onClick={() => onAddToCart(item)} 
+                className="w-full h-11 bg-primary hover:opacity-80 text-white rounded-xl gap-2 font-bold transition-all shadow-md shadow-emerald-900/5 active:scale-95"
               >
-                <Plus className="w-4 h-4" />
-                {t("furn.add")}
+                <Plus className="w-4 h-4" /> {t("furn.add")}
               </Button>
-            </CardFooter>
+            </CardContent>
           </Card>
         ))}
       </div>
 
       {filteredItems.length === 0 && (
-        <div className="text-center py-20 bg-muted/30 rounded-2xl border-2 border-dashed border-border">
-          <Filter className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-          <p className="text-muted-foreground font-medium">{t("tenant.noResults")}</p>
+        <div className="text-center py-24 bg-white rounded-3xl border border-dashed border-border/60 shadow-inner">
+          <div className="w-20 h-20 bg-secondary/30 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Filter className="w-10 h-10 text-muted-foreground/40" />
+          </div>
+          <p className="text-muted-foreground font-bold text-lg">{t("tenant.noResults")}</p>
+          <p className="text-sm text-muted-foreground/60 mt-1">Essayez d'autres mots-clés ou catégories</p>
         </div>
       )}
     </div>

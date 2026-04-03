@@ -21,7 +21,7 @@ export interface FilterValues {
   maxBudget: string
   propertyType: string
   bedrooms: string
-  furnished: boolean
+  meuble: boolean
   parking: boolean
   minSurface: string
 }
@@ -198,11 +198,11 @@ export function TenantFilters({
           {/* Switches */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <Label htmlFor="furnished">{t("filter.furnished")}</Label>
+              <Label htmlFor="meuble">{t("filter.meuble")}</Label>
               <Switch
-                id="furnished"
-                checked={filters.furnished}
-                onCheckedChange={(checked) => updateFilter("furnished", checked)}
+                id="meuble"
+                checked={filters.meuble}
+                onCheckedChange={(checked) => updateFilter("meuble", checked)}
               />
             </div>
             <div className="flex items-center justify-between">

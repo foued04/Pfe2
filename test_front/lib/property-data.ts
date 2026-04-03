@@ -24,7 +24,7 @@ export interface Property {
   equippedKitchen: boolean
   balcony: boolean
   parking: boolean
-  furnished: boolean
+  meuble: boolean
   availability: string
   status: "available" | "rented" | "maintenance"
   images: PropertyImage
@@ -55,7 +55,7 @@ export const mockProperties: Property[] = [
     equippedKitchen: true,
     balcony: true,
     parking: true,
-    furnished: true,
+    meuble: true,
     availability: "2024-02-01",
     status: "available",
     images: {
@@ -90,7 +90,7 @@ export const mockProperties: Property[] = [
     equippedKitchen: true,
     balcony: true,
     parking: false,
-    furnished: true,
+    meuble: true,
     availability: "2024-01-20",
     status: "available",
     images: {
@@ -125,7 +125,7 @@ export const mockProperties: Property[] = [
     equippedKitchen: true,
     balcony: true,
     parking: true,
-    furnished: true,
+    meuble: true,
     availability: "2024-02-15",
     status: "available",
     images: {
@@ -160,7 +160,7 @@ export const mockProperties: Property[] = [
     equippedKitchen: true,
     balcony: true,
     parking: true,
-    furnished: false,
+    meuble: false,
     availability: "2024-03-01",
     status: "available",
     images: {
@@ -195,7 +195,7 @@ export const mockProperties: Property[] = [
     equippedKitchen: true,
     balcony: true,
     parking: true,
-    furnished: true,
+    meuble: true,
     availability: "2024-01-25",
     status: "rented",
     images: {
@@ -230,7 +230,7 @@ export const mockProperties: Property[] = [
     equippedKitchen: true,
     balcony: true,
     parking: true,
-    furnished: true,
+    meuble: true,
     availability: "2024-02-10",
     status: "available",
     images: {
@@ -265,7 +265,7 @@ export const mockProperties: Property[] = [
     equippedKitchen: true,
     balcony: true,
     parking: true,
-    furnished: true,
+    meuble: true,
     availability: "2024-02-20",
     status: "available",
     images: {
@@ -300,7 +300,7 @@ export const mockProperties: Property[] = [
     equippedKitchen: false,
     balcony: false,
     parking: false,
-    furnished: false,
+    meuble: false,
     availability: "2024-01-15",
     status: "available",
     images: {

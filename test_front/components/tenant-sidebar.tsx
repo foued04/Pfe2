@@ -13,6 +13,8 @@ import {
   Home,
   Map,
   LogOut,
+  Sofa,
+  BarChart3,
 } from "lucide-react"
 
 const navItems = [
@@ -20,6 +22,7 @@ const navItems = [
   { key: "map", icon: Map, label: "nav.map" },
   { key: "favorites", icon: Heart, label: "nav.favorites" },
   { key: "myRequests", icon: FileText, label: "nav.myRequests" },
+  { key: "furniture", icon: Sofa, label: "nav.furniture" },
   { key: "maintenance", icon: ClipboardList, label: "nav.maintenance" },
   { key: "housingNeeds", icon: ClipboardList, label: "nav.housingNeeds" },
   { key: "messages", icon: MessageSquare, label: "nav.messages" },
@@ -50,10 +53,11 @@ export function TenantSidebar({ activeSection, onSectionChange }: TenantSidebarP
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-1 p-4">
+        <nav className="flex-1 space-y-1 p-4 overflow-y-auto">
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = activeSection === item.key
+            const label = t(item.label)
             return (
               <button
                 key={item.key}
@@ -66,7 +70,7 @@ export function TenantSidebar({ activeSection, onSectionChange }: TenantSidebarP
                 )}
               >
                 <Icon className="h-5 w-5" />
-                <span>{t(item.label)}</span>
+                <span>{label}</span>
               </button>
             )
           })}
@@ -97,3 +101,4 @@ export function TenantSidebar({ activeSection, onSectionChange }: TenantSidebarP
     </aside>
   )
 }
+

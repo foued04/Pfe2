@@ -167,7 +167,7 @@ export default function MapContent({
               <div className="text-xs text-gray-600 mb-3 flex gap-2 flex-wrap">
                 <span>📏 {property.surface} m²</span>
                 {property.parking && <span>🅿️ Parking</span>}
-                {property.furnished && <span>🪑 Meublé</span>}
+                {property.meuble && <span>🪑 Meublé</span>}
               </div>
 
               {/* View details button */}

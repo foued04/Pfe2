@@ -3,6 +3,11 @@ const User = require('../models/User.model');
 const ApiError = require('../utils/ApiError');
 
 const createUser = async (userData) => {
+  // Block admin registration — admin account is created only via seed script
+  if (userData.role === 'admin') {
+    throw new ApiError(403, 'La création de comptes administrateur est interdite');
+  }
+
   if (await User.findOne({ email: userData.email })) {
     throw new ApiError(400, 'L\'adresse email est déjà utilisée');
   }
@@ -85,10 +90,40 @@ const resetPassword = async (email, code, newPassword) => {
   return user;
 };
 
+const updateUser = async (userId, updateData) => {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(404, 'Utilisateur non trouvé');
+  }
+
+  // Prevent email, password, and role update via this specific method
+  delete updateData.email;
+  delete updateData.password;
+  delete updateData.role;
+
+  Object.assign(user, updateData);
+  await user.save();
+  return user;
+};
+
+const updatePassword = async (userId, currentPassword, newPassword) => {
+  const user = await User.findById(userId);
+  if (!user || !(await bcrypt.compare(currentPassword, user.password))) {
+    throw new ApiError(401, 'Mot de passe actuel incorrect');
+  }
+
+  const salt = await bcrypt.genSalt(10);
+  user.password = await bcrypt.hash(newPassword, salt);
+  await user.save();
+  return user;
+};
+
 module.exports = {
   createUser,
   loginUserWithEmailAndPassword,
   generateResetCode,
   verifyResetCode,
   resetPassword,
+  updateUser,
+  updatePassword,
 };

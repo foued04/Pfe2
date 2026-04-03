@@ -138,7 +138,8 @@ export function OwnerDashboard() {
                   setEditingProperty(null)
                   setActiveSection("addProperty")
                 }}
-                className="bg-primary hover:bg-primary/90 text-white gap-2"
+                variant="coral"
+                className="gap-2"
               >
                 <Plus className="h-4 w-4" />
                 {lang === "fr" ? "Ajouter un bien" : "Add Property"}

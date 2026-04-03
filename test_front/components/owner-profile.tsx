@@ -31,13 +31,37 @@ import {
   Info,
   ArrowRight,
   Image as ImageIcon,
-  Building2
+  Building2,
+  DollarSign,
+  TrendingUp,
+  Wrench,
+  ShieldCheck
 } from "lucide-react"
+import { Progress } from "./ui/progress"
 
 export function OwnerProfile() {
   const { lang, setLang } = useI18n()
   const { user } = useAuth()
   const { toast } = useToast()
+
+  const isFr = lang === "fr"
+
+  // Analytics Data (Mock)
+  const ownerStats = {
+    totalProperties: 12,
+    rentedProperties: 8,
+    occupancyRate: 66,
+    monthlyRevenue: 9800,
+  }
+
+  const revenueData = [
+    { month: "Jan", amount: 7500 },
+    { month: "Fév", amount: 8200 },
+    { month: "Mar", amount: 9800 },
+    { month: "Avr", amount: 9800 },
+    { month: "Mai", amount: 10500 },
+    { month: "Juin", amount: 12000 },
+  ]
 
   const [isLoading, setIsLoading] = useState(false)
 
@@ -429,114 +453,149 @@ export function OwnerProfile() {
           </Card>
         </TabsContent>
 
-        {/* ─── DIAGNOSTIC ────────────────────────────────────────────────── */}
+        {/* ─── DIAGNOSTIC / ANALYTIQUE ───────────────────────────────────── */}
         <TabsContent value="diagnostic">
-          <Card className="w-full shadow-sm border-border/50">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Activity className="h-5 w-5 text-primary" />
-                {lang === "fr" ? "Diagnostic de votre compte" : "Account Diagnostic"}
-              </CardTitle>
-              <CardDescription>
-                {lang === "fr" ? "L'état de votre profil, de vos biens et vos actions requises." : "The state of your profile, properties, and required actions."}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-8">
-              
-              {/* 1. État du profil */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  {lang === "fr" ? "1. État du Profil" : "1. Profile State"}
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {profileData.avatarUrl ? (
-                    <div className="flex items-center gap-3 p-3 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800">
-                      <CheckCircle2 className="h-5 w-5 text-emerald-600 flex-shrink-0" />
-                      <span className="text-sm font-medium">{lang === "fr" ? "Photo de profil ajoutée" : "Profile picture added"}</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-3 p-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-800">
-                      <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0" />
-                      <span className="text-sm font-medium">{lang === "fr" ? "Ajoutez une photo de profil" : "Add a profile picture"}</span>
-                    </div>
-                  )}
-                  {(!profileData.address || !profileData.phone) ? (
-                    <div className="flex items-center gap-3 p-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-800">
-                      <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0" />
-                      <span className="text-sm font-medium">{lang === "fr" ? "Coordonnées incomplètes (Adresse/Tél)" : "Incomplete contact info (Address/Phone)"}</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-3 p-3 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800">
-                      <CheckCircle2 className="h-5 w-5 text-emerald-600 flex-shrink-0" />
-                      <span className="text-sm font-medium">{lang === "fr" ? "Informations de contact complètes" : "Contact info complete"}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
+          <div className="space-y-6">
+            
+            {/* KPI Cards Row */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card className="bg-primary/5 border-primary/20 shadow-none">
+                <CardContent className="p-5 flex flex-col gap-2">
+                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Building2 className="w-4 h-4 text-primary" />
+                  </div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    {isFr ? "Total des biens" : "Total Properties"}
+                  </p>
+                  <h3 className="text-2xl font-black text-foreground">{ownerStats.totalProperties}</h3>
+                </CardContent>
+              </Card>
 
-              {/* 2. État des biens */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-muted-foreground" />
-                  {lang === "fr" ? "2. État des Biens" : "2. Properties State"}
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/30">
-                    <CheckCircle2 className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                    <span className="text-sm font-medium text-foreground">{lang === "fr" ? "3 biens actifs et disponibles" : "3 active and available properties"}</span>
+              <Card className="bg-emerald-50/50 border-emerald-100 shadow-none">
+                <CardContent className="p-5 flex flex-col gap-2">
+                  <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                   </div>
-                  <div className="flex items-center justify-between p-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-800 group cursor-pointer hover:bg-amber-100 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <ImageIcon className="h-5 w-5 text-amber-600 flex-shrink-0" />
-                      <span className="text-sm font-medium">{lang === "fr" ? "1 bien n'a pas de photo" : "1 property has no photo"}</span>
+                  <div className="flex justify-between items-baseline">
+                    <p className="text-xs font-medium text-emerald-700/70 uppercase tracking-wider">
+                      {isFr ? "Biens loués" : "Rented Properties"}
+                    </p>
+                    <span className="text-[10px] font-bold text-emerald-600">{ownerStats.occupancyRate}%</span>
+                  </div>
+                  <h3 className="text-2xl font-black text-emerald-700">{ownerStats.rentedProperties}</h3>
+                  <Progress value={ownerStats.occupancyRate} className="h-1 bg-emerald-100" />
+                </CardContent>
+              </Card>
+
+              <Card className="bg-indigo-50/50 border-indigo-100 shadow-none">
+                <CardContent className="p-5 flex flex-col gap-2">
+                  <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
+                    <DollarSign className="w-4 h-4 text-indigo-600" />
+                  </div>
+                  <div className="flex justify-between items-baseline">
+                    <p className="text-xs font-medium text-indigo-700/70 uppercase tracking-wider">
+                      {isFr ? "Revenu Mensuel" : "Monthly Revenue"}
+                    </p>
+                    <Badge className="bg-indigo-100 text-indigo-700 border-0 text-[9px] px-1.5 h-4">+12%</Badge>
+                  </div>
+                  <h3 className="text-2xl font-black text-indigo-900">{ownerStats.monthlyRevenue} <span className="text-xs opacity-50">TND</span></h3>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Revenue Evolution Chart */}
+              <Card className="shadow-sm border-border/50">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-bold flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-primary" />
+                    {isFr ? "Évolution des Revenus" : "Revenue Evolution"}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-48 flex items-end gap-2 pt-6">
+                    {revenueData.map((data, i) => {
+                      const max = Math.max(...revenueData.map(d => d.amount));
+                      const height = `${(data.amount / max) * 100}%`;
+                      return (
+                        <div key={i} className="flex-1 flex flex-col justify-end items-center gap-2 group">
+                          <div className="w-full relative flex justify-center">
+                            <div 
+                              className="w-full max-w-[24px] bg-primary/20 rounded-t-lg group-hover:bg-primary transition-all duration-300"
+                              style={{ height }}
+                            />
+                          </div>
+                          <span className="text-[10px] text-muted-foreground font-medium">{data.month}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Maintenance & Alerts */}
+              <Card className="shadow-sm border-border/50">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-bold flex items-center gap-2">
+                    <Bell className="h-4 w-4 text-amber-500" />
+                    {isFr ? "Alertes & Maintenance" : "Alerts & Maintenance"}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-start gap-3 p-3 rounded-xl border border-amber-100 bg-amber-50/30">
+                    <Wrench className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-bold text-amber-900">{isFr ? "Fuite d'eau signalée" : "Water leak reported"}</p>
+                      <p className="text-[10px] text-amber-800/70 mt-0.5">{isFr ? "Villa Monastir - Intervention urgente recommandée." : "Monastir Villa - Urgent action recommended."}</p>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-amber-600 opacity-50 group-hover:opacity-100 transition-opacity" />
                   </div>
-                  <div className="flex items-center justify-between p-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-800 group cursor-pointer hover:bg-amber-100 transition-colors">
+                  <div className="flex items-center justify-between p-3 rounded-xl border border-blue-100 bg-blue-50/30">
                     <div className="flex items-center gap-3">
-                      <FileText className="h-5 w-5 text-amber-600 flex-shrink-0" />
-                      <span className="text-sm font-medium">{lang === "fr" ? "1 bien sans description" : "1 property without description"}</span>
+                      <FileText className="h-4 w-4 text-blue-600" />
+                      <span className="text-[10px] font-bold text-blue-900">{isFr ? "2 nouveaux contrats à signer" : "2 new contracts to sign"}</span>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-amber-600 opacity-50 group-hover:opacity-100 transition-opacity" />
+                    <ArrowRight className="h-3 w-3 text-blue-400" />
                   </div>
-                  <div className="flex items-center gap-3 p-3 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-600 flex-shrink-0" />
-                    <span className="text-sm font-medium">{lang === "fr" ? "Aucun bien indisponible" : "No unavailable properties"}</span>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Health Score Component */}
+            <Card className="border-border/50 bg-muted/5">
+              <CardContent className="p-6 flex flex-col md:flex-row items-center gap-8">
+                <div className="relative h-24 w-24 shrink-0">
+                  <svg className="h-full w-full" viewBox="0 0 100 100">
+                    <circle className="text-muted/20 stroke-current" strokeWidth="8" fill="transparent" r="38" cx="50" cy="50" />
+                    <circle 
+                      className="text-primary stroke-current" 
+                      strokeWidth="8" 
+                      strokeLinecap="round" 
+                      fill="transparent" 
+                      r="38" cx="50" cy="50" 
+                      strokeDasharray="238.76" 
+                      strokeDashoffset="35.8" // 85% score
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center flex-col">
+                    <span className="text-xl font-black text-foreground">85</span>
+                    <span className="text-[8px] font-bold text-muted-foreground uppercase">Score</span>
                   </div>
                 </div>
-              </div>
-
-              {/* 3. État administratif */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                  {lang === "fr" ? "3. État Administratif" : "3. Administrative State"}
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="flex items-center justify-between p-3 rounded-lg border border-blue-200 bg-blue-50 text-blue-800 group cursor-pointer hover:bg-blue-100 transition-colors md:col-span-2">
-                    <div className="flex items-center gap-3">
-                      <Info className="h-5 w-5 text-blue-600 flex-shrink-0" />
-                      <span className="text-sm font-medium">{lang === "fr" ? "Une demande de location est en attente (Studio Cozy Skanes)" : "A rental request is pending (Studio Cozy Skanes)"}</span>
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-blue-600 opacity-50 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-lg border border-red-200 bg-red-50 text-red-800 group cursor-pointer hover:bg-red-100 transition-colors md:col-span-2">
-                    <div className="flex items-center gap-3">
-                      <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
-                      <span className="text-sm font-medium">{lang === "fr" ? "Un contrat attend votre signature (Villa Luxe S+4 Khnis)" : "A contract is awaiting your signature (Villa Luxe S+4 Khnis)"}</span>
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-red-600 opacity-50 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                  <div className="flex items-center gap-3 p-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-800 md:col-span-2">
-                    <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0" />
-                    <span className="text-sm font-medium">{lang === "fr" ? "Ajoutez un RIB (Documents) pour faciliter les paiements" : "Add bank details (Documents) to facilitate payments"}</span>
-                  </div>
+                <div>
+                  <h4 className="font-bold text-foreground flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                    {isFr ? "Excellent Santé de Gestion" : "Excellent Management Health"}
+                  </h4>
+                  <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                    {isFr 
+                      ? "Votre portefeuille est performant. Vos paiements sont à jour et le taux d'occupation est stable. Optimisez vos revenus en finalisant l'annonce du Studio Skanes." 
+                      : "Your portfolio is performing well. Payments are up to date and occupancy is stable. Optimize your income by finalizing the Skanes Studio listing."}
+                  </p>
                 </div>
-              </div>
+              </CardContent>
+            </Card>
 
-            </CardContent>
-          </Card>
+          </div>
         </TabsContent>
 
         {/* ─── DOCUMENTS ────────────────────────────────────────────────── */}

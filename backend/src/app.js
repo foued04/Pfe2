@@ -8,13 +8,21 @@ const authRoutes = require('./routes/auth.routes');
 const propertyRoutes = require('./routes/property.routes');
 const rentalRequestRoutes = require('./routes/rentalRequest.routes');
 const contractRoutes = require('./routes/contract.routes');
+const notificationRoutes = require('./routes/notification.routes');
+const furnitureRoutes = require('./routes/furniture.routes');
+const userRoutes = require('./routes/user.routes');
 const { errorHandler } = require('./middlewares/error.middleware');
 
 const app = express();
 
 // Middlewares
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+  origin: '*', // For development. You can specify ['http://localhost:3000', 'http://localhost:3001'] if needed.
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
@@ -27,6 +35,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/properties', propertyRoutes);
 app.use('/api/rental-requests', rentalRequestRoutes);
 app.use('/api/contracts', contractRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/furniture', furnitureRoutes);
+app.use('/api/users', userRoutes);
 
 // Error Handler
 app.use(errorHandler);

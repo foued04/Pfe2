@@ -45,7 +45,7 @@ function LeftPanel() {
     <div
       style={{
         flex: "0 0 45%",
-        background: "#4a5e3a",
+        background: "#158C96",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -133,7 +133,7 @@ function FormInput({ label, type, placeholder, value, onChange, showEye, onToggl
             fontSize: "15px", outline: "none", transition: "all 0.25s",
             boxSizing: "border-box", color: "#111827",
           }}
-          onFocus={(e) => { e.currentTarget.style.borderColor = "#4a5e3a"; e.currentTarget.style.backgroundColor = "#fff"; e.currentTarget.style.boxShadow = "0 0 0 4px rgba(74,94,58,0.1)" }}
+          onFocus={(e) => { e.currentTarget.style.borderColor = "#2D7C84"; e.currentTarget.style.backgroundColor = "#fff"; e.currentTarget.style.boxShadow = "0 0 0 4px rgba(74,94,58,0.1)" }}
           onBlur={(e) => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.backgroundColor = "#f9fafb"; e.currentTarget.style.boxShadow = "none" }}
         />
         {onToggleEye && (
@@ -285,10 +285,10 @@ export function AuthForms() {
     fontWeight: 700,
     cursor: "pointer",
     transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-    border: role === r && !isAdminLogin ? "2px solid #f59e0b" : "1.5px solid #e5e7eb",
-    background: role === r && !isAdminLogin ? "#fffbeb" : "#fff",
-    color: role === r && !isAdminLogin ? "#f59e0b" : "#6b7280",
-    boxShadow: role === r && !isAdminLogin ? "0 4px 12px rgba(245,158,11,0.15)" : "none",
+    border: role === r && !isAdminLogin ? "2px solid #F27D72" : "1.5px solid #e5e7eb",
+    background: role === r && !isAdminLogin ? "#FDF2F1" : "#fff",
+    color: role === r && !isAdminLogin ? "#F27D72" : "#6b7280",
+    boxShadow: role === r && !isAdminLogin ? "0 4px 12px rgba(242,125,114,0.15)" : "none",
   })
 
   // ─── Headers based on view ───
@@ -379,7 +379,7 @@ export function AuthForms() {
                       <button 
                         type="button" 
                         onClick={() => { setView("forgot-password"); setError(""); setSuccessMsg("") }}
-                        style={{ color: "#4a5e3a", fontSize: "13px", fontWeight: 600, background: "none", border: "none", cursor: "pointer" }}
+                        style={{ color: "#2EC4C7", fontSize: "13px", fontWeight: 600, background: "none", border: "none", cursor: "pointer" }}
                       >
                         Mot de passe oublié ?
                       </button>
@@ -444,12 +444,12 @@ export function AuthForms() {
               disabled={isLoading}
               style={{
                 width: "100%", padding: "16px", borderRadius: "14px",
-                background: isAdminLogin ? "#111827" : "#4a5e3a",
+                background: isAdminLogin ? "#111827" : "#2EC4C7",
                 color: "#fff", fontWeight: 700, fontSize: "16px",
                 border: "none", cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
                 transition: "all 0.3s",
-                boxShadow: `0 8px 15px -3px ${isAdminLogin ? "rgba(17,24,39,0.3)" : "rgba(74,94,58,0.3)"}`,
+                boxShadow: `0 8px 15px -3px ${isAdminLogin ? "rgba(17,24,39,0.3)" : "rgba(46,196,199,0.3)"}`,
               }}
             >
               {isLoading ? "Traitement..." : (
@@ -498,16 +498,18 @@ export function AuthForms() {
             {/* Bottom Links */}
             <div className="animate-fade-in stagger-4" style={{ textAlign: "center", fontSize: "14px", color: "#6b7280", marginTop: "8px" }}>
               {view === "login" ? (
-                <>
-                  Pas encore inscrit ?{" "}
-                  <button type="button" onClick={() => { setView("register"); setIsAdminLogin(false); setError("") }} style={{ color: "#f59e0b", fontWeight: 800, background: "none", border: "none", cursor: "pointer", transition: "all 0.2s" }}>
-                    S&apos;inscrire
-                  </button>
-                </>
+                !isAdminLogin && (
+                  <>
+                    Pas encore inscrit ?{" "}
+                    <button type="button" onClick={() => { setView("register"); setIsAdminLogin(false); setError("") }} style={{ color: "#F27D72", fontWeight: 800, background: "none", border: "none", cursor: "pointer", transition: "all 0.2s" }}>
+                      S&apos;inscrire
+                    </button>
+                  </>
+                )
               ) : view === "register" ? (
                 <>
                   Déjà membre ?{" "}
-                  <button type="button" onClick={() => { setView("login"); setError("") }} style={{ color: "#f59e0b", fontWeight: 800, background: "none", border: "none", cursor: "pointer" }}>
+                  <button type="button" onClick={() => { setView("login"); setError("") }} style={{ color: "#F27D72", fontWeight: 800, background: "none", border: "none", cursor: "pointer" }}>
                     Se connecter
                   </button>
                 </>
@@ -523,7 +525,19 @@ export function AuthForms() {
               <div className="animate-fade-in stagger-4" style={{ marginTop: "10px" }}>
                 <button 
                   type="button" 
-                  onClick={() => { setIsAdminLogin(!isAdminLogin); setView("login"); setError("") }}
+                  onClick={() => {
+                    const goingAdmin = !isAdminLogin;
+                    setIsAdminLogin(goingAdmin);
+                    setView("login");
+                    setError("");
+                    if (goingAdmin) {
+                      setEmail("admin@immosmart.tn");
+                      setPassword("admin123");
+                    } else {
+                      setEmail("");
+                      setPassword("");
+                    }
+                  }}
                   style={{ 
                     margin: "0 auto", display: "flex", alignItems: "center", gap: "8px", 
                     fontSize: "13px", color: "#9ca3af", background: "rgba(243,244,246,0.5)", 

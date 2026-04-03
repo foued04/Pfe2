@@ -21,14 +21,16 @@ import {
   Printer, 
   FileText,
   Building2,
-  User,
   MapPin,
   Calendar,
   CreditCard,
   Home,
-  Shield,
+  Shield, 
   Send,
+  User as UserIcon,
 } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { PdfLayout } from "./pdf-layout"
 
 interface ContractViewProps {
   contract: Contract
@@ -112,113 +114,76 @@ export function ContractView({ contract, onBack, onOwnerSign, onTenantSign, onSe
             {lang === "fr" ? "Imprimer" : "Print"}
           </Button>
         </div>
-      </div>
-
-      {/* Contract Document */}
-      <div id="contract-content" className="bg-card border border-border/50 shadow-2xl rounded-2xl overflow-hidden print:rounded-none print:border-none print:shadow-none">
-        {/* Top accent */}
-        <div className="h-2 bg-gradient-to-r from-primary via-primary/80 to-primary/40 print:hidden" />
-
-        {/* Header */}
-        <div className="p-8 md:p-12 space-y-10">
-          <div className="flex flex-col md:flex-row justify-between gap-8 pb-8 border-b border-border/50">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="h-14 w-14 bg-primary rounded-2xl flex items-center justify-center text-primary-foreground font-black text-2xl shadow-lg">
-                  IS
-                </div>
-                <div>
-                  <h1 className="text-2xl font-black tracking-tight text-foreground uppercase">ImmoSmart<span className="text-primary italic">.</span></h1>
-                  <p className="text-xs font-bold text-muted-foreground tracking-widest uppercase">Gestion Immobilière</p>
-                </div>
-              </div>
-              <div className="text-sm space-y-0.5 text-muted-foreground">
-                <p className="font-medium text-foreground">ImmoSmart Monastir</p>
-                <p>Zone Touristique Skanes, 5000 Monastir</p>
-                <p>+216 73 000 000 | contact@immosmart.tn</p>
-              </div>
+      </div>      {/* Contract Document */}
+      <PdfLayout
+        id="contract-content"
+        title={lang === "fr" ? "Contrat de Location" : "Rental Contract"}
+        documentId={contract.id}
+        date={new Date(contract.createdAt).toLocaleDateString(lang === "fr" ? "fr-FR" : "en-US")}
+        infoLeft={
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <UserIcon className="h-3.5 w-3.5 text-primary" />
+              <p className="text-[10px] font-black uppercase text-primary tracking-[0.2em]">
+                {lang === "fr" ? "Le Bailleur (Propriétaire)" : "The Landlord (Owner)"}
+              </p>
             </div>
-            <div className="text-right space-y-3">
-              <div className="bg-primary/5 px-6 py-3 rounded-xl border border-primary/10 inline-block">
-                <p className="text-primary font-black text-xl uppercase tracking-tight">
-                  {lang === "fr" ? "Contrat de Location" : "Rental Contract"}
-                </p>
-                <p className="text-xs text-muted-foreground font-medium">N° {contract.id}</p>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                <p>{lang === "fr" ? "Réf. demande" : "Request ref"}: {contract.requestId}</p>
-                <p>{lang === "fr" ? "Créé le" : "Created"}: {new Date(contract.createdAt).toLocaleDateString(lang === "fr" ? "fr-FR" : "en-US")}</p>
-              </div>
+            <div className="space-y-1">
+              <p className="font-bold text-primary text-lg">{contract.ownerName}</p>
+              <p className="text-xs text-muted-foreground">{contract.ownerEmail}</p>
+              <p className="text-xs text-muted-foreground">{contract.ownerPhone}</p>
             </div>
           </div>
-
-          {/* Parties */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <User className="h-3.5 w-3.5 text-primary" />
-                </div>
-                <p className="text-[10px] font-black uppercase text-primary tracking-[0.2em]">
-                  {lang === "fr" ? "Le Bailleur (Propriétaire)" : "The Landlord (Owner)"}
-                </p>
-              </div>
-              <div className="bg-muted/20 rounded-xl p-5 border border-border/30 space-y-2">
-                <p className="font-bold text-foreground text-lg">{contract.ownerName}</p>
-                <p className="text-sm text-muted-foreground">{contract.ownerEmail}</p>
-                <p className="text-sm text-muted-foreground">{contract.ownerPhone}</p>
-              </div>
+        }
+        infoRight={
+          <div className="space-y-4 text-right">
+            <div className="flex items-center gap-2 justify-end">
+              <p className="text-[10px] font-black uppercase text-[#6B7280] tracking-[0.2em]">
+                {lang === "fr" ? "Le Preneur (Locataire)" : "The Tenant"}
+              </p>
+              <UserIcon className="h-3.5 w-3.5 text-muted-foreground" />
             </div>
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="h-7 w-7 rounded-lg bg-muted flex items-center justify-center">
-                  <User className="h-3.5 w-3.5 text-muted-foreground" />
-                </div>
-                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">
-                  {lang === "fr" ? "Le Preneur (Locataire)" : "The Tenant"}
-                </p>
-              </div>
-              <div className="bg-muted/20 rounded-xl p-5 border border-border/30 space-y-2">
-                <p className="font-bold text-foreground text-lg">{contract.tenantName}</p>
-                <p className="text-sm text-muted-foreground">{contract.tenantEmail}</p>
-                <p className="text-sm text-muted-foreground">{contract.tenantPhone}</p>
-              </div>
+            <div className="space-y-1">
+              <p className="font-bold text-primary text-lg">{contract.tenantName}</p>
+              <p className="text-xs text-muted-foreground">{contract.tenantEmail}</p>
+              <p className="text-xs text-muted-foreground">{contract.tenantPhone}</p>
             </div>
           </div>
-
+        }
+        footerNotes={lang === "fr" ? "Contrat établi en deux exemplaires originaux. Document authentifié électroniquement." : "Contract established in two original copies. Electronically authenticated document."}
+      >
+        <div className="space-y-[10mm]">
           {/* Property Details */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Home className="h-3.5 w-3.5 text-primary" />
-              </div>
+              <Home className="h-3.5 w-3.5 text-primary" />
               <p className="text-[10px] font-black uppercase text-primary tracking-[0.2em]">
                 {lang === "fr" ? "Désignation du Bien" : "Property Description"}
               </p>
             </div>
-            <div className="bg-muted/20 rounded-xl p-6 border border-border/30">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="bg-background rounded-2xl p-6 border border-secondary/10">
+              <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-3">
                   <div>
-                    <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider mb-1">{lang === "fr" ? "Bien" : "Property"}</p>
-                    <p className="font-bold text-foreground">{contract.propertyTitle}</p>
+                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-wider mb-1">{lang === "fr" ? "Bien" : "Property"}</p>
+                    <p className="font-bold text-primary">{contract.propertyTitle}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider mb-1">{lang === "fr" ? "Adresse" : "Address"}</p>
-                    <p className="text-sm text-foreground flex items-start gap-1.5">
-                      <MapPin className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-wider mb-1">{lang === "fr" ? "Adresse" : "Address"}</p>
+                    <p className="text-[11px] text-primary flex items-start gap-1.5 font-medium">
+                      <MapPin className="h-3 w-3 mt-0.5" />
                       {contract.propertyAddress}
                     </p>
                   </div>
                 </div>
                 <div className="space-y-3">
                   <div>
-                    <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider mb-1">{lang === "fr" ? "Type" : "Type"}</p>
-                    <p className="text-sm text-foreground">{contract.propertyType}</p>
+                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-wider mb-1">{lang === "fr" ? "Type" : "Type"}</p>
+                    <p className="text-[11px] font-bold text-primary">{contract.propertyType}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider mb-1">{lang === "fr" ? "Surface" : "Area"}</p>
-                    <p className="text-sm text-foreground">{contract.propertySurface} m²</p>
+                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-wider mb-1">{lang === "fr" ? "Surface" : "Area"}</p>
+                    <p className="text-[11px] font-bold text-primary">{contract.propertySurface} m²</p>
                   </div>
                 </div>
               </div>
@@ -228,114 +193,66 @@ export function ContractView({ contract, onBack, onOwnerSign, onTenantSign, onSe
           {/* Financial Terms */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
-                <CreditCard className="h-3.5 w-3.5 text-primary" />
-              </div>
+              <CreditCard className="h-3.5 w-3.5 text-primary" />
               <p className="text-[10px] font-black uppercase text-primary tracking-[0.2em]">
                 {lang === "fr" ? "Conditions Financières" : "Financial Terms"}
               </p>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="bg-muted/20 rounded-xl p-4 border border-border/30 text-center">
-                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mb-1">{lang === "fr" ? "Loyer" : "Rent"}</p>
-                <p className="text-xl font-black text-primary">{contract.propertyRent.toLocaleString()}</p>
-                <p className="text-[10px] text-muted-foreground font-bold">TND / mois</p>
-              </div>
-              <div className="bg-muted/20 rounded-xl p-4 border border-border/30 text-center">
-                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mb-1">{lang === "fr" ? "Caution" : "Deposit"}</p>
-                <p className="text-xl font-black text-foreground">{contract.propertyDeposit.toLocaleString()}</p>
-                <p className="text-[10px] text-muted-foreground font-bold">TND</p>
-              </div>
-              <div className="bg-muted/20 rounded-xl p-4 border border-border/30 text-center">
-                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mb-1">{lang === "fr" ? "Durée" : "Duration"}</p>
-                <p className="text-xl font-black text-foreground">{contract.duration}</p>
-              </div>
-              <div className="bg-muted/20 rounded-xl p-4 border border-border/30 text-center">
-                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mb-1">{lang === "fr" ? "Période" : "Period"}</p>
-                <p className="text-sm font-bold text-foreground">{new Date(contract.startDate).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}</p>
-                <p className="text-[10px] text-muted-foreground">→ {new Date(contract.endDate).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}</p>
-              </div>
+            <div className="grid grid-cols-4 gap-4 text-center">
+              {[
+                { label: lang === "fr" ? "Loyer" : "Rent", value: `${contract.propertyRent.toLocaleString()}`, sub: "TND / mois", highlight: true },
+                { label: lang === "fr" ? "Caution" : "Deposit", value: `${contract.propertyDeposit.toLocaleString()}`, sub: "TND" },
+                { label: lang === "fr" ? "Durée" : "Duration", value: contract.duration, sub: "" },
+                { label: lang === "fr" ? "Période" : "Period", value: new Date(contract.startDate).toLocaleDateString("fr-FR"), sub: `→ ${new Date(contract.endDate).toLocaleDateString("fr-FR")}` },
+              ].map((item, idx) => (
+                <div key={idx} className="bg-background rounded-xl p-4 border border-secondary/10">
+                  <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest mb-1">{item.label}</p>
+                  <p className={cn("text-lg font-black", item.highlight ? "text-primary" : "text-foreground")}>{item.value}</p>
+                  {item.sub && <p className="text-[9px] text-muted-foreground font-bold">{item.sub}</p>}
+                </div>
+              ))}
             </div>
           </div>
 
           {/* Clauses */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <div className="h-7 w-7 rounded-lg bg-muted flex items-center justify-center">
-                <Shield className="h-3.5 w-3.5 text-muted-foreground" />
-              </div>
-              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">
+              <Shield className="h-3.5 w-3.5 text-[#6B7280]" />
+              <p className="text-[10px] font-black uppercase text-[#6B7280] tracking-[0.2em]">
                 {lang === "fr" ? "Clauses Générales" : "General Clauses"}
               </p>
             </div>
-            <div className="bg-muted/10 rounded-xl p-6 border border-border/30 text-sm text-muted-foreground space-y-3 leading-relaxed">
-              <p><strong className="text-foreground">Article 1 — Objet :</strong> {lang === "fr" ? "Le bailleur met à la disposition du preneur le bien immobilier désigné ci-dessus, pour un usage exclusif d'habitation." : "The landlord makes available to the tenant the property described above, for exclusive residential use."}</p>
-              <p><strong className="text-foreground">Article 2 — Loyer :</strong> {lang === "fr" ? `Le loyer mensuel est fixé à ${contract.propertyRent.toLocaleString()} TND, payable d'avance le premier jour de chaque mois.` : `The monthly rent is set at ${contract.propertyRent.toLocaleString()} TND, payable in advance on the first day of each month.`}</p>
-              <p><strong className="text-foreground">Article 3 — Caution :</strong> {lang === "fr" ? `Une caution de ${contract.propertyDeposit.toLocaleString()} TND sera versée à la signature du contrat et restituée à la fin du bail.` : `A deposit of ${contract.propertyDeposit.toLocaleString()} TND will be paid upon signing and returned at the end of the lease.`}</p>
-              <p><strong className="text-foreground">Article 4 — Entretien :</strong> {lang === "fr" ? "Le preneur s'engage à entretenir le bien en bon état et à effectuer les réparations locatives à sa charge." : "The tenant agrees to maintain the property in good condition and to carry out rental repairs at their own expense."}</p>
-              <p><strong className="text-foreground">Article 5 — Résiliation :</strong> {lang === "fr" ? "Chaque partie peut résilier le contrat avec un préavis de 3 mois, par lettre recommandée." : "Either party may terminate the contract with 3 months' notice, by registered letter."}</p>
+            <div className="bg-background/50 rounded-2xl p-6 border border-secondary/5 text-[11px] text-[#4B5563] space-y-3 leading-relaxed">
+              <p><strong className="text-primary">Article 1 — Objet :</strong> {lang === "fr" ? "Le bailleur met à la disposition du preneur le bien immobilier désigné ci-dessus, pour un usage exclusif d'habitation." : "The landlord makes available to the tenant the property described above, for exclusive residential use."}</p>
+              <p><strong className="text-primary">Article 2 — Loyer :</strong> {lang === "fr" ? `Le loyer mensuel est fixé à ${contract.propertyRent.toLocaleString()} TND, payable d'avance le premier jour de chaque mois.` : `The monthly rent is set at ${contract.propertyRent.toLocaleString()} TND, payable in advance on the first day of each month.`}</p>
+              <p><strong className="text-primary">Article 3 — Caution :</strong> {lang === "fr" ? `Une caution de ${contract.propertyDeposit.toLocaleString()} TND sera versée à la signature du contrat et restituée à la fin du bail.` : `A deposit of ${contract.propertyDeposit.toLocaleString()} TND will be paid upon signing and returned at the end of the lease.`}</p>
+              <p><strong className="text-primary">Article 4 — Entretien :</strong> {lang === "fr" ? "Le preneur s'engage à entretenir le bien en bon état et à effectuer les réparations locatives à sa charge." : "The tenant agrees to maintain the property in good condition and to carry out rental repairs at their own expense."}</p>
+              <p><strong className="text-primary">Article 5 — Résiliation :</strong> {lang === "fr" ? "Chaque partie peut résilier le contrat avec un préavis de 3 mois, par lettre recommandée." : "Either party may terminate the contract with 3 months' notice, by registered letter."}</p>
             </div>
           </div>
 
-          {/* Tenant Message if sent */}
-          {contract.tenantMessage && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="h-7 w-7 rounded-lg bg-violet-100 flex items-center justify-center">
-                  <Send className="h-3.5 w-3.5 text-violet-600" />
-                </div>
-                <p className="text-[10px] font-black uppercase text-violet-600 tracking-[0.2em]">
-                  {lang === "fr" ? "Message joint au locataire" : "Message attached for tenant"}
-                </p>
-              </div>
-              <div className="bg-violet-50 rounded-xl p-6 border border-violet-100 text-sm text-violet-900 leading-relaxed font-medium whitespace-pre-wrap">
-                {contract.tenantMessage}
-              </div>
-            </div>
-          )}
-
           {/* Signatures Section */}
-          <div className="space-y-4 print:break-before-page">
+          <div className="space-y-4 pt-4">
             <p className="text-[10px] font-black uppercase text-primary tracking-[0.2em]">
               {lang === "fr" ? "Signatures" : "Signatures"}
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-2 gap-8">
               <SignaturePad
-                label={lang === "fr" ? "Signature du Propriétaire" : "Owner's Signature"}
+                label={lang === "fr" ? "Le Propriétaire" : "The Owner"}
                 existingSignature={contract.ownerSignature}
                 onSign={onOwnerSign}
                 disabled={contract.status !== "Draft"}
               />
               <SignaturePad
-                label={lang === "fr" ? "Signature du Locataire" : "Tenant's Signature"}
+                label={lang === "fr" ? "Le Locataire" : "The Tenant"}
                 existingSignature={contract.tenantSignature}
                 onSign={onTenantSign}
                 disabled={contract.status !== "SentToTenant"}
               />
             </div>
           </div>
-
-          {/* Footer */}
-          <div className="pt-8 border-t border-border/50 text-center space-y-1">
-            <p className="text-[10px] font-bold text-muted-foreground tracking-[0.2em] uppercase">Contrat établi en deux exemplaires originaux</p>
-            <p className="text-[8px] text-muted-foreground">ImmoSmart SARL — Monastir, Tunisie — Matricule Fiscal: 1234567/A/B/C/000</p>
-          </div>
         </div>
-      </div>
-
-      {/* Print styles */}
-      <style jsx global>{`
-        @media print {
-          body * { visibility: hidden; }
-          #contract-content, #contract-content * { visibility: visible; }
-          #contract-content {
-            position: absolute;
-            left: 0; top: 0; width: 100%;
-            margin: 0; padding: 2rem;
-            border: none; box-shadow: none; border-radius: 0;
-          }
-        }
-      `}</style>
+      </PdfLayout>
     </div>
   )
 }

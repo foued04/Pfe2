@@ -58,7 +58,8 @@ const propertySchema = new mongoose.Schema({
       estimatedPrice: { type: Number },
       description: { type: String }
     }]
-  }
+  },
+  meuble: { type: Boolean, default: false }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Property', propertySchema);

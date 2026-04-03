@@ -82,11 +82,11 @@ export function TenantPropertyCard({
         
         {/* Top Badges */}
         <div className="absolute left-3 top-3 flex gap-2">
-          <Badge className="bg-primary text-primary-foreground font-semibold px-3 py-1">
+          <Badge variant="aqua" className="font-semibold px-3 py-1">
             {typeLabels[property.type]}
           </Badge>
           {property.type === "villa" && (
-            <Badge className="bg-amber-500 text-white font-semibold px-2 py-1">
+            <Badge variant="coral" className="font-semibold px-2 py-1">
               <Star className="h-3 w-3 mr-1" />
               Premium
             </Badge>
@@ -102,7 +102,7 @@ export function TenantPropertyCard({
           className={cn(
             "absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full transition-all duration-200",
             isFavorite
-              ? "bg-primary text-primary-foreground"
+              ? "bg-orange-500 text-white shadow-lg shadow-orange-900/40"
               : "bg-card/80 text-foreground hover:bg-card"
           )}
         >
@@ -111,8 +111,8 @@ export function TenantPropertyCard({
 
         {/* Bottom Info */}
         <div className="absolute bottom-3 left-3 right-3">
-          <p className="text-xl font-bold text-white">
-            {property.rent} TND<span className="text-sm font-normal">{t("property.perMonth")}</span>
+          <p className="text-xl font-black text-white drop-shadow-md">
+            {property.rent} TND<span className="text-sm font-normal opacity-90">{t("property.perMonth")}</span>
           </p>
         </div>
 
@@ -179,7 +179,7 @@ export function TenantPropertyCard({
               onViewDetails(property)
             }}
             variant="outline"
-            className="flex-1 gap-2 border-border hover:bg-secondary"
+            className="flex-1 gap-2 border-primary/20 text-primary hover:bg-primary/5"
           >
             <Eye className="h-4 w-4" />
             {t("property.viewDetails")}
@@ -189,7 +189,8 @@ export function TenantPropertyCard({
               e.stopPropagation()
               onContact(property)
             }}
-            className="flex-1 gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+            variant="coral"
+            className="flex-1 gap-2"
           >
             <MessageSquare className="h-4 w-4" />
             {t("tenant.contactOwner")}

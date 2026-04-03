@@ -11,12 +11,17 @@ import { PropertyDetailsModal } from "./property-details-modal"
 import { ContactOwnerForm } from "./contact-owner-form"
 import { HousingNeedsForm } from "./housing-needs-form"
 import { MaintenanceForm } from "./maintenance-form"
+import { TenantRequestsModule } from "./tenant-requests-module"
+import { TenantNotificationsModule } from "./tenant-notifications-module"
+import { TenantProfileSettings } from "./tenant-profile-settings"
 import { AIChatbot } from "./ai-chatbot"
 import { PropertyMap } from "./property-map"
+import { FurnitureOrderPage } from "./furniture-order-page"
 import { useI18n } from "@/lib/i18n"
 import { useAuth } from "@/lib/auth-context"
 import { Button } from "./ui/button"
 import { Globe, MapPin } from "lucide-react"
+import { mockContracts } from "@/lib/rental-request-data"
 
 const defaultFilters: FilterValues = {
   city: "",
@@ -25,7 +30,7 @@ const defaultFilters: FilterValues = {
   maxBudget: "",
   propertyType: "all",
   bedrooms: "any",
-  furnished: false,
+  meuble: false,
   parking: false,
   minSurface: "",
 }
@@ -43,6 +48,9 @@ export function TenantDashboard() {
   const [isContactOpen, setIsContactOpen] = useState(false)
   const [isChatbotOpen, setIsChatbotOpen] = useState(false)
   const [mapSelectedProperty, setMapSelectedProperty] = useState<Property | null>(null)
+
+  // Find tenant contract — use first available contract as fallback for demo/testing
+  const tenantContract = mockContracts.find(c => c.tenantEmail === user?.email) || mockContracts[0]
 
   const toggleFavorite = (id: string) => {
     setFavorites((prev) =>
@@ -100,10 +108,18 @@ export function TenantDashboard() {
             />
           </div>
         )
+      case "furniture":
+        return <FurnitureOrderPage contract={tenantContract} />
       case "housingNeeds":
         return <HousingNeedsForm />
       case "maintenance":
         return <MaintenanceForm />
+      case "myRequests":
+        return <TenantRequestsModule />
+      case "messages":
+        return <TenantNotificationsModule />
+      case "profile":
+        return <TenantProfileSettings />
       case "favorites":
         return (
           <TenantPropertiesGrid
@@ -142,7 +158,10 @@ export function TenantDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      <TenantSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
+      <TenantSidebar 
+        activeSection={activeSection} 
+        onSectionChange={setActiveSection}
+      />
 
       {/* Main Content */}
       <div className="ml-64 transition-all duration-300">
