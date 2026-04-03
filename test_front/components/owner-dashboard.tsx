@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useI18n } from "@/lib/i18n"
 import { useAuth } from "@/lib/auth-context"
 import { mockProperties } from "@/lib/property-data"
@@ -52,39 +52,105 @@ export function OwnerDashboard() {
   const [activeSection, setActiveSection] = useState("overview")
   const [preSelectedPropertyId, setPreSelectedPropertyId] = useState<string | null>(null)
   const [isChatbotOpen, setIsChatbotOpen] = useState(false)
-
-  // Initialize properties state with mock data so the UI remains populated and functional
-  const [properties, setProperties] = useState<any[]>(
-    mockProperties.filter(p => !user || p.ownerEmail === user.email || true) // fallback to showing all for demo
-  )
+  const [properties, setProperties] = useState<any[]>([])
   const [editingProperty, setEditingProperty] = useState<any | null>(null)
+  const [isFetching, setIsFetching] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleDeleteProperty = (id: string) => {
-    // Cannot delete if there's an active rental or request (simulated logic)
-    const propertyToDelete = properties.find(p => p.id === id || p._id === id)
-    if (propertyToDelete?.status === 'rented') {
-      alert(lang === "fr" ? "Impossible de supprimer un bien actuellement loué." : "Cannot delete a currently rented property.")
-      return
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+
+  const fetchProperties = async () => {
+    if (!user) return
+    setIsFetching(true)
+    setError(null)
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/properties`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setProperties(data)
+      } else {
+        setError(lang === "fr" ? "Erreur lors du chargement des propriétés." : "Error loading properties.")
+      }
+    } catch (err) {
+      console.error("Fetch properties error:", err)
+      setError(lang === "fr" ? "Impossible de contacter le serveur." : "Could not connect to server.")
+    } finally {
+      setIsFetching(false)
     }
-    setProperties(prev => prev.filter(p => p.id !== id && p._id !== id))
   }
+
+  const handleDeleteProperty = async (id: string) => {
+    if (!confirm(lang === "fr" ? "Êtes-vous sûr de vouloir supprimer ce bien ?" : "Are you sure you want to delete this property?")) return
+    
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/properties/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      if (response.ok) {
+        setProperties(prev => prev.filter(p => (p.id || p._id) !== id))
+      } else {
+        alert(lang === "fr" ? "Erreur lors de la suppression." : "Error during deletion.")
+      }
+    } catch (err) {
+      console.error("Delete property error:", err)
+      alert(lang === "fr" ? "Erreur de connexion." : "Connection error.")
+    }
+  }
+
+  useEffect(() => {
+    fetchProperties()
+  }, [user])
 
   const handleEditProperty = (property: any) => {
     setEditingProperty(property)
-    setActiveSection("editProperty")
+    setActiveSection("addProperty") // Form handles edit if initialData is present
   }
 
-  const handleSaveProperty = (savedProperty: any) => {
-    if (savedProperty.id) {
-      // Update existing
-      setProperties(prev => prev.map(p => p.id === savedProperty.id ? { ...p, ...savedProperty } : p))
-    } else {
-      // Create new (simulate ID)
-      const newProp = { ...savedProperty, id: "prop-" + Date.now().toString() }
-      setProperties(prev => [newProp, ...prev])
+  const handleSaveProperty = async (savedData: any) => {
+    setIsFetching(true)
+    try {
+      const token = localStorage.getItem("accessToken")
+      const isEdit = !!editingProperty
+      const url = isEdit ? `${API_URL}/properties/${editingProperty.id || editingProperty._id}` : `${API_URL}/properties`
+      const method = isEdit ? "PUT" : "POST"
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(savedData),
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        if (isEdit) {
+          setProperties(prev => prev.map(p => (p.id === result._id || p._id === result._id) ? result : p))
+        } else {
+          setProperties(prev => [result, ...prev])
+        }
+        setEditingProperty(null)
+        setActiveSection("properties")
+      } else {
+        const err = await response.json()
+        alert(err.message || (lang === "fr" ? "Erreur lors de l'enregistrement." : "Error saving property."))
+      }
+    } catch (err) {
+      console.error("Save property error:", err)
+      alert(lang === "fr" ? "Erreur de connexion." : "Connection error.")
+    } finally {
+      setIsFetching(false)
     }
-    setEditingProperty(null)
-    setActiveSection("properties")
   }
 
   const renderContent = () => {
@@ -145,15 +211,27 @@ export function OwnerDashboard() {
                 {lang === "fr" ? "Ajouter un bien" : "Add Property"}
               </Button>
             </div>
-            <OwnerPropertiesGrid 
-              properties={properties}
-              onManageFurniture={(id) => {
-                setPreSelectedPropertyId(id)
-                setActiveSection("furniture")
-              }}
-              onEdit={handleEditProperty}
-              onDelete={handleDeleteProperty}
-            />
+            {isFetching && (
+              <div className="flex items-center justify-center p-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            )}
+            {error && (
+              <div className="p-4 mb-6 bg-destructive/10 border border-destructive/20 text-destructive rounded-lg">
+                {error}
+              </div>
+            )}
+            {!isFetching && !error && (
+              <OwnerPropertiesGrid 
+                properties={properties}
+                onManageFurniture={(id) => {
+                  setPreSelectedPropertyId(id)
+                  setActiveSection("furniture")
+                }}
+                onEdit={handleEditProperty}
+                onDelete={handleDeleteProperty}
+              />
+            )}
           </div>
         )
       default:
@@ -183,15 +261,27 @@ export function OwnerDashboard() {
                   {lang === "fr" ? "Ajouter" : "Add"}
                 </Button>
               </div>
-              <OwnerPropertiesGrid 
-                properties={properties.slice(0, 3)} // limit for overview
-                onManageFurniture={(id) => {
-                  setPreSelectedPropertyId(id)
-                  setActiveSection("furniture")
-                }}
-                onEdit={handleEditProperty}
-                onDelete={handleDeleteProperty}
-              />
+              {isFetching ? (
+                <div className="animate-pulse flex space-x-4">
+                  <div className="flex-1 space-y-4 py-1">
+                    <div className="h-4 bg-muted rounded w-3/4"></div>
+                    <div className="space-y-2">
+                      <div className="h-4 bg-muted rounded"></div>
+                      <div className="h-4 bg-muted rounded w-5/6"></div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <OwnerPropertiesGrid 
+                  properties={properties.slice(0, 3)} // limit for overview
+                  onManageFurniture={(id) => {
+                    setPreSelectedPropertyId(id)
+                    setActiveSection("furniture")
+                  }}
+                  onEdit={handleEditProperty}
+                  onDelete={handleDeleteProperty}
+                />
+              )}
             </section>
           </main>
         )

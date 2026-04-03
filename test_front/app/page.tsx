@@ -1,8 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { I18nProvider } from "@/lib/i18n"
-import { AuthProvider, useAuth } from "@/lib/auth-context"
+import { useState, Suspense } from "react"
+import { useAuth } from "@/lib/auth-context"
 import { AuthForms } from "@/components/auth-forms"
 import { AdminDashboard } from "@/components/admin-dashboard"
 import { OwnerDashboard } from "@/components/owner-dashboard"
@@ -43,10 +42,8 @@ function AppRouter() {
 
 export default function ImmoSmartApp() {
   return (
-    <AuthProvider>
-      <I18nProvider>
-        <AppRouter />
-      </I18nProvider>
-    </AuthProvider>
+    <Suspense fallback={<div>Loading...</div>}>
+      <AppRouter />
+    </Suspense>
   )
 }

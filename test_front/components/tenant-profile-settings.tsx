@@ -112,8 +112,12 @@ export function TenantProfileSettings() {
   const handleSaveProfile = async () => {
     setIsLoading(true)
     const result = await updateProfile({
-      ...formData,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
       name: `${formData.firstName} ${formData.lastName}`.trim(),
+      phone: formData.phone,
+      address: formData.address,
+      avatar: formData.avatar,
       notificationPrefs: notifPrefs
     })
     
@@ -125,7 +129,7 @@ export function TenantProfileSettings() {
     } else {
       toast({
         title: "Erreur",
-        description: result.message,
+        description: result.message || "Erreur lors de la mise à jour",
         variant: "destructive"
       })
     }
@@ -137,6 +141,15 @@ export function TenantProfileSettings() {
       toast({
         title: "Erreur",
         description: "Les mots de passe ne correspondent pas.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (securityData.newPassword.length < 6) {
+      toast({
+        title: lang === "fr" ? "Mot de passe trop court" : "Password too short",
+        description: lang === "fr" ? "Le mot de passe doit contenir au moins 6 caractères." : "Password must contain at least 6 characters.",
         variant: "destructive"
       })
       return
@@ -153,7 +166,7 @@ export function TenantProfileSettings() {
     } else {
       toast({
         title: "Erreur",
-        description: result.message,
+        description: result.message || "Erreur lors du changement de mot de passe",
         variant: "destructive"
       })
     }

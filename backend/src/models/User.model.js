@@ -11,6 +11,10 @@ const userSchema = new mongoose.Schema({
   address: { type: String, default: '' },
   birthDate: { type: String, default: '' },
   avatar: { type: String, default: '' },
+  googleId: { type: String, unique: true, sparse: true },
+  isEmailVerified: { type: Boolean, default: false },
+  verificationCode: { type: String },
+  verificationCodeExpires: { type: Date },
   notificationPrefs: {
     acceptedRequests: { type: Boolean, default: true },
     ownerMessages: { type: Boolean, default: true },

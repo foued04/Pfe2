@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import type { Property } from "@/lib/property-data"
 import { mockProperties } from "@/lib/property-data"
 import { TenantSidebar } from "./tenant-sidebar"
@@ -48,6 +48,39 @@ export function TenantDashboard() {
   const [isContactOpen, setIsContactOpen] = useState(false)
   const [isChatbotOpen, setIsChatbotOpen] = useState(false)
   const [mapSelectedProperty, setMapSelectedProperty] = useState<Property | null>(null)
+
+  const [properties, setProperties] = useState<Property[]>([])
+  const [isFetching, setIsFetching] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+
+  useEffect(() => {
+    const fetchProperties = async () => {
+      setIsFetching(true)
+      try {
+        const token = localStorage.getItem("accessToken")
+        const response = await fetch(`${API_URL}/properties`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+        if (response.ok) {
+          const data = await response.json()
+          setProperties(data)
+        } else {
+          setError("Erreur lors du chargement des biens")
+        }
+      } catch (err) {
+        console.error("Fetch tenant properties error:", err)
+        setError("Erreur de connexion au serveur")
+      } finally {
+        setIsFetching(false)
+      }
+    }
+
+    fetchProperties()
+  }, [user])
 
   // Find tenant contract — use first available contract as fallback for demo/testing
   const tenantContract = mockContracts.find(c => c.tenantEmail === user?.email) || mockContracts[0]
@@ -101,7 +134,7 @@ export function TenantDashboard() {
               </p>
             </div>
             <PropertyMap 
-              properties={mockProperties}
+              properties={properties}
               selectedProperty={mapSelectedProperty}
               onPropertySelect={handleMapPropertySelect}
               height="500px"
@@ -123,6 +156,7 @@ export function TenantDashboard() {
       case "favorites":
         return (
           <TenantPropertiesGrid
+            properties={properties}
             searchQuery=""
             filters={defaultFilters}
             favorites={favorites}
@@ -143,14 +177,23 @@ export function TenantDashboard() {
               onChatbotClick={() => setIsChatbotOpen(true)}
               favoritesCount={favorites.length}
             />
-            <TenantPropertiesGrid
-              searchQuery={searchQuery}
-              filters={filters}
-              favorites={favorites}
-              onToggleFavorite={toggleFavorite}
-              onViewDetails={handleViewDetails}
-              onContact={handleContact}
-            />
+            {isFetching ? (
+              <div className="flex items-center justify-center p-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : error ? (
+              <div className="p-6 text-center text-destructive">{error}</div>
+            ) : (
+              <TenantPropertiesGrid
+                properties={properties}
+                searchQuery={searchQuery}
+                filters={filters}
+                favorites={favorites}
+                onToggleFavorite={toggleFavorite}
+                onViewDetails={handleViewDetails}
+                onContact={handleContact}
+              />
+            )}
           </>
         )
     }

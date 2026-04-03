@@ -1,9 +1,10 @@
 const bcrypt = require('bcryptjs');
 const User = require('../models/User.model');
 const ApiError = require('../utils/ApiError');
+const emailService = require('./email.service');
 
 const createUser = async (userData) => {
-  // Block admin registration — admin account is created only via seed script
+  // Block admin registration
   if (userData.role === 'admin') {
     throw new ApiError(403, 'La création de comptes administrateur est interdite');
   }
@@ -11,13 +12,31 @@ const createUser = async (userData) => {
   if (await User.findOne({ email: userData.email })) {
     throw new ApiError(400, 'L\'adresse email est déjà utilisée');
   }
+  
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(userData.password, salt);
   
+  // Generate verification code
+  const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+  const verificationCodeExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+
   const user = await User.create({
     ...userData,
     password: hashedPassword,
+    verificationCode,
+    verificationCodeExpires,
+    isEmailVerified: false,
   });
+
+  // Send verification email
+  try {
+    await emailService.sendVerificationEmail(user.email, verificationCode);
+  } catch (error) {
+    console.error('Failed to send verification email:', error);
+    // Don't throw error here, user is created but email failed. 
+    // They can request a resend later if we implement it.
+  }
+
   return user;
 };
 
@@ -26,6 +45,12 @@ const loginUserWithEmailAndPassword = async (email, password) => {
   if (!user || !(await bcrypt.compare(password, user.password))) {
     throw new ApiError(401, 'Email ou mot de passe incorrect');
   }
+
+  // Block login if email is not verified
+  if (!user.isEmailVerified) {
+    throw new ApiError(401, 'Veuillez vérifier votre adresse email avant de vous connecter.');
+  }
+
   return user;
 };
 
@@ -45,12 +70,29 @@ const generateResetCode = async (email) => {
   user.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
   await user.save();
   
-  // Log it so the user can see it in terminal (since we don't send emails yet)
-  console.log(`\n======================================================`);
-  console.log(`🔑 PASSWORD RESET CODE FOR ${email}: ${code}`);
-  console.log(`======================================================\n`);
+  // Send email
+  await emailService.sendResetPasswordEmail(email, code);
   
   return code;
+};
+
+const verifyEmail = async (email, code) => {
+  const user = await User.findOne({ 
+    email,
+    verificationCode: code,
+    verificationCodeExpires: { $gt: Date.now() }
+  });
+  
+  if (!user) {
+    throw new ApiError(400, 'Code de vérification invalide ou expiré');
+  }
+  
+  user.isEmailVerified = true;
+  user.verificationCode = undefined;
+  user.verificationCodeExpires = undefined;
+  await user.save();
+  
+  return true;
 };
 
 const verifyResetCode = async (email, code) => {
@@ -124,6 +166,7 @@ module.exports = {
   generateResetCode,
   verifyResetCode,
   resetPassword,
+  verifyEmail,
   updateUser,
   updatePassword,
 };

@@ -2,8 +2,11 @@
 
 import { useState, useEffect } from "react"
 import { useAuth, type UserRole } from "@/lib/auth-context"
+import { useI18n } from "@/lib/i18n"
 import { Eye, EyeOff, Home, ArrowRight, ShieldCheck, Mail, KeyRound, CheckCircle2 } from "lucide-react"
+import { GoogleLogin } from "@react-oauth/google"
 import Image from "next/image"
+import Link from "next/link"
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 type View = "login" | "register" | "forgot-password" | "verify-code" | "reset-password"
@@ -146,9 +149,81 @@ function FormInput({ label, type, placeholder, value, onChange, showEye, onToggl
   )
 }
 
+// ─── Professional Verification Input ────────────────────────────────────────
+function VerificationInput({ length = 6, value, onChange, onComplete }: any) {
+  const inputs = Array(length).fill(0)
+  const [code, setCode] = useState(Array(length).fill(""))
+  const inputRefs = Array(length).fill(0).map(() => ({} as any))
+
+  const handleChange = (val: string, index: number) => {
+    if (!/^\d*$/.test(val)) return
+    
+    const newCode = [...code]
+    newCode[index] = val.slice(-1)
+    setCode(newCode)
+    onChange(newCode.join(""))
+
+    if (val && index < length - 1) {
+      inputRefs[index + 1].focus()
+    }
+    
+    if (newCode.every(c => c !== "") && onComplete) {
+      onComplete(newCode.join(""))
+    }
+  }
+
+  const handleKeyDown = (e: any, index: number) => {
+    if (e.key === "Backspace" && !code[index] && index > 0) {
+      inputRefs[index - 1].focus()
+    }
+  }
+
+  const handlePaste = (e: any) => {
+    e.preventDefault()
+    const pastedData = e.clipboardData.getData("text").slice(0, length)
+    if (!/^\d+$/.test(pastedData)) return
+
+    const newCode = [...code]
+    pastedData.split("").forEach((char: string, i: number) => {
+      if (i < length) newCode[i] = char
+    })
+    setCode(newCode)
+    onChange(newCode.join(""))
+    
+    const nextIndex = Math.min(pastedData.length, length - 1)
+    if (inputRefs[nextIndex]) inputRefs[nextIndex].focus()
+  }
+
+  return (
+    <div style={{ display: "flex", gap: "10px", justifyContent: "center", margin: "20px 0" }} onPaste={handlePaste}>
+      {inputs.map((_, i) => (
+        <input
+          key={i}
+          ref={(el) => { inputRefs[i] = el }}
+          type="text"
+          maxLength={1}
+          value={code[i]}
+          onChange={(e) => handleChange(e.target.value, i)}
+          onKeyDown={(e) => handleKeyDown(e, i)}
+          style={{
+            width: "50px", height: "60px",
+            textAlign: "center", fontSize: "24px", fontWeight: "bold",
+            borderRadius: "12px", border: "2px solid #e5e7eb",
+            background: "#f9fafb", outline: "none", transition: "all 0.2s",
+            color: "#111827"
+          }}
+          onFocus={(e) => { e.currentTarget.style.borderColor = "#2EC4C7"; e.currentTarget.style.background = "#fff"; e.currentTarget.style.boxShadow = "0 0 0 4px rgba(46,196,199,0.1)" }}
+          onBlur={(e) => { e.currentTarget.style.borderColor = "#e5e7eb"; e.currentTarget.style.background = "#f9fafb"; e.currentTarget.style.boxShadow = "none" }}
+        />
+      ))}
+    </div>
+  )
+}
+
 // ─── Main AuthForms Component ────────────────────────────────────────────────
 export function AuthForms() {
-  const { login, register } = useAuth()
+  const { lang } = useI18n()
+  const { login, register, loginWithGoogle } = useAuth()
   const [view, setView] = useState<View>("login")
   const [role, setRole] = useState<UserRole>("tenant")
   const [isAdminLogin, setIsAdminLogin] = useState(false)
@@ -161,11 +236,15 @@ export function AuthForms() {
   // Fields
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
+  const [phone, setPhone] = useState("")
   const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   
   // Password Reset Fields
   const [resetCode, setResetCode] = useState("")
   const [newPassword, setNewPassword] = useState("")
+  const [confirmNewPassword, setConfirmNewPassword] = useState("")
+  const [resendTimer, setResendTimer] = useState(0)
   
   // Captcha State
   const [captchaAnswer, setCaptchaAnswer] = useState("")
@@ -177,6 +256,13 @@ export function AuthForms() {
     generateCaptcha()
   }, [])
 
+  useEffect(() => {
+    if (resendTimer > 0) {
+      const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [resendTimer])
+
   const generateCaptcha = () => {
     const a = Math.floor(Math.random() * 10) + 1
     const b = Math.floor(Math.random() * 10) + 1
@@ -185,14 +271,18 @@ export function AuthForms() {
     setCaptchaAnswer("")
   }
 
-  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
 
-  const handleGoogleLogin = async () => {
-    // Stub for Google Auth flow
+  const handleGoogleSuccess = async (response: any) => {
     setIsLoading(true)
+    setError("")
     try {
-      // In a real app, you would use a Google Provider here and get the token.
-      alert("Ce bouton nécessite une ClientID Google valide en production. Intégration backend préparée sur /api/auth/google.")
+      const { success, message } = await loginWithGoogle(response.credential)
+      if (!success) {
+        setError(message || "Échec de la connexion Google")
+      }
+    } catch {
+      setError("Erreur lors de la connexion Google")
     } finally {
       setIsLoading(false)
     }
@@ -211,20 +301,28 @@ export function AuthForms() {
         if (!success) setError(message || "Email ou mot de passe incorrect")
       } 
       else if (view === "register") {
+        if (password !== confirmPassword) {
+          setError("Les mots de passe ne correspondent pas.")
+          setIsLoading(false)
+          return
+        }
         if (parseInt(captchaAnswer) !== captchaExpected) {
           setError("Réponse de vérification humaine incorrecte.")
           generateCaptcha()
           setIsLoading(false)
           return
         }
-        const { success, message } = await register({ name, email, phone: "", password, role: role as UserRole })
-        if (!success) {
+        const { success, message } = await (register as any)({ name, email, phone, password, role: role as UserRole })
+        if (success) {
+          window.location.href = `/verify-email?email=${encodeURIComponent(email)}`
+        } else {
           setError(message || "Erreur lors de l'inscription")
           generateCaptcha()
         }
       }
+
       else if (view === "forgot-password") {
-        const res = await fetch(`${BASE_URL}/auth/forgot-password`, {
+        const res = await fetch(`${API_URL}/auth/forgot-password`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email }),
@@ -238,7 +336,7 @@ export function AuthForms() {
         }
       }
       else if (view === "verify-code") {
-        const res = await fetch(`${BASE_URL}/auth/verify-reset-code`, {
+        const res = await fetch(`${API_URL}/auth/verify-reset-code`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, code: resetCode }),
@@ -252,7 +350,12 @@ export function AuthForms() {
         }
       }
       else if (view === "reset-password") {
-        const res = await fetch(`${BASE_URL}/auth/reset-password`, {
+        if (newPassword !== confirmNewPassword) {
+          setError("Les nouveaux mots de passe ne correspondent pas.")
+          setIsLoading(false)
+          return
+        }
+        const res = await fetch(`${API_URL}/auth/reset-password`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, code: resetCode, newPassword }),
@@ -307,7 +410,7 @@ export function AuthForms() {
       case "login": return isAdminLogin ? "Espace sécurisé pour l'administration" : "Bienvenue ! Connectez-vous à votre espace personnel"
       case "register": return "Inscrivez-vous en 1 minute sur ImmoSmart"
       case "forgot-password": return "Entrez votre email pour recevoir un code de récupération."
-      case "verify-code": return "Entrez le code à 6 chiffres reçu par email (vérifiez la console locale)."
+      case "verify-code": return "Entrez le code à 6 chiffres reçu par email."
       case "reset-password": return "Choisissez un nouveau mot de passe sécurisé."
     }
   }
@@ -374,6 +477,24 @@ export function AuthForms() {
                     showEye={showPassword}
                     onToggleEye={() => setShowPassword(!showPassword)}
                   />
+                  {view === "register" && (
+                    <FormInput 
+                      label="Confirmer le mot de passe" 
+                      type={showPassword ? "text" : "password"} 
+                      placeholder="Répétez le mot de passe" 
+                      value={confirmPassword} 
+                      onChange={setConfirmPassword}
+                    />
+                  )}
+                  {view === "register" && (
+                    <FormInput 
+                      label="Téléphone" 
+                      type="text" 
+                      placeholder="Ex: +216 22 333 444" 
+                      value={phone} 
+                      onChange={setPhone} 
+                    />
+                  )}
                   {view === "login" && !isAdminLogin && (
                     <div style={{ textAlign: "right" }}>
                       <button 
@@ -385,6 +506,11 @@ export function AuthForms() {
                       </button>
                     </div>
                   )}
+                  <div style={{ textAlign: "right", marginTop: "8px" }}>
+                    <Link href={`/verify-email?email=${encodeURIComponent(email)}`} style={{ color: "#158C96", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}>
+                      Vérifier mon compte
+                    </Link>
+                  </div>
                 </div>
               )}
 
@@ -393,16 +519,26 @@ export function AuthForms() {
               )}
 
               {view === "reset-password" && (
-                <FormInput 
-                  label="Nouveau mot de passe" 
-                  type={showPassword ? "text" : "password"} 
-                  placeholder="Nouveau mot de passe" 
-                  value={newPassword} 
-                  onChange={setNewPassword}
-                  showEye={showPassword}
-                  onToggleEye={() => setShowPassword(!showPassword)}
-                />
+                <>
+                  <FormInput 
+                    label="Nouveau mot de passe" 
+                    type={showPassword ? "text" : "password"} 
+                    placeholder="Nouveau mot de passe" 
+                    value={newPassword} 
+                    onChange={setNewPassword}
+                    showEye={showPassword}
+                    onToggleEye={() => setShowPassword(!showPassword)}
+                  />
+                  <FormInput 
+                    label="Confirmer le nouveau mot de passe" 
+                    type={showPassword ? "text" : "password"} 
+                    placeholder="Confirmez le mot de passe" 
+                    value={confirmNewPassword} 
+                    onChange={setConfirmNewPassword}
+                  />
+                </>
               )}
+
 
               {/* Bot Check for Register */}
               {view === "register" && (
@@ -470,28 +606,17 @@ export function AuthForms() {
                   <div style={{ flex: 1, height: "1px", background: "#e5e7eb" }} />
                 </div>
                 
-                <button
-                  type="button"
-                  disabled={isLoading}
-                  onClick={handleGoogleLogin}
-                  style={{
-                    width: "100%", padding: "14px", borderRadius: "14px",
-                    background: "#fff", color: "#374151", fontWeight: 600, fontSize: "15px",
-                    border: "1.5px solid #e5e7eb", cursor: "pointer",
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: "12px",
-                    transition: "all 0.2s",
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = "#f9fafb"; e.currentTarget.style.borderColor = "#d1d5db" }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.borderColor = "#e5e7eb" }}
-                >
-                  <svg width="20" height="20" viewBox="0 0 48 48">
-                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-                  </svg>
-                  Continuer avec Google
-                </button>
+                <div style={{ display: "flex", justifyContent: "center" }}>
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={() => setError("Erreur Google OAuth")}
+                    useOneTap
+                    theme="outline"
+                    size="large"
+                    shape="pill"
+                    width="100%"
+                  />
+                </div>
               </div>
             )}
 
@@ -519,6 +644,8 @@ export function AuthForms() {
                 </button>
               )}
             </div>
+
+
 
             {/* Bottom Admin Toggle */}
             {(view === "login" || view === "register") && (

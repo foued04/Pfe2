@@ -70,11 +70,10 @@ export function TenantPropertyCard({
     >
       {/* Image Container */}
       <div className="relative aspect-[4/3] overflow-hidden">
-        <Image
-          src={property.images.cover}
+        <img
+          src={property.images?.cover || "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80"}
           alt={property.title}
-          fill
-          className="object-cover transition-transform duration-500 group-hover:scale-110"
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
         
         {/* Overlay Gradient */}
@@ -97,7 +96,7 @@ export function TenantPropertyCard({
         <button
           onClick={(e) => {
             e.stopPropagation()
-            onToggleFavorite(property.id)
+            onToggleFavorite(property.id || (property as any)._id)
           }}
           className={cn(
             "absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full transition-all duration-200",
@@ -118,13 +117,11 @@ export function TenantPropertyCard({
 
         {/* Mini Room Previews */}
         <div className="absolute bottom-3 right-3 flex gap-1 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-          {[property.images.kitchen, property.images.bedroom, property.images.bathroom].map((img, i) => (
+          {[property.images?.kitchen, property.images?.bedroom, property.images?.bathroom].filter(Boolean).map((img, i) => (
             <div key={i} className="h-10 w-10 overflow-hidden rounded-md border-2 border-white/50">
-              <Image
-                src={img}
+              <img
+                src={img!}
                 alt=""
-                width={40}
-                height={40}
                 className="h-full w-full object-cover"
               />
             </div>

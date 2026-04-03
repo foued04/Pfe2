@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useI18n } from "@/lib/i18n"
+import { useAuth } from "@/lib/auth-context"
 import type { Property } from "@/lib/property-data"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,6 +14,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { X, Send, Home, MapPin, Calendar } from "lucide-react"
 import Image from "next/image"
 
@@ -23,29 +31,61 @@ interface ContactOwnerFormProps {
 }
 
 export function ContactOwnerForm({ property, isOpen, onClose }: ContactOwnerFormProps) {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
+  const { user } = useAuth()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
+    name: user?.name || "",
+    email: user?.email || "",
+    phone: user?.phone || "",
     message: "",
+    duration: "12 mois",
     visitDate: "",
   })
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
 
   if (!property) return null
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!user) {
+      alert(t("auth.loginRequired") || "Vous devez être connecté pour envoyer une demande.")
+      return
+    }
     setIsSubmitting(true)
     
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    
-    setIsSubmitting(false)
-    onClose()
-    // Reset form
-    setFormData({ name: "", email: "", phone: "", message: "", visitDate: "" })
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/rental-requests`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          property: (property as any)._id || property.id,
+          duration: formData.duration,
+          message: `${formData.message}${formData.visitDate ? ` (Date de visite souhaitée: ${formData.visitDate})` : ""}`,
+        }),
+      })
+
+      if (response.ok) {
+        setIsSubmitting(false)
+        onClose()
+        // Reset form
+        setFormData(prev => ({ ...prev, message: "", visitDate: "" }))
+        alert(lang === "fr" ? "Demande envoyée avec succès !" : "Request sent successfully!")
+      } else {
+        const err = await response.json()
+        alert(err.message || "Erreur lors de l'envoi de la demande.")
+      }
+    } catch (err) {
+      console.error("Submit rental request error:", err)
+      alert("Erreur de connexion au serveur.")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const updateField = (field: string, value: string) => {
@@ -128,17 +168,35 @@ export function ContactOwnerForm({ property, isOpen, onClose }: ContactOwnerForm
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="contact-visit">{t("contact.visitDate")}</Label>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="contact-visit"
-                type="date"
-                value={formData.visitDate}
-                onChange={(e) => updateField("visitDate", e.target.value)}
-                className="pl-10"
-              />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="contact-visit">{t("contact.visitDate")}</Label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="contact-visit"
+                  type="date"
+                  value={formData.visitDate}
+                  onChange={(e) => updateField("visitDate", e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contact-duration">{lang === "fr" ? "Durée" : "Duration"}</Label>
+              <Select
+                value={formData.duration}
+                onValueChange={(val) => updateField("duration", val)}
+              >
+                <SelectTrigger id="contact-duration">
+                  <SelectValue placeholder="Sélectionner" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="6 mois">6 mois</SelectItem>
+                  <SelectItem value="12 mois">12 mois</SelectItem>
+                  <SelectItem value="24 mois">24 mois</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

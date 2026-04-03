@@ -6,6 +6,7 @@ import { TenantPropertyCard } from "./tenant-property-card"
 import { FilterValues } from "./tenant-filters"
 
 interface TenantPropertiesGridProps {
+  properties: Property[]
   searchQuery: string
   filters: FilterValues
   favorites: string[]
@@ -16,6 +17,7 @@ interface TenantPropertiesGridProps {
 }
 
 export function TenantPropertiesGrid({
+  properties,
   searchQuery,
   filters,
   favorites,
@@ -27,9 +29,10 @@ export function TenantPropertiesGrid({
   const { t } = useI18n()
 
   // Filter properties
-  const filteredProperties = mockProperties.filter((property) => {
+  const filteredProperties = properties.filter((property) => {
+    const propId = property.id || (property as any)._id
     // Favorites only
-    if (showFavoritesOnly && !favorites.includes(property.id)) {
+    if (showFavoritesOnly && !favorites.includes(propId)) {
       return false
     }
     // Search query
@@ -106,16 +109,19 @@ export function TenantPropertiesGrid({
       {/* Grid */}
       {filteredProperties.length > 0 ? (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredProperties.map((property) => (
-            <TenantPropertyCard
-              key={property.id}
-              property={property}
-              isFavorite={favorites.includes(property.id)}
-              onToggleFavorite={onToggleFavorite}
-              onViewDetails={onViewDetails}
-              onContact={onContact}
-            />
-          ))}
+          {filteredProperties.map((property) => {
+            const propId = property.id || (property as any)._id
+            return (
+              <TenantPropertyCard
+                key={propId}
+                property={property}
+                isFavorite={favorites.includes(propId)}
+                onToggleFavorite={onToggleFavorite}
+                onViewDetails={onViewDetails}
+                onContact={onContact}
+              />
+            )
+          })}
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-20 text-center">

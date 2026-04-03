@@ -17,7 +17,8 @@
   --secondary-foreground: #1F2937;
   --muted: #EAF7F6;
   --muted-foreground: #6B7280;
-  --accent: #F27D72; /* Corail accent principal */
+  --accent: #F27D72;
+  /* Corail accent principal */
   --accent-foreground: #FFFFFF;
   --destructive: #F27D72;
   --destructive-foreground: #FFFFFF;
@@ -25,16 +26,20 @@
   --input: #DDEEEE;
   --ring: #2EC4C7;
   --chart-1: #2EC4C7;
-  --chart-2: #F27D72; /* Corail as secondary chart color */
+  --chart-2: #F27D72;
+  /* Corail as secondary chart color */
   --chart-3: #158C96;
   --chart-4: #63D8DA;
   --chart-5: #FFA08F;
   --radius: 0.75rem;
-  --sidebar: #158C96; /* Sidebar plus profonde pour le contraste */
+  --sidebar: #158C96;
+  /* Sidebar plus profonde pour le contraste */
   --sidebar-foreground: #FDFEFE;
-  --sidebar-primary: #F27D72; /* Active element background: Corail pour le "popout" */
+  --sidebar-primary: #F27D72;
+  /* Active element background: Corail pour le "popout" */
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #2EC4C7; /* Hover background: Turquoise */
+  --sidebar-accent: #2EC4C7;
+  /* Hover background: Turquoise */
   --sidebar-accent-foreground: #FFFFFF;
   --sidebar-border: #DDEEEE;
   --sidebar-ring: #F27D72;
@@ -120,9 +125,12 @@
   --color-emerald-100: #DDEEEE;
   --color-emerald-200: #BBE1E2;
   --color-emerald-300: #99D4D6;
-  --color-emerald-400: #63D8DA; /* Aqua clair */
-  --color-emerald-500: #2EC4C7; /* Turquoise Principal */
-  --color-emerald-600: #158C96; /* Turquoise Foncé */
+  --color-emerald-400: #63D8DA;
+  /* Aqua clair */
+  --color-emerald-500: #2EC4C7;
+  /* Turquoise Principal */
+  --color-emerald-600: #158C96;
+  /* Turquoise Foncé */
   --color-emerald-700: #0E6269;
   --color-emerald-800: #083D42;
   --color-emerald-900: #031D1F;
@@ -142,10 +150,12 @@
   --color-orange-50: #FFF5F2;
   --color-orange-100: #FFEAE4;
   --color-orange-200: #FFD4C9;
-  --color-orange-300: #FFA08F; /* Corail doux */
+  --color-orange-300: #FFA08F;
+  /* Corail doux */
   --color-orange-400: #FF8574;
-  --color-orange-500: #F27D72; /* Corail Principal */
-  --color-orange-600: #D9655B; 
+  --color-orange-500: #F27D72;
+  /* Corail Principal */
+  --color-orange-600: #D9655B;
   --color-orange-700: #B34F47;
   --color-orange-800: #8C3A34;
   --color-orange-900: #662622;
@@ -208,16 +218,21 @@
   --color-purple-900: #1F2937;
 
   /* === TEXTS / GRAYS PALETTE === */
-  --color-gray-50: #FDFEFE; /* Blanc cassé */
-  --color-gray-100: #EAF7F6; /* Menthe claire */
-  --color-gray-200: #DDEEEE; /* Bordure légère */
+  --color-gray-50: #FDFEFE;
+  /* Blanc cassé */
+  --color-gray-100: #EAF7F6;
+  /* Menthe claire */
+  --color-gray-200: #DDEEEE;
+  /* Bordure légère */
   --color-gray-300: #C2DFDF;
   --color-gray-400: #A8D1D1;
   --color-gray-500: #88BDBD;
-  --color-gray-600: #6B7280; /* Texte secondaire */
+  --color-gray-600: #6B7280;
+  /* Texte secondaire */
   --color-gray-700: #4B5563;
   --color-gray-800: #374151;
-  --color-gray-900: #1F2937; /* Texte principal */
+  --color-gray-900: #1F2937;
+  /* Texte principal */
 
   --color-slate-50: #FDFEFE;
   --color-slate-100: #EAF7F6;
@@ -268,6 +283,7 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }

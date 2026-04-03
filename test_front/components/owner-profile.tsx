@@ -41,7 +41,7 @@ import { Progress } from "./ui/progress"
 
 export function OwnerProfile() {
   const { lang, setLang } = useI18n()
-  const { user } = useAuth()
+  const { user, updateProfile, updatePassword } = useAuth()
   const { toast } = useToast()
 
   const isFr = lang === "fr"
@@ -67,10 +67,10 @@ export function OwnerProfile() {
 
   // ─── Personal Info State ───────────────────────────────────────────────
   const [profileData, setProfileData] = useState({
-    name: user?.name || "Mohamed Ben Ali",
-    email: user?.email || "proprietaire@example.com",
-    phone: "+216 22 123 456",
-    address: "Avenue Habib Bourguiba, Monastir",
+    name: user?.name || "",
+    email: user?.email || "",
+    phone: user?.phone || "",
+    address: user?.address || "",
     avatarUrl: user?.avatar || "",
   })
 
@@ -122,15 +122,26 @@ export function OwnerProfile() {
   const handleSaveProfile = async () => {
     setIsLoading(true)
     
-    // Simulate API call to /api/users/profile
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    // In a real app, you would send profileData to backend here.
-    toast({
-      title: lang === "fr" ? "Profil mis à jour" : "Profile updated",
-      description: lang === "fr" ? "Vos informations personnelles ont été enregistrées avec succès." : "Your personal information has been saved successfully.",
-      variant: "default"
+    const result = await updateProfile({
+      name: profileData.name,
+      phone: profileData.phone,
+      address: profileData.address,
+      avatar: profileData.avatarUrl
     })
+    
+    if (result.success) {
+      toast({
+        title: lang === "fr" ? "Profil mis à jour" : "Profile updated",
+        description: lang === "fr" ? "Vos informations personnelles ont été enregistrées avec succès." : "Your personal information has been saved successfully.",
+        variant: "default"
+      })
+    } else {
+      toast({
+        title: "Erreur",
+        description: result.message || "Erreur lors de la mise à jour",
+        variant: "destructive"
+      })
+    }
     
     setIsLoading(false)
   }
@@ -145,10 +156,10 @@ export function OwnerProfile() {
       return
     }
 
-    if (passwords.new.length < 8) {
+    if (passwords.new.length < 6) {
       toast({
         title: lang === "fr" ? "Mot de passe trop court" : "Password too short",
-        description: lang === "fr" ? "Le mot de passe doit contenir au moins 8 caractères." : "Password must contain at least 8 characters.",
+        description: lang === "fr" ? "Le mot de passe doit contenir au moins 6 caractères." : "Password must contain at least 6 characters.",
         variant: "destructive"
       })
       return
@@ -156,16 +167,22 @@ export function OwnerProfile() {
 
     setIsLoading(true)
     
-    // Simulate API call to /api/users/password
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    const result = await updatePassword(passwords.current, passwords.new)
     
-    setPasswords({ current: "", new: "", confirm: "" })
-    
-    toast({
-      title: lang === "fr" ? "Mot de passe modifié" : "Password changed",
-      description: lang === "fr" ? "Votre mot de passe a été mis à jour avec sécurité." : "Your password was securely updated.",
-      variant: "default"
-    })
+    if (result.success) {
+      setPasswords({ current: "", new: "", confirm: "" })
+      toast({
+        title: lang === "fr" ? "Mot de passe modifié" : "Password changed",
+        description: lang === "fr" ? "Votre mot de passe a été mis à jour avec sécurité." : "Your password was securely updated.",
+        variant: "default"
+      })
+    } else {
+      toast({
+        title: "Erreur",
+        description: result.message || "Erreur lors du changement de mot de passe",
+        variant: "destructive"
+      })
+    }
     
     setIsLoading(false)
   }

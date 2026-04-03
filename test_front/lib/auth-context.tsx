@@ -28,10 +28,11 @@ interface AuthContextType {
   isAuthenticated: boolean
   isLoading: boolean
   login: (email: string, password: string, role: UserRole) => Promise<{ success: boolean; message?: string }>
-  register: (data: RegisterData) => Promise<{ success: boolean; message?: string }>
+  register: (data: RegisterData) => Promise<{ success: boolean; message?: string; devCode?: string }>
   logout: () => void
   updateProfile: (data: Partial<User>) => Promise<{ success: boolean; message?: string }>
   updatePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; message?: string }>
+  loginWithGoogle: (credential: string) => Promise<{ success: boolean; message?: string }>
 }
 
 interface RegisterData {
@@ -44,7 +45,7 @@ interface RegisterData {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -83,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const response = await fetch(`${API_URL}/api/auth/me`, {
+        const response = await fetch(`${API_URL}/auth/me`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -119,7 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string, selectedRole: UserRole): Promise<{ success: boolean; message?: string }> => {
     try {
       const normalizedEmail = email.trim().toLowerCase()
-      const response = await fetch(`${API_URL}/api/auth/login`, {
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: normalizedEmail, password }),
@@ -153,7 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (data: RegisterData): Promise<{ success: boolean; message?: string }> => {
     try {
       const normalizedEmail = data.email.trim().toLowerCase()
-      const response = await fetch(`${API_URL}/api/auth/signup`, {
+      const response = await fetch(`${API_URL}/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -175,7 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const mappedUser = mapBackendUser(responseData.user)
         setUser(mappedUser)
         setRole(mappedUser.role)
-        return { success: true }
+        return { success: true, devCode: responseData.devCode }
       }
 
       const errData = await response.json().catch(() => null)
@@ -241,6 +242,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const loginWithGoogle = async (credential: string): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const response = await fetch(`${API_URL}/auth/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: credential }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.accessToken) {
+          localStorage.setItem("accessToken", data.accessToken)
+        }
+
+        const mappedUser = mapBackendUser(data.user)
+        setUser(mappedUser)
+        setRole(mappedUser.role)
+        return { success: true }
+      }
+
+      const errData = await response.json().catch(() => null)
+      return { success: false, message: errData?.message || "Échec de la connexion Google" }
+    } catch (error) {
+      console.error("Google login error:", error)
+      return { success: false, message: "Erreur de connexion au serveur" }
+    }
+  }
+
   const logout = () => {
     localStorage.removeItem("accessToken")
     setUser(null)
@@ -248,7 +277,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, role, isAuthenticated, isLoading, login, register, logout, updateProfile, updatePassword }}>
+    <AuthContext.Provider value={{ user, role, isAuthenticated, isLoading, login, register, logout, updateProfile, updatePassword, loginWithGoogle }}>
       {children}
     </AuthContext.Provider>
   )

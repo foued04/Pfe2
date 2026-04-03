@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
-import { mockRequests, RentalRequest } from "@/lib/requests-data"
+import { useState, useEffect } from "react"
+import { useAuth } from "@/lib/auth-context"
+import { RentalRequest } from "@/lib/requests-data"
 import { RentalRequestCard } from "./rental-request-card"
 import { useI18n } from "@/lib/i18n"
 import { 
@@ -16,9 +17,67 @@ import { Button } from "./ui/button"
 
 export function TenantRequestsModule() {
   const { lang } = useI18n()
-  const [requests, setRequests] = useState<RentalRequest[]>(mockRequests)
-  const [filter, setFilter] = useState<RentalRequest["status"] | "all">("all")
+  const { user } = useAuth()
+  const [requests, setRequests] = useState<RentalRequest[]>([])
+  const [filter, setFilter] = useState<string>("all")
   const [searchQuery, setSearchQuery] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+
+  const fetchRequests = async () => {
+    if (!user) return
+    setIsLoading(true)
+    setError(null)
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/rental-requests`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      if (response.ok) {
+        const data = await response.json()
+        const mapped = data.map((r: any) => ({
+          id: r._id,
+          status: mapStatus(r.status),
+          property: {
+            id: r.property?._id,
+            title: r.property?.title || "Propriété inconnue",
+            address: r.property?.address || "Adresse inconnue",
+            price: r.property?.rent || 0,
+            image: r.property?.images?.cover || "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80"
+          },
+          date: r.date,
+          message: r.message
+        }))
+        setRequests(mapped)
+      } else {
+        setError("Erreur lors du chargement de vos demandes")
+      }
+    } catch (err) {
+      console.error("Fetch tenant requests error:", err)
+      setError("Erreur de connexion")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const mapStatus = (status: string): RentalRequest["status"] => {
+    switch (status) {
+      case "En attente": return "pending"
+      case "Acceptée": return "accepted"
+      case "Refusée": return "refused"
+      case "Contrat généré": return "contract_in_progress"
+      case "Contrat actif": return "active"
+      default: return "pending"
+    }
+  }
+
+  useEffect(() => {
+    fetchRequests()
+  }, [user])
 
   const stats = {
     total: requests.length,
@@ -134,12 +193,18 @@ export function TenantRequestsModule() {
 
       {/* Requests Grid */}
       <div className="grid grid-cols-1 gap-6 pb-12">
-        {filteredRequests.length > 0 ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          </div>
+        ) : error ? (
+          <div className="py-20 text-center text-destructive bg-destructive/5 rounded-3xl border border-dashed border-destructive/20">{error}</div>
+        ) : filteredRequests.length > 0 ? (
           filteredRequests.map((request, idx) => (
             <div
               key={request.id}
               className="animate-in fade-in slide-in-from-bottom-4 duration-500"
-              style={{ animationDelay: `${400 + idx * 50}ms` }}
+              style={{ animationDelay: `${idx * 50}ms` }}
             >
               <RentalRequestCard 
                 request={request}
@@ -150,7 +215,7 @@ export function TenantRequestsModule() {
             </div>
           ))
         ) : (
-          <div className="py-20 text-center bg-accent/10 rounded-3xl border border-dashed border-border flex flex-col items-center gap-4 animate-in fade-in duration-500 delay-500">
+          <div className="py-20 text-center bg-accent/10 rounded-3xl border border-dashed border-border flex flex-col items-center gap-4 animate-in fade-in duration-500">
             <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground">
               <FileText className="w-8 h-8" />
             </div>

@@ -1,6 +1,6 @@
 import { Property, mockProperties } from "./property-data"
 
-export type RequestStatus = "pending" | "accepted" | "refused" | "contract_in_progress"
+export type RequestStatus = "pending" | "accepted" | "refused" | "contract_in_progress" | "active"
 
 export interface RentalRequest {
   id: string

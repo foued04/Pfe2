@@ -100,27 +100,31 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
     e.preventDefault()
     setIsSubmitting(true)
     
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false)
-      
-      if (onSave) {
-        // Compile final data to match mockProperties structure
-        const finalData = {
-          ...(initialData || {}), // preserve ID and owner email
-          ...formData,
-          rent: Number(formData.rent),
-          surface: Number(formData.surface),
-          bedrooms: Number(formData.bedrooms),
-          bathrooms: Number(formData.bathrooms),
-          images: {
-            cover: images.cover || "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80",
-            gallery: images.gallery,
-          }
-        }
-        onSave(finalData)
+    // Compile final data to match Property structure
+    const finalData = {
+      ...(initialData || {}),
+      ...formData,
+      rent: Number(formData.rent),
+      deposit: Number(formData.deposit),
+      surface: Number(formData.surface),
+      bedrooms: Number(formData.bedrooms),
+      bathrooms: Number(formData.bathrooms),
+      livingRooms: Number(formData.livingRooms),
+      images: {
+        cover: images.cover || "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80",
+        kitchen: images.kitchen,
+        bathroom: images.bathroom,
+        bedroom: images.bedroom,
+        livingRoom: images.livingRoom,
+        exterior: images.exterior,
+        gallery: images.gallery,
       }
-    }, 800)
+    }
+    
+    if (onSave) {
+      onSave(finalData)
+    }
+    setIsSubmitting(false)
   }
 
   const updateField = (field: string, value: string | boolean) => {

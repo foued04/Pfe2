@@ -1,5 +1,8 @@
 import type { Metadata } from "next"
 import "./globals.css"
+import { I18nProvider } from "@/lib/i18n"
+import { AuthProvider } from "@/lib/auth-context"
+import { GoogleOAuthProvider } from "@react-oauth/google"
 
 export const metadata: Metadata = {
   title: "ImmoSmart",
@@ -11,9 +14,19 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""
+
   return (
     <html lang="fr">
-      <body>{children}</body>
+      <body>
+        <GoogleOAuthProvider clientId={clientId}>
+          <AuthProvider>
+            <I18nProvider>
+              {children}
+            </I18nProvider>
+          </AuthProvider>
+        </GoogleOAuthProvider>
+      </body>
     </html>
   )
 }

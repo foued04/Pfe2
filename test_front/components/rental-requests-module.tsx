@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useI18n } from "@/lib/i18n"
 import { useAuth } from "@/lib/auth-context"
 import { 
@@ -33,12 +33,59 @@ export function RentalRequestsModule() {
   const { lang } = useI18n()
   const { user } = useAuth()
 
-  const [requests, setRequests] = useState<RentalRequest[]>(mockRentalRequests)
+  const [requests, setRequests] = useState<RentalRequest[]>([])
   const [contracts, setContracts] = useState<Contract[]>(mockContracts)
   const [currentView, setCurrentView] = useState<ModuleView>("list")
   const [selectedRequest, setSelectedRequest] = useState<RentalRequest | null>(null)
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null)
   const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+
+  const fetchRequests = async () => {
+    if (!user) return
+    setIsLoading(true)
+    setError(null)
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/rental-requests`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      if (response.ok) {
+        const data = await response.json()
+        const mapped = data.map((r: any) => ({
+          id: r._id,
+          propertyId: r.property?._id,
+          propertyName: r.property?.title || "Propriété inconnue",
+          propertyAddress: r.property?.address || "Adresse inconnue",
+          propertyRent: r.property?.rent || 0,
+          tenantName: r.tenant?.fullName || "Utilisateur inconnu",
+          tenantEmail: r.tenant?.email || "",
+          tenantPhone: r.tenant?.phone || "",
+          date: r.date,
+          status: r.status as RequestStatus,
+          message: r.message || "",
+          duration: r.duration || "12 mois"
+        }))
+        setRequests(mapped)
+      } else {
+        setError("Erreur lors du chargement des demandes")
+      }
+    } catch (err) {
+      console.error("Fetch requests error:", err)
+      setError("Erreur de connexion")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchRequests()
+  }, [user])
 
   // Stats
   const stats = useMemo(() => ({
@@ -56,7 +103,62 @@ export function RentalRequestsModule() {
     setCurrentView("detail")
   }
 
-  const handleAccept = (requestId: string) => {
+  const handleAccept = async (requestId: string) => {
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/rental-requests/${requestId}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: "Acceptée" }),
+      })
+
+      if (response.ok) {
+        const updated = await response.json()
+        setRequests(prev => prev.map(r => r.id === requestId ? { ...r, status: "Acceptée" as RequestStatus } : r))
+        if (selectedRequest?.id === requestId) setSelectedRequest(prev => prev ? { ...prev, status: "Acceptée" as RequestStatus } : null)
+        
+        // For now, satisfy the frontend's immediate contract generation logic
+        const request = requests.find(r => r.id === requestId)
+        if (request) {
+           handleGenerateContract(requestId)
+        }
+      } else {
+        alert("Erreur lors de la mise à jour du statut.")
+      }
+    } catch (err) {
+      console.error("Update status error:", err)
+      alert("Erreur de connexion.")
+    }
+  }
+
+  const handleReject = async (requestId: string) => {
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/rental-requests/${requestId}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: "Refusée" }),
+      })
+
+      if (response.ok) {
+        setRequests(prev => prev.map(r => r.id === requestId ? { ...r, status: "Refusée" as RequestStatus } : r))
+        if (selectedRequest?.id === requestId) setSelectedRequest(prev => prev ? { ...prev, status: "Refusée" as RequestStatus } : null)
+      } else {
+        alert("Erreur lors de la mise à jour du statut.")
+      }
+    } catch (err) {
+      console.error("Update status error:", err)
+      alert("Erreur de connexion.")
+    }
+  }
+
+  const handleGenerateContract = async (requestId: string) => {
     // 1. Mark request as 'Acceptée' functionally, but we immediately generate the contract
     const request = requests.find(r => r.id === requestId)
     if (!request) return
@@ -75,9 +177,9 @@ export function RentalRequestsModule() {
     // 2. Automatically generate the contract immediately
     const newContract = generateContract(
       request,
-      user?.name || "Mohamed Ben Ali",
-      user?.email || "proprietaire@email.com",
-      user?.phone || "+216 73 461 234"
+      user?.name || "Propriétaire",
+      user?.email || "",
+      user?.phone || ""
     )
 
     setContracts(prev => [...prev, newContract])
@@ -94,20 +196,6 @@ export function RentalRequestsModule() {
 
     // 4. Open the contract view for signature
     setCurrentView("contract")
-  }
-
-  const handleReject = (requestId: string) => {
-    setRequests(prev => prev.map(r => 
-      r.id === requestId ? { ...r, status: "Refusée" as RequestStatus } : r
-    ))
-    if (selectedRequest?.id === requestId) {
-      setSelectedRequest(prev => prev ? { ...prev, status: "Refusée" as RequestStatus } : null)
-    }
-  }
-
-  const handleGenerateContract = (requestId: string) => {
-    // Fallback if needed, behaves same as handleAccept now, since accept auto-generates
-    handleAccept(requestId)
   }
 
   const handleOwnerSign = (signature: string) => {
@@ -266,13 +354,21 @@ export function RentalRequestsModule() {
       </div>
 
       {/* Requests List */}
-      <RentalRequestList
-        requests={requests}
-        onViewDetails={handleViewDetails}
-        onAccept={handleAccept}
-        onReject={handleReject}
-        statusFilter={statusFilter}
-      />
+      {isLoading ? (
+        <div className="flex items-center justify-center p-20">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      ) : error ? (
+        <div className="p-10 text-center text-destructive">{error}</div>
+      ) : (
+        <RentalRequestList
+          requests={requests}
+          onViewDetails={handleViewDetails}
+          onAccept={handleAccept}
+          onReject={handleReject}
+          statusFilter={statusFilter}
+        />
+      )}
     </div>
   )
 }

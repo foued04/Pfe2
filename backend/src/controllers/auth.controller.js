@@ -2,11 +2,20 @@ const authService = require('../services/auth.service');
 const tokenService = require('../services/token.service');
 const asyncHandler = require('../utils/asyncHandler');
 const User = require('../models/User.model');
+const jwt = require('jsonwebtoken');
+const { OAuth2Client } = require('google-auth-library');
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const signup = asyncHandler(async (req, res) => {
   const user = await authService.createUser(req.body);
   const accessToken = tokenService.generateAuthToken(user);
-  res.status(201).send({ user, accessToken });
+  // Include verificationCode in response for testing/development
+  res.status(201).send({ 
+    user, 
+    accessToken, 
+    devCode: user.verificationCode // Add this for the user to see in their browser
+  });
 });
 
 const login = asyncHandler(async (req, res) => {
@@ -43,27 +52,47 @@ const resetPassword = asyncHandler(async (req, res) => {
 // ─── Google Login Stub ──────────────────────────────────────────────────
 
 const googleLogin = asyncHandler(async (req, res) => {
-  // En production, vous utiliseriez google-auth-library pour vérifier le token (req.body.token)
-  // et extraire l'email et le nom. Pour l'instant, c'est un placeholder.
-  const { email, name } = req.body;
+  const { token } = req.body;
   
-  if (!email) {
-    return res.status(400).send({ message: 'Email manquant pour la connexion Google' });
+  if (!token) {
+    return res.status(400).send({ message: 'Token Google manquant' });
   }
 
-  let user = await User.findOne({ email });
-  if (!user) {
-    // S'inscrire automatiquement si l'utilisateur n'existe pas
-    user = await User.create({
-      fullName: name || 'Utilisateur Google',
-      email,
-      password: Math.random().toString(36).slice(-8) + 'Xy1!', // Mot de passe aléatoire fort
-      role: 'tenant', // par défaut
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
     });
-  }
+    
+    const payload = ticket.getPayload();
+    const { email, name, picture, sub: googleId } = payload;
 
-  const accessToken = tokenService.generateAuthToken(user);
-  res.send({ user, accessToken });
+    let user = await User.findOne({ email });
+    
+    if (!user) {
+      // Auto-register if user doesn't exist
+      user = await User.create({
+        fullName: name,
+        email,
+        password: Math.random().toString(36).slice(-10) + 'Xy1!', // Strong random password
+        role: 'tenant', // Default role
+        avatar: picture,
+        googleId, // Optional: store googleId for future reference
+        isEmailVerified: true, // Google users are pre-verified
+      });
+    } else if (!user.googleId) {
+      // Link google account if email matches but googleId is missing
+      user.googleId = googleId;
+      if (!user.avatar) user.avatar = picture;
+      await user.save();
+    }
+
+    const accessToken = tokenService.generateAuthToken(user);
+    res.send({ user, accessToken });
+  } catch (error) {
+    console.error('Google token verification failed:', error);
+    res.status(401).send({ message: 'Authentification Google échouée' });
+  }
 });
 
 const updateProfile = asyncHandler(async (req, res) => {
@@ -77,6 +106,33 @@ const updatePassword = asyncHandler(async (req, res) => {
   res.send({ message: 'Mot de passe modifié avec succès' });
 });
 
+const verifyEmail = asyncHandler(async (req, res) => {
+  let { email, code, token } = req.body;
+
+  // If we have a JWT token, decode it to get email and code
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      email = decoded.email;
+      code = decoded.code;
+    } catch (error) {
+      return res.status(400).send({ message: 'Lien de vérification invalide ou expiré' });
+    }
+  }
+
+  await authService.verifyEmail(email, code);
+  
+  // Find user and generate token for auto-login
+  const user = await User.findOne({ email });
+  const accessToken = tokenService.generateAuthToken(user);
+  
+  res.send({ 
+    user, 
+    accessToken,
+    message: 'Email vérifié avec succès. Bienvenue !' 
+  });
+});
+
 module.exports = {
   signup,
   login,
@@ -87,4 +143,5 @@ module.exports = {
   googleLogin,
   updateProfile,
   updatePassword,
+  verifyEmail,
 };
