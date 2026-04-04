@@ -23,13 +23,13 @@ function AppRouter() {
       case "tenant":
         return <TenantDashboard />
       default:
-        return <AuthForms initialView={authView} />
+        return <AuthForms initialView={authView} onClose={() => setShowAuth(false)} />
     }
   }
 
   // Show auth forms when user clicks login/register
   if (showAuth) {
-    return <AuthForms initialView={authView} />
+    return <AuthForms initialView={authView} onClose={() => setShowAuth(false)} />
   }
 
   // Default: show public homepage
