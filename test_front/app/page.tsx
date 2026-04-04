@@ -11,6 +11,7 @@ import { HomePage } from "@/components/home-page"
 function AppRouter() {
   const { isAuthenticated, role } = useAuth()
   const [showAuth, setShowAuth] = useState(false)
+  const [authView, setAuthView] = useState<"login" | "register">("login")
 
   // If authenticated, route to dashboard
   if (isAuthenticated) {
@@ -22,20 +23,26 @@ function AppRouter() {
       case "tenant":
         return <TenantDashboard />
       default:
-        return <AuthForms />
+        return <AuthForms initialView={authView} />
     }
   }
 
   // Show auth forms when user clicks login/register
   if (showAuth) {
-    return <AuthForms />
+    return <AuthForms initialView={authView} />
   }
 
   // Default: show public homepage
   return (
     <HomePage
-      onLogin={() => setShowAuth(true)}
-      onRegister={() => setShowAuth(true)}
+      onLogin={() => { 
+        setAuthView("login"); 
+        setShowAuth(true); 
+      }}
+      onRegister={() => { 
+        setAuthView("register"); 
+        setShowAuth(true); 
+      }}
     />
   )
 }

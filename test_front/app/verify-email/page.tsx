@@ -2,8 +2,99 @@
 
 import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { CheckCircle2, Home, ArrowLeft, Loader2 } from "lucide-react"
+import { CheckCircle2, Home, ArrowLeft, Loader2, Mail } from "lucide-react"
 import Link from "next/link"
+
+// ─── Professional Verification Input ────────────────────────────────────────
+function VerificationInput({ length = 6, onChange, onComplete }: any) {
+  const [code, setCode] = useState(Array(length).fill(""))
+  const inputRefs = Array(length).fill(0).map(() => ({} as any))
+
+  const handleChange = (val: string, index: number) => {
+    // Only allow numbers
+    const cleanVal = val.replace(/\D/g, "")
+    if (!cleanVal && val !== "") return
+    
+    const newCode = [...code]
+    newCode[index] = cleanVal.slice(-1)
+    setCode(newCode)
+    
+    const combinedCode = newCode.join("")
+    onChange(combinedCode)
+
+    if (cleanVal && index < length - 1) {
+      inputRefs[index + 1].focus()
+    }
+    
+    if (newCode.every(c => c !== "") && onComplete) {
+      onComplete(combinedCode)
+    }
+  }
+
+  const handleKeyDown = (e: any, index: number) => {
+    if (e.key === "Backspace" && !code[index] && index > 0) {
+      inputRefs[index - 1].focus()
+    }
+  }
+
+  const handlePaste = (e: any) => {
+    e.preventDefault()
+    const pastedData = e.clipboardData.getData("text").trim().slice(0, length)
+    if (!/^\d+$/.test(pastedData)) return
+
+    const newCode = [...code]
+    pastedData.split("").forEach((char: string, i: number) => {
+      if (i < length) newCode[i] = char
+    })
+    setCode(newCode)
+    
+    const combinedCode = newCode.join("")
+    onChange(combinedCode)
+    
+    // Focus last filled input or next empty
+    const nextIndex = Math.min(pastedData.length, length - 1)
+    if (inputRefs[nextIndex]) inputRefs[nextIndex].focus()
+
+    if (pastedData.length === length && onComplete) {
+      onComplete(combinedCode)
+    }
+  }
+
+  return (
+    <div style={{ display: "flex", gap: "10px", justifyContent: "center", margin: "24px 0" }} onPaste={handlePaste}>
+      {Array(length).fill(0).map((_, i) => (
+        <input
+          key={i}
+          ref={(el) => { inputRefs[i] = el }}
+          type="text"
+          inputMode="numeric"
+          maxLength={1}
+          value={code[i]}
+          onChange={(e) => handleChange(e.target.value, i)}
+          onKeyDown={(e) => handleKeyDown(e, i)}
+          style={{
+            width: "50px", height: "64px",
+            textAlign: "center", fontSize: "28px", fontWeight: "bold",
+            borderRadius: "14px", border: "2px solid #e5e7eb",
+            background: "#f9fafb", outline: "none", transition: "all 0.2s",
+            color: "#111827",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.02)"
+          }}
+          onFocus={(e) => { 
+            e.currentTarget.style.borderColor = "#2EC4C7"
+            e.currentTarget.style.background = "#fff"
+            e.currentTarget.style.boxShadow = "0 0 0 4px rgba(46,196,199,0.1)" 
+          }}
+          onBlur={(e) => { 
+            e.currentTarget.style.borderColor = "#e5e7eb"
+            e.currentTarget.style.background = "#f9fafb"
+            e.currentTarget.style.boxShadow = "none" 
+          }}
+        />
+      ))}
+    </div>
+  )
+}
 
 function VerificationContent() {
   const router = useRouter()
@@ -122,25 +213,20 @@ function VerificationContent() {
               />
             </div>
 
-            <div style={{ textAlign: "left" }}>
-              <label style={{ fontSize: "14px", fontWeight: 600, color: "#374151", marginBottom: "8px", display: "block" }}>Code de vérification (6 chiffres)</label>
-              <input 
-                type="text" 
-                maxLength={6}
-                value={code} 
-                onChange={(e) => {
-                  const val = e.target.value.replace(/\D/g, "");
-                  setCode(val);
-                  if (val.length === 6) handleVerify(email, val);
-                }}
-                placeholder="· · · · · ·"
-                style={{ 
-                  width: "100%", padding: "18px", borderRadius: "12px", 
-                  border: "2px solid #e5e7eb", outline: "none", fontSize: "28px",
-                  letterSpacing: "14px", textAlign: "center", fontWeight: "bold",
-                  background: "#f9fafb"
-                }}
+            <div style={{ textAlign: "center" }}>
+              <label style={{ fontSize: "14px", fontWeight: 700, color: "#374151", marginBottom: "12px", display: "block", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                Code de vérification
+              </label>
+              
+              <VerificationInput 
+                length={6} 
+                onChange={setCode}
+                onComplete={(val: string) => handleVerify(email, val)}
               />
+
+              <p style={{ fontSize: "13px", color: "#9ca3af", marginTop: "8px" }}>
+                Vous pouvez copier et coller le code reçu par email
+              </p>
             </div>
 
             {error && (

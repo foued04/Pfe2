@@ -221,10 +221,10 @@ function VerificationInput({ length = 6, value, onChange, onComplete }: any) {
 }
 
 // ─── Main AuthForms Component ────────────────────────────────────────────────
-export function AuthForms() {
+export function AuthForms({ initialView = "login" }: { initialView?: View }) {
   const { lang } = useI18n()
   const { login, register, loginWithGoogle } = useAuth()
-  const [view, setView] = useState<View>("login")
+  const [view, setView] = useState<View>(initialView)
   const [role, setRole] = useState<UserRole>("tenant")
   const [isAdminLogin, setIsAdminLogin] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -296,7 +296,8 @@ export function AuthForms() {
 
     try {
       if (view === "login") {
-        const loginRole = isAdminLogin ? "admin" : role
+        // Only enforce role if it's an admin login. Otherwise, the database determines the role.
+        const loginRole = isAdminLogin ? "admin" : undefined
         const { success, message } = await login(email, password, loginRole)
         if (!success) setError(message || "Email ou mot de passe incorrect")
       } 
@@ -442,19 +443,7 @@ export function AuthForms() {
           </div>
 
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-            
-            {/* Role Selection (Only on Login/Register) */}
-            {(view === "login" || view === "register") && !isAdminLogin && (
-              <div className="animate-fade-in stagger-2">
-                <label style={{ fontSize: "14px", fontWeight: 700, color: "#1f2937", marginBottom: "12px", display: "block", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                  Je suis un(e)
-                </label>
-                <div style={{ display: "flex", gap: "16px" }}>
-                  <button type="button" onClick={() => setRole("owner")} style={roleBtnStyle("owner")}>Propriétaire</button>
-                  <button type="button" onClick={() => setRole("tenant")} style={roleBtnStyle("tenant")}>Locataire</button>
-                </div>
-              </div>
-            )}
+
 
             {/* Dynamic Fields */}
             <div className="animate-fade-in stagger-3" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
@@ -506,11 +495,6 @@ export function AuthForms() {
                       </button>
                     </div>
                   )}
-                  <div style={{ textAlign: "right", marginTop: "8px" }}>
-                    <Link href={`/verify-email?email=${encodeURIComponent(email)}`} style={{ color: "#158C96", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}>
-                      Vérifier mon compte
-                    </Link>
-                  </div>
                 </div>
               )}
 
@@ -573,6 +557,19 @@ export function AuthForms() {
               </div>
             )}
 
+            {/* Role Selection (Only on Register) - Moved to bottom */}
+            {view === "register" && !isAdminLogin && (
+              <div className="animate-fade-in stagger-2">
+                <label style={{ fontSize: "14px", fontWeight: 700, color: "#1f2937", marginBottom: "12px", display: "block", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  Je m'inscris en tant que
+                </label>
+                <div style={{ display: "flex", gap: "16px" }}>
+                  <button type="button" onClick={() => setRole("owner")} style={roleBtnStyle("owner")}>Propriétaire</button>
+                  <button type="button" onClick={() => setRole("tenant")} style={roleBtnStyle("tenant")}>Locataire</button>
+                </div>
+              </div>
+            )}
+
             {/* Submit Button */}
             <button
               className="animate-fade-in stagger-4"
@@ -590,9 +587,9 @@ export function AuthForms() {
             >
               {isLoading ? "Traitement..." : (
                 view === "login" ? "Se connecter" : 
-                view === "register" ? "Créer mon compte" : 
+                view === "register" ? "S'INSCRIRE" : 
                 view === "forgot-password" ? "Envoyer le code" :
-                view === "verify-code" ? "Vérifier le code" : "Confirmer le mot de passe"
+                view === "verify-code" ? "Vérifier le code" : "Confirmer"
               )}
               {!isLoading && (view === "login" || view === "register") && <ArrowRight size={20} />}
             </button>
@@ -615,6 +612,7 @@ export function AuthForms() {
                     size="large"
                     shape="pill"
                     width="100%"
+                    text={view === "register" ? "signup_with" : "signin_with"}
                   />
                 </div>
               </div>

@@ -27,7 +27,7 @@ interface AuthContextType {
   role: UserRole | null
   isAuthenticated: boolean
   isLoading: boolean
-  login: (email: string, password: string, role: UserRole) => Promise<{ success: boolean; message?: string }>
+  login: (email: string, password: string, role?: UserRole) => Promise<{ success: boolean; message?: string }>
   register: (data: RegisterData) => Promise<{ success: boolean; message?: string; devCode?: string }>
   logout: () => void
   updateProfile: (data: Partial<User>) => Promise<{ success: boolean; message?: string }>
@@ -117,7 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuthStatus()
   }, [])
 
-  const login = async (email: string, password: string, selectedRole: UserRole): Promise<{ success: boolean; message?: string }> => {
+  const login = async (email: string, password: string, selectedRole?: UserRole): Promise<{ success: boolean; message?: string }> => {
     try {
       const normalizedEmail = email.trim().toLowerCase()
       const response = await fetch(`${API_URL}/auth/login`, {
@@ -129,7 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (response.ok) {
         const data = await response.json()
 
-        if (data.user.role !== selectedRole) {
+        if (selectedRole && data.user.role !== selectedRole) {
           return { success: false, message: `Rôle incorrect. Vous essayez de vous connecter en tant que ${selectedRole}.` }
         }
 
@@ -151,7 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const register = async (data: RegisterData): Promise<{ success: boolean; message?: string }> => {
+  const register = async (data: RegisterData): Promise<{ success: boolean; message?: string; devCode?: string }> => {
     try {
       const normalizedEmail = data.email.trim().toLowerCase()
       const response = await fetch(`${API_URL}/auth/signup`, {
@@ -169,13 +169,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (response.ok) {
         const responseData = await response.json()
 
-        if (responseData.accessToken) {
-          localStorage.setItem("accessToken", responseData.accessToken)
-        }
-
-        const mappedUser = mapBackendUser(responseData.user)
-        setUser(mappedUser)
-        setRole(mappedUser.role)
+        // In a verified flow, we don't set the user until email is verified.
+        // We will just return success and let the UI redirect to the verification page.
         return { success: true, devCode: responseData.devCode }
       }
 
