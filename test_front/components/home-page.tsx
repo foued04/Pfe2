@@ -11,16 +11,16 @@ import {
   Star, CheckCircle2, Eye, Armchair, Lamp, CookingPot, Monitor,
 } from "lucide-react"
 
-// ─── Palette (Turquoise & Corail) ────────────────────────────────────────────────────────────────
+// ─── Palette (Blue Theme) ────────────────────────────────────────────────────────────────────────
 const C = {
-  primary: "#2EC4C7",        // turquoise principal
-  primaryDark: "#158C96",    // turquoise foncé
-  primarySoft: "#63D8DA",    // aqua clair
-  coral: "#F27D72",       // corail principal
-  coralSoft: "#FFA08F",   // corail doux
-  borderLight: "#DDEEEE",       // bordure légère (mapped to old beige)
-  bgMint: "#EAF7F6",   // fond clair menthe (mapped to old beigeSoft)
-  bgWhite: "#FDFEFE",       // blanc cassé (mapped to old cream)
+  primary: "#2563EB",        // blue principal
+  primaryDark: "#1D4ED8",    // blue fonce
+  primarySoft: "#60A5FA",    // blue clair
+  coral: "#3B82F6",       // accent blue
+  coralSoft: "#93C5FD",   // accent soft blue
+  borderLight: "#D7E6FF",       // bordure claire
+  bgMint: "#EFF6FF",   // fond bleu tres clair
+  bgWhite: "#F8FBFF",       // blanc bleute
   textDark: "#1F2937",
   textSecondary: "#6B7280",
   white: "#FFFFFF",
@@ -44,7 +44,7 @@ const statusLabels: Record<string, string> = {
   available: "Disponible", rented: "Loué", maintenance: "Maintenance",
 }
 const statusColors: Record<string, string> = {
-  available: "#63D8DA", rented: C.coral, maintenance: "#f59e0b",
+  available: C.primarySoft, rented: C.coral, maintenance: "#f59e0b",
 }
 
 // ─── Shared button helper ───────────────────────────────────────────────────
@@ -681,4 +681,3 @@ export function HomePage({ onLogin, onRegister }: HomePageProps) {
     </div>
   )
 }
-
