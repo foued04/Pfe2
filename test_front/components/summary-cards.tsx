@@ -28,8 +28,8 @@ const stats = [
     icon: CheckCircle2,
     trend: "+1",
     trendUp: true,
-    color: "text-emerald-600",
-    bgColor: "bg-emerald-100",
+    color: "text-blue-600",
+    bgColor: "bg-blue-100",
   },
   {
     key: "dashboard.rentedProperties",
@@ -37,8 +37,8 @@ const stats = [
     icon: Key,
     trend: "-1",
     trendUp: false,
-    color: "text-orange-600",
-    bgColor: "bg-orange-100",
+    color: "text-blue-700",
+    bgColor: "bg-blue-100",
   },
   {
     key: "dashboard.estimatedRevenue",
@@ -55,8 +55,8 @@ const stats = [
     icon: FileText,
     trend: "+3",
     trendUp: true,
-    color: "text-orange-600",
-    bgColor: "bg-orange-100",
+    color: "text-blue-600",
+    bgColor: "bg-blue-100",
   },
 ]
 
@@ -84,8 +84,8 @@ export function SummaryCards() {
                 className={cn(
                   "flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
                   stat.trendUp
-                    ? "bg-emerald-100 text-emerald-700"
-                    : "bg-red-100 text-red-700"
+                    ? "bg-blue-100 text-blue-700"
+                    : "bg-blue-100 text-blue-700"
                 )}
               >
                 {stat.trendUp ? (

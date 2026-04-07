@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useI18n } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -58,43 +58,52 @@ interface OwnerPropertyFormProps {
   onCancel?: () => void
 }
 
+const createInitialFormData = (initialData?: any) => ({
+  title: initialData?.title || "",
+  description: initialData?.description || "",
+  city: initialData?.city || "",
+  department: initialData?.department || "",
+  address: initialData?.address || "",
+  rent: initialData?.rent?.toString() || "",
+  deposit: initialData?.deposit?.toString() || "",
+  type: initialData?.type || "",
+  surface: initialData?.surface?.toString() || "",
+  bedrooms: initialData?.bedrooms?.toString() || "",
+  bathrooms: initialData?.bathrooms?.toString() || "",
+  livingRooms: initialData?.livingRooms?.toString() || "",
+  equippedKitchen: initialData?.equippedKitchen || false,
+  balcony: initialData?.balcony || false,
+  parking: initialData?.parking || false,
+  meuble: initialData?.meuble || false,
+  status: initialData?.status || "available",
+})
+
+const createInitialImages = (initialData?: any): ImageUploadState => ({
+  cover: initialData?.images?.cover || null,
+  kitchen: initialData?.images?.kitchen || null,
+  bathroom: initialData?.images?.bathroom || null,
+  bedroom: initialData?.images?.bedroom || null,
+  livingRoom: initialData?.images?.livingRoom || null,
+  exterior: initialData?.images?.exterior || null,
+  gallery: initialData?.images?.gallery || [],
+})
+
+const DEFAULT_MAP_POSITION = { lat: 36.8065, lng: 10.1815 }
+
 export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerPropertyFormProps) {
   const { t } = useI18n()
   const [isSubmitting, setIsSubmitting] = useState(false)
   
-  const [formData, setFormData] = useState({
-    title: initialData?.title || "",
-    description: initialData?.description || "",
-    city: initialData?.city || "",
-    department: initialData?.department || "",
-    address: initialData?.address || "",
-    rent: initialData?.rent?.toString() || "",
-    deposit: initialData?.deposit?.toString() || "",
-    type: initialData?.type || "",
-    surface: initialData?.surface?.toString() || "",
-    bedrooms: initialData?.bedrooms?.toString() || "",
-    bathrooms: initialData?.bathrooms?.toString() || "",
-    livingRooms: initialData?.livingRooms?.toString() || "",
-    equippedKitchen: initialData?.equippedKitchen || false,
-    balcony: initialData?.balcony || false,
-    parking: initialData?.parking || false,
-    meuble: initialData?.meuble || false,
-    status: initialData?.status || "available",
-  })
+  const [formData, setFormData] = useState(createInitialFormData(initialData))
+  const [images, setImages] = useState<ImageUploadState>(createInitialImages(initialData))
+  const [mapPosition, setMapPosition] = useState(DEFAULT_MAP_POSITION)
 
-  // Pre-load images if they exist in initial data
-  const [images, setImages] = useState<ImageUploadState>({
-    cover: initialData?.images?.cover || null,
-    kitchen: initialData?.images?.kitchen || null,
-    bathroom: initialData?.images?.bathroom || null,
-    bedroom: initialData?.images?.bedroom || null,
-    livingRoom: initialData?.images?.livingRoom || null,
-    exterior: initialData?.images?.exterior || null,
-    gallery: initialData?.images?.gallery || [],
-  })
-
-  // Map state
-  const [mapPosition, setMapPosition] = useState({ lat: 36.8065, lng: 10.1815 })
+  useEffect(() => {
+    setFormData(createInitialFormData(initialData))
+    setImages(createInitialImages(initialData))
+    setMapPosition(DEFAULT_MAP_POSITION)
+    setIsSubmitting(false)
+  }, [initialData])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -110,8 +119,9 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
       bedrooms: Number(formData.bedrooms),
       bathrooms: Number(formData.bathrooms),
       livingRooms: Number(formData.livingRooms),
+      availability: initialData?.availability || new Date().toISOString().slice(0, 10),
       images: {
-        cover: images.cover || "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80",
+        cover: images.cover,
         kitchen: images.kitchen,
         bathroom: images.bathroom,
         bedroom: images.bedroom,
@@ -132,20 +142,17 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
   }
 
   const handleImageUpload = (type: keyof Omit<ImageUploadState, "gallery">, file: File) => {
-    // In a real app, this would upload to a server and return a URL
-    const url = URL.createObjectURL(file)
-    setImages((prev) => {
-      // Clean up old object URL to avoid memory leaks
-      if (prev[type]) URL.revokeObjectURL(prev[type]!)
-      return { ...prev, [type]: url }
-    })
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = typeof reader.result === "string" ? reader.result : null
+      if (!result) return
+      setImages((prev) => ({ ...prev, [type]: result }))
+    }
+    reader.readAsDataURL(file)
   }
 
   const removeImage = (type: keyof Omit<ImageUploadState, "gallery">) => {
-    setImages((prev) => {
-      if (prev[type]) URL.revokeObjectURL(prev[type]!)
-      return { ...prev, [type]: null }
-    })
+    setImages((prev) => ({ ...prev, [type]: null }))
   }
 
   const ImageUploadBox = ({
@@ -488,7 +495,7 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
                 Images
               </h3>
               <p className="text-sm text-muted-foreground">
-                Ajoutez les images de votre propriété. En cas d'oubli, des images par défaut seront utilisées.
+                Ajoutez uniquement les images que vous souhaitez afficher. Les champs image sont optionnels.
               </p>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <ImageUploadBox type="cover" label={t("form.coverImage")} image={images.cover} />

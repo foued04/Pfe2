@@ -13,6 +13,7 @@ const userSchema = new mongoose.Schema({
   avatar: { type: String, default: '' },
   googleId: { type: String, unique: true, sparse: true },
   isEmailVerified: { type: Boolean, default: false },
+  isSuspended: { type: Boolean, default: false },
   verificationCode: { type: String },
   verificationCodeExpires: { type: Date },
   notificationPrefs: {

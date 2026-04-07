@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent } from "./ui/card"
 import { Button } from "./ui/button"
 import { Badge } from "./ui/badge"
@@ -21,7 +21,7 @@ import {
   Package
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { mockProperties, Property } from "@/lib/property-data"
+import type { Property } from "@/lib/property-data"
 
 type ValidationStatus = "pending" | "approved" | "rejected"
 
@@ -30,17 +30,89 @@ interface ManagedProperty extends Property {
   rejectionReason?: string
 }
 
+type BackendProperty = {
+  _id: string
+  title: string
+  description: string
+  city: string
+  address: string
+  rent: number
+  deposit: number
+  type: Property["type"]
+  surface: number
+  bedrooms: number
+  bathrooms: number
+  equippedKitchen?: boolean
+  balcony?: boolean
+  parking?: boolean
+  meuble?: boolean
+  availability?: string
+  status?: Property["status"]
+  moderationStatus?: ValidationStatus
+  images?: Partial<Property["images"]>
+  owner?: {
+    fullName?: string
+    email?: string
+    phone?: string
+  }
+  createdAt?: string
+}
+
+const EMPTY_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 400'%3E%3Crect width='600' height='400' fill='%23eaf7f8'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%2389a5ad' font-family='Arial' font-size='28'%3EAucune image%3C/text%3E%3C/svg%3E"
+
+const formatDate = (value?: string) => {
+  if (!value) return "-"
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toISOString().slice(0, 10)
+}
+
+const mapBackendProperty = (property: BackendProperty): ManagedProperty => ({
+  id: property._id,
+  title: property.title || "Sans titre",
+  description: property.description || "",
+  city: property.city || "Monastir",
+  department: property.city || "Monastir",
+  address: property.address || "",
+  rent: property.rent || 0,
+  deposit: property.deposit || 0,
+  type: property.type || "s1",
+  surface: property.surface || 0,
+  bedrooms: property.bedrooms || 0,
+  bathrooms: property.bathrooms || 0,
+  livingRooms: 1,
+  equippedKitchen: Boolean(property.equippedKitchen),
+  balcony: Boolean(property.balcony),
+  parking: Boolean(property.parking),
+  meuble: Boolean(property.meuble),
+  availability: property.availability || "",
+  status: property.status || "available",
+  images: {
+    cover: property.images?.cover || EMPTY_IMAGE,
+    kitchen: property.images?.kitchen || EMPTY_IMAGE,
+    bathroom: property.images?.bathroom || EMPTY_IMAGE,
+    bedroom: property.images?.bedroom || EMPTY_IMAGE,
+    livingRoom: property.images?.livingRoom || EMPTY_IMAGE,
+    exterior: property.images?.exterior || EMPTY_IMAGE,
+  },
+  ownerName: property.owner?.fullName || "Proprietaire inconnu",
+  ownerEmail: property.owner?.email || "-",
+  ownerPhone: property.owner?.phone || "-",
+  lat: 35.777,
+  lng: 10.826,
+  createdAt: formatDate(property.createdAt),
+  validationStatus: property.moderationStatus || "pending",
+})
+
 export function AdminPropertiesManagement() {
-  const [properties, setProperties] = useState<ManagedProperty[]>(
-    mockProperties.map((p, i) => ({
-      ...p,
-      validationStatus: i < 3 ? "pending" : (i % 2 === 0 ? "approved" : "rejected")
-    }))
-  )
+  const [properties, setProperties] = useState<ManagedProperty[]>([])
   const [filter, setFilter] = useState({ search: "", status: "all", city: "all" })
   const [rejectingId, setRejectingId] = useState<string | null>(null)
   const [rejectionReason, setRejectionReason] = useState("")
   const [selectedProperty, setSelectedProperty] = useState<ManagedProperty | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
 
   const filteredProperties = properties.filter(p => {
     const matchesSearch = p.title.toLowerCase().includes(filter.search.toLowerCase()) || 
@@ -50,25 +122,83 @@ export function AdminPropertiesManagement() {
     return matchesSearch && matchesStatus && matchesCity
   })
 
-  const handleApprove = (id: string) => {
-    setProperties(prev => prev.map(p => 
-      p.id === id ? { ...p, validationStatus: "approved", rejectionReason: undefined } : p
-    ))
-    if (selectedProperty?.id === id) {
-      setSelectedProperty(prev => prev ? { ...prev, validationStatus: "approved", rejectionReason: undefined } : null)
+  const syncPropertyState = (id: string, validationStatus: ValidationStatus, reason?: string) => {
+    setProperties((prev) =>
+      prev.map((property) =>
+        property.id === id ? { ...property, validationStatus, rejectionReason: reason } : property
+      )
+    )
+    setSelectedProperty((prev) =>
+      prev && prev.id === id ? { ...prev, validationStatus, rejectionReason: reason } : prev
+    )
+  }
+
+  const fetchProperties = async () => {
+    setIsLoading(true)
+    try {
+      const response = await fetch(`${API_URL}/properties`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error("Erreur lors du chargement des proprietes.")
+      }
+
+      const data: BackendProperty[] = await response.json()
+      setProperties(data.map(mapBackendProperty))
+    } catch (error) {
+      console.error("Error fetching admin properties:", error)
+      alert("Impossible de charger les proprietes.")
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const handleReject = (id: string) => {
-    if (!rejectionReason.trim()) return
-    setProperties(prev => prev.map(p => 
-      p.id === id ? { ...p, validationStatus: "rejected", rejectionReason: rejectionReason } : p
-    ))
-    if (selectedProperty?.id === id) {
-      setSelectedProperty(prev => prev ? { ...prev, validationStatus: "rejected", rejectionReason: rejectionReason } : null)
+  useEffect(() => {
+    fetchProperties()
+  }, [])
+
+  const updateModerationStatus = async (id: string, validationStatus: ValidationStatus, reason?: string) => {
+    setUpdatingId(id)
+    try {
+      const response = await fetch(`${API_URL}/properties/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+        body: JSON.stringify({ moderationStatus: validationStatus }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => null)
+        throw new Error(error?.message || "Erreur lors de la mise a jour du statut.")
+      }
+
+      syncPropertyState(id, validationStatus, reason)
+      return true
+    } catch (error) {
+      console.error("Error updating moderation status:", error)
+      alert(error instanceof Error ? error.message : "Erreur lors de la mise a jour du statut.")
+      return false
+    } finally {
+      setUpdatingId(null)
     }
-    setRejectingId(null)
-    setRejectionReason("")
+  }
+
+  const handleApprove = async (id: string) => {
+    await updateModerationStatus(id, "approved")
+  }
+
+  const handleReject = async (id: string) => {
+    if (!rejectionReason.trim()) return
+    const didUpdate = await updateModerationStatus(id, "rejected", rejectionReason)
+    if (didUpdate) {
+      setRejectingId(null)
+      setRejectionReason("")
+    }
   }
 
   const getStatusBadge = (status: ValidationStatus) => {
@@ -126,6 +256,11 @@ export function AdminPropertiesManagement() {
 
       {/* Properties List */}
       <div className="grid gap-6">
+        {isLoading && (
+          <Card className="border-none shadow-xl bg-card p-8">
+            <p className="text-sm font-bold text-muted-foreground">Chargement des proprietes...</p>
+          </Card>
+        )}
         {filteredProperties.map((property) => (
           <Card key={property.id} className="border-none shadow-xl bg-card overflow-hidden group hover:shadow-2xl transition-all duration-500">
             <div className="flex flex-col lg:flex-row">
@@ -180,13 +315,15 @@ export function AdminPropertiesManagement() {
                       <>
                         <Button 
                           onClick={() => handleApprove(property.id)}
+                          disabled={updatingId === property.id}
                           className="flex-1 lg:flex-none h-11 px-8 rounded-2xl bg-emerald-500 hover:bg-emerald-600 font-black uppercase text-[11px] tracking-widest text-white shadow-lg shadow-emerald-200 border-none"
                         >
                           <Check className="w-4 h-4 mr-2" />
-                          Approuver
+                          {updatingId === property.id ? "..." : "Approuver"}
                         </Button>
                         <Button 
                           onClick={() => setRejectingId(property.id)}
+                          disabled={updatingId === property.id}
                           variant="outline"
                           className="flex-1 lg:flex-none h-11 px-8 rounded-2xl bg-red-50 text-red-600 border-red-200 border-2 font-black uppercase text-[11px] tracking-widest hover:bg-red-100"
                         >
@@ -198,10 +335,11 @@ export function AdminPropertiesManagement() {
                     {property.validationStatus !== "pending" && (
                       <Button 
                         variant="outline"
+                        disabled={updatingId === property.id}
                         onClick={() => property.validationStatus === "approved" ? setRejectingId(property.id) : handleApprove(property.id)}
                         className="h-11 px-8 rounded-2xl font-black uppercase text-[11px] tracking-widest border-2"
                       >
-                        Changer le statut
+                        {updatingId === property.id ? "..." : "Changer le statut"}
                       </Button>
                     )}
                   </div>
@@ -218,6 +356,14 @@ export function AdminPropertiesManagement() {
             </div>
           </Card>
         ))}
+        {!isLoading && filteredProperties.length === 0 && (
+          <Card className="border-none shadow-xl bg-card p-8">
+            <p className="text-sm font-bold text-foreground">Aucune propriete trouvee.</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Modifiez le filtre ou ajoutez de nouvelles annonces pour les voir ici.
+            </p>
+          </Card>
+        )}
       </div>
 
       {/* Property Detail Modal */}
@@ -331,13 +477,15 @@ export function AdminPropertiesManagement() {
                             <div className="flex gap-4">
                                <Button 
                                  onClick={() => handleApprove(selectedProperty.id)}
+                                 disabled={updatingId === selectedProperty.id}
                                  className="flex-1 h-14 rounded-2xl bg-emerald-500 hover:bg-emerald-600 font-black uppercase text-xs tracking-[0.1em] text-white shadow-xl shadow-emerald-200 border-none"
                                >
                                  <Check className="w-5 h-5 mr-3" />
-                                 Approuver l&apos;annonce
+                                 {updatingId === selectedProperty.id ? "..." : "Approuver l'annonce"}
                                </Button>
                                <Button 
                                  onClick={() => setRejectingId(selectedProperty.id)}
+                                 disabled={updatingId === selectedProperty.id}
                                  variant="outline"
                                  className="flex-1 h-14 rounded-2xl bg-red-50 text-red-600 border-red-200 border-2 font-black uppercase text-xs tracking-[0.1em] hover:bg-red-100"
                                >
@@ -357,10 +505,11 @@ export function AdminPropertiesManagement() {
                             </div>
                             <Button 
                               variant="outline"
+                              disabled={updatingId === selectedProperty.id}
                               onClick={() => selectedProperty.validationStatus === "approved" ? setRejectingId(selectedProperty.id) : handleApprove(selectedProperty.id)}
                               className="rounded-2xl font-black uppercase text-[10px] tracking-widest h-10 border-2"
                             >
-                               Modifier la décision
+                               {updatingId === selectedProperty.id ? "..." : "Modifier la decision"}
                             </Button>
                          </div>
                        )}
@@ -389,10 +538,10 @@ export function AdminPropertiesManagement() {
             <div className="flex gap-4">
               <Button 
                 onClick={() => handleReject(rejectingId)}
-                disabled={!rejectionReason.trim()}
+                disabled={!rejectionReason.trim() || updatingId === rejectingId}
                 className="flex-1 rounded-2xl bg-red-500 hover:bg-red-600 text-white font-black uppercase text-[11px] tracking-widest h-12 shadow-lg shadow-red-200 border-none"
               >
-                Confirmer le rejet
+                {updatingId === rejectingId ? "..." : "Confirmer le rejet"}
               </Button>
               <Button 
                 onClick={() => {

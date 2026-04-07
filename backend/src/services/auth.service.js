@@ -46,8 +46,12 @@ const loginUserWithEmailAndPassword = async (email, password) => {
     throw new ApiError(401, 'Email ou mot de passe incorrect');
   }
 
+  if (user.isSuspended) {
+    throw new ApiError(403, 'Ce compte a ete suspendu par l administration.');
+  }
+
   // Block login if email is not verified
-  if (!user.isEmailVerified) {
+  if (user.role !== 'admin' && !user.isEmailVerified) {
     throw new ApiError(401, 'Veuillez vérifier votre adresse email avant de vous connecter.');
   }
 

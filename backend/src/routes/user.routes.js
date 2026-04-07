@@ -8,6 +8,7 @@ const router = express.Router();
 router.use(auth);
 router.use(authorize('admin'));
 
+router.get('/stats', userController.getAdminStats);
 router.get('/', userController.getUsers);
 router.patch('/:id', userController.updateUser);
 router.delete('/:id', userController.deleteUser);

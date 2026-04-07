@@ -52,7 +52,7 @@ import { AdminPropertiesManagement } from "./admin-properties-management"
 import { AdminFurnitureManagement } from "./admin-furniture-management"
 import { AdminReports } from "./admin-reports"
 
-const userGrowthData = [
+const initialUserGrowthData = [
   { month: "Oct", users: 1500, properties: 400 },
   { month: "Nov", users: 1800, properties: 480 },
   { month: "Dec", users: 2100, properties: 600 },
@@ -61,14 +61,14 @@ const userGrowthData = [
   { month: "Mar", users: 2847, properties: 1256 },
 ]
 
-const propertyTypeData = [
+const initialPropertyTypeData = [
   { name: "Appartement", value: 450, color: "#2EC4C7" },
   { name: "Villa", value: 150, color: "#F27D72" },
   { name: "Studio", value: 300, color: "#63D8DA" },
   { name: "Local", value: 100, color: "#158C96" },
 ]
 
-const userRoleData = [
+const initialUserRoleData = [
   { name: "Propriétaires", value: 423, color: "#158C96" },
   { name: "Locataires", value: 2424, color: "#2EC4C7" },
 ]
@@ -83,7 +83,7 @@ const navItems = [
   { key: "profile", icon: User, label: "nav.profile" },
 ]
 
-const statsData = [
+const initialStatsData = [
   {
     label: { fr: "Utilisateurs Totaux", en: "Total Users" },
     value: "2,847",
@@ -126,7 +126,7 @@ const recentActivities = [
   { type: "alert", message: { fr: "Signalement: Annonce suspecte detectee", en: "Report: Suspicious listing detected" }, time: { fr: "Il y a 2h", en: "2h ago" }, status: "warning" },
 ]
 
-const pendingProperties = mockProperties.slice(0, 4)
+const initialPendingProperties = mockProperties.slice(0, 4)
 
 export function AdminDashboard() {
   const { t, lang, setLang } = useI18n()
@@ -136,11 +136,80 @@ export function AdminDashboard() {
   const [users, setUsers] = useState<any[]>([])
   const [userFilters, setUserFilters] = useState({ search: "", role: "all", status: "all" })
   const [isUserLoading, setIsUserLoading] = useState(false)
+  const [statsData, setStatsData] = useState(initialStatsData)
+  const [userGrowthData, setUserGrowthData] = useState(initialUserGrowthData)
+  const [propertyTypeData, setPropertyTypeData] = useState(initialPropertyTypeData)
+  const [userRoleData, setUserRoleData] = useState(initialUserRoleData)
+  const [pendingProperties, setPendingProperties] = useState(initialPendingProperties)
+  const [isStatsLoading, setIsStatsLoading] = useState(false)
+  const [moderatingPropertyId, setModeratingPropertyId] = useState<string | null>(null)
+  const [selectedUser, setSelectedUser] = useState<any | null>(null)
+  const [updatingUserId, setUpdatingUserId] = useState<string | null>(null)
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+
+  const fetchDashboardStats = async () => {
+    setIsStatsLoading(true)
+    try {
+      const response = await fetch(`${API_URL}/users/stats`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+        }
+      })
+      if (!response.ok) return
+
+      const data = await response.json()
+
+      setStatsData([
+        {
+          label: { fr: "Utilisateurs Totaux", en: "Total Users" },
+          value: (data.totals?.totalUsers || 0).toLocaleString("fr-FR"),
+          change: `${data.totals?.occupancyRate || 0}%`,
+          trend: "up",
+          icon: Users,
+          color: "text-orange-600 bg-orange-100",
+        },
+        {
+          label: { fr: "PropriÃ©taires", en: "Owners" },
+          value: (data.totals?.owners || 0).toLocaleString("fr-FR"),
+          change: `${data.totals?.availableProperties || 0}`,
+          trend: "up",
+          icon: Building,
+          color: "text-primary bg-primary/10",
+        },
+        {
+          label: { fr: "Locataires", en: "Tenants" },
+          value: (data.totals?.tenants || 0).toLocaleString("fr-FR"),
+          change: `${data.totals?.requestsThisWeek || 0}`,
+          trend: "up",
+          icon: UserCheck,
+          color: "text-emerald-600 bg-emerald-100",
+        },
+        {
+          label: { fr: "PropriÃ©tÃ©s", en: "Properties" },
+          value: (data.totals?.totalProperties || 0).toLocaleString("fr-FR"),
+          change: `${data.totals?.rentedProperties || 0}`,
+          trend: "up",
+          icon: Home,
+          color: "text-orange-500 bg-orange-50",
+        },
+      ])
+
+      setUserGrowthData(data.growth || [])
+      setPropertyTypeData(data.propertyTypeData || [])
+      setUserRoleData(data.userRoleData || [])
+      setPendingProperties(data.pendingProperties || [])
+    } catch (error) {
+      console.error("Error fetching dashboard stats:", error)
+    } finally {
+      setIsStatsLoading(false)
+    }
+  }
 
   const fetchUsers = async () => {
     setIsUserLoading(true)
     try {
-      const response = await fetch(`/api/users?role=${userFilters.role}&search=${userFilters.search}`, {
+      const response = await fetch(`${API_URL}/users?role=${userFilters.role}&search=${userFilters.search}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
         }
@@ -161,6 +230,69 @@ export function AdminDashboard() {
       fetchUsers()
     }
   }, [activeSection, userFilters.role, userFilters.search])
+
+  useEffect(() => {
+    if (activeSection === "dashboard") {
+      fetchDashboardStats()
+    }
+  }, [activeSection])
+
+  const handleModerateProperty = async (propertyId: string, moderationStatus: "approved" | "rejected") => {
+    setModeratingPropertyId(propertyId)
+    try {
+      const response = await fetch(`${API_URL}/properties/${propertyId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+        },
+        body: JSON.stringify({ moderationStatus })
+      })
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => null)
+        alert(error?.message || "Erreur lors de la modération.")
+        return
+      }
+
+      setPendingProperties((prev) => prev.filter((property) => property.id !== propertyId))
+      fetchDashboardStats()
+    } catch (error) {
+      console.error("Error moderating property:", error)
+      alert("Erreur de connexion.")
+    } finally {
+      setModeratingPropertyId(null)
+    }
+  }
+
+  const handleToggleUserSuspension = async (targetUser: any) => {
+    if (!targetUser?._id) return
+    setUpdatingUserId(targetUser._id)
+    try {
+      const response = await fetch(`${API_URL}/users/${targetUser._id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+        },
+        body: JSON.stringify({ isSuspended: !targetUser.isSuspended })
+      })
+
+      const data = await response.json().catch(() => null)
+      if (!response.ok) {
+        alert(data?.message || "Erreur lors de la mise a jour du compte.")
+        return
+      }
+
+      setUsers((prev) => prev.map((user) => user._id === targetUser._id ? data : user))
+      setSelectedUser((prev: any) => prev && prev._id === targetUser._id ? data : prev)
+    } catch (error) {
+      console.error("Error updating user:", error)
+      alert("Erreur de connexion.")
+    } finally {
+      setUpdatingUserId(null)
+    }
+  }
 
   const owners = users.filter(u => u.role === 'owner')
   const tenants = users.filter(u => u.role === 'tenant')
@@ -267,7 +399,12 @@ export function AdminDashboard() {
                               <p className="text-xs text-muted-foreground font-medium">{user.email}</p>
                             </div>
                           </div>
-                          <Badge className="bg-orange-100 text-orange-600 border-none font-bold text-[10px]">OWNER</Badge>
+                          <div className="flex flex-col items-end gap-2">
+                            <Badge className="bg-orange-100 text-orange-600 border-none font-bold text-[10px]">OWNER</Badge>
+                            {user.isSuspended && (
+                              <Badge className="bg-red-100 text-red-600 border-none font-bold text-[10px]">SUSPENDU</Badge>
+                            )}
+                          </div>
                         </div>
                         <div className="space-y-2 mb-6">
                            <div className="flex items-center gap-2 text-xs text-muted-foreground font-bold">
@@ -281,8 +418,21 @@ export function AdminDashboard() {
                            </div>
                         </div>
                         <div className="flex gap-2">
-                           <Button variant="outline" size="sm" className="flex-1 rounded-xl text-[10px] font-black uppercase">Détails</Button>
-                           <Button variant="outline" size="sm" className="flex-1 rounded-xl text-[10px] font-black uppercase border-red-100 text-red-500 hover:bg-red-50">Suspendre</Button>
+                           <Button onClick={() => setSelectedUser(user)} variant="outline" size="sm" className="flex-1 rounded-xl text-[10px] font-black uppercase">Details</Button>
+                           <Button
+                             onClick={() => handleToggleUserSuspension(user)}
+                             disabled={updatingUserId === user._id}
+                             variant="outline"
+                             size="sm"
+                             className={cn(
+                               "flex-1 rounded-xl text-[10px] font-black uppercase",
+                               user.isSuspended
+                                 ? "border-emerald-100 text-emerald-600 hover:bg-emerald-50"
+                                 : "border-red-100 text-red-500 hover:bg-red-50"
+                             )}
+                           >
+                             {updatingUserId === user._id ? "..." : user.isSuspended ? "Reactiver" : "Suspendre"}
+                           </Button>
                         </div>
                       </Card>
                     ))}
@@ -311,7 +461,12 @@ export function AdminDashboard() {
                               <p className="text-xs text-muted-foreground font-medium">{user.email}</p>
                             </div>
                           </div>
-                          <Badge className="bg-emerald-100 text-emerald-600 border-none font-bold text-[10px]">TENANT</Badge>
+                          <div className="flex flex-col items-end gap-2">
+                            <Badge className="bg-emerald-100 text-emerald-600 border-none font-bold text-[10px]">TENANT</Badge>
+                            {user.isSuspended && (
+                              <Badge className="bg-red-100 text-red-600 border-none font-bold text-[10px]">SUSPENDU</Badge>
+                            )}
+                          </div>
                         </div>
                         <div className="space-y-2 mb-6">
                            <div className="flex items-center gap-2 text-xs text-muted-foreground font-bold">
@@ -325,8 +480,21 @@ export function AdminDashboard() {
                            </div>
                         </div>
                         <div className="flex gap-2">
-                           <Button variant="outline" size="sm" className="flex-1 rounded-xl text-[10px] font-black uppercase">Détails</Button>
-                           <Button variant="outline" size="sm" className="flex-1 rounded-xl text-[10px] font-black uppercase border-red-100 text-red-500 hover:bg-red-50">Suspendre</Button>
+                           <Button onClick={() => setSelectedUser(user)} variant="outline" size="sm" className="flex-1 rounded-xl text-[10px] font-black uppercase">Details</Button>
+                           <Button
+                             onClick={() => handleToggleUserSuspension(user)}
+                             disabled={updatingUserId === user._id}
+                             variant="outline"
+                             size="sm"
+                             className={cn(
+                               "flex-1 rounded-xl text-[10px] font-black uppercase",
+                               user.isSuspended
+                                 ? "border-emerald-100 text-emerald-600 hover:bg-emerald-50"
+                                 : "border-red-100 text-red-500 hover:bg-red-50"
+                             )}
+                           >
+                             {updatingUserId === user._id ? "..." : user.isSuspended ? "Reactiver" : "Suspendre"}
+                           </Button>
                         </div>
                       </Card>
                     ))}
@@ -493,7 +661,7 @@ export function AdminDashboard() {
                     </PieChart>
                   </ResponsiveContainer>
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-4">
-                    <span className="text-3xl font-black text-foreground">1,2k</span>
+                    <span className="text-3xl font-black text-foreground">{(statsData[3]?.value || "0")}</span>
                     <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total</span>
                   </div>
                 </div>
@@ -577,7 +745,7 @@ export function AdminDashboard() {
                     >
                       <div
                         className="h-20 w-28 flex-shrink-0 rounded-2xl bg-cover bg-center shadow-lg group-hover:scale-105 transition-transform duration-500"
-                        style={{ backgroundImage: `url(${property.images.cover})` }}
+                        style={{ backgroundImage: property.images?.cover ? `url(${property.images.cover})` : undefined }}
                       />
                       <div className="flex-1 min-w-0">
                         <h4 className="font-black text-foreground text-sm line-clamp-1 mb-1 tracking-tight">{property.title}</h4>
@@ -588,16 +756,36 @@ export function AdminDashboard() {
                            <span className="text-[10px] font-bold text-muted-foreground opacity-60 uppercase">{property.ownerName}</span>
                         </div>
                         <div className="flex gap-2">
-                          <Button size="sm" variant="outline" className="h-8 flex-1 rounded-xl bg-emerald-50 text-emerald-700 border-emerald-200 border-2 font-black text-[10px] uppercase tracking-tighter hover:bg-emerald-100">
-                             Approuver
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={moderatingPropertyId === property.id}
+                            onClick={() => handleModerateProperty(property.id, "approved")}
+                            className="h-8 flex-1 rounded-xl bg-emerald-50 text-emerald-700 border-emerald-200 border-2 font-black text-[10px] uppercase tracking-tighter hover:bg-emerald-100 disabled:opacity-60"
+                          >
+                             {moderatingPropertyId === property.id ? "..." : "Approuver"}
                           </Button>
-                          <Button size="sm" variant="outline" className="h-8 flex-1 rounded-xl bg-red-50 text-red-600 border-red-200 border-2 font-black text-[10px] uppercase tracking-tighter hover:bg-red-100">
-                             Rejeter
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={moderatingPropertyId === property.id}
+                            onClick={() => handleModerateProperty(property.id, "rejected")}
+                            className="h-8 flex-1 rounded-xl bg-red-50 text-red-600 border-red-200 border-2 font-black text-[10px] uppercase tracking-tighter hover:bg-red-100 disabled:opacity-60"
+                          >
+                             {moderatingPropertyId === property.id ? "..." : "Rejeter"}
                           </Button>
                         </div>
                       </div>
                     </div>
                   ))}
+                  {pendingProperties.length === 0 && (
+                    <div className="rounded-3xl border border-dashed border-border/40 bg-muted/10 px-6 py-10 text-center">
+                      <p className="text-sm font-black text-foreground">Aucun bien en attente</p>
+                      <p className="mt-1 text-xs font-medium text-muted-foreground">
+                        Toutes les annonces ont deja ete moderees.
+                      </p>
+                    </div>
+                  )}
                   <Button variant="ghost" className="w-full h-12 rounded-2xl font-black text-[11px] uppercase tracking-widest text-muted-foreground/60 border-2 border-dashed border-border/40 hover:bg-muted/30">
                     Gérer tout le catalogue
                   </Button>
@@ -607,11 +795,11 @@ export function AdminDashboard() {
 
             {/* Diagnostic Summary Section */}
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-               {[
-                 { label: "Taux d'occupation", value: "88%", icon: TrendingUp, color: "text-emerald-600" },
-                 { label: "Demandes / Semaine", value: "124", icon: MessageSquare, color: "text-primary" },
-                 { label: "Conversion lead", value: "14%", icon: Activity, color: "text-orange-500" },
-                 { label: "Satisfaction", value: "4.8", icon: Star, color: "text-orange-400" },
+                 {[
+                 { label: "Taux d'occupation", value: `${statsData[0]?.change || "0%"}`, icon: TrendingUp, color: "text-emerald-600" },
+                 { label: "Demandes / Semaine", value: `${statsData[2]?.change || "0"}`, icon: MessageSquare, color: "text-primary" },
+                 { label: "Biens loués", value: `${statsData[3]?.change || "0"}`, icon: Activity, color: "text-orange-500" },
+                 { label: "Propriétés actives", value: `${statsData[3]?.value || "0"}`, icon: Star, color: "text-orange-400" },
                ].map((item, i) => (
                  <div key={i} className="bg-card/50 backdrop-blur-sm border border-border/30 rounded-3xl p-5 flex items-center gap-4 transition-all hover:bg-card">
                    <div className={cn("p-3 rounded-2xl bg-background shadow-inner", item.color)}>
@@ -727,6 +915,79 @@ export function AdminDashboard() {
 
         {renderContent()}
       </div>
+
+      {selectedUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <Card className="w-full max-w-lg border-none shadow-2xl">
+            <CardContent className="p-8">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-widest text-primary">
+                    {selectedUser.role === "owner" ? "Proprietaire" : selectedUser.role === "tenant" ? "Locataire" : "Administrateur"}
+                  </p>
+                  <h3 className="mt-2 text-2xl font-black text-foreground">{selectedUser.fullName}</h3>
+                  <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setSelectedUser(null)}>
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+
+              <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                <div className="rounded-2xl bg-muted/40 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Telephone</p>
+                  <p className="mt-2 text-sm font-bold text-foreground">{selectedUser.phone || "Non renseigne"}</p>
+                </div>
+                <div className="rounded-2xl bg-muted/40 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Adresse</p>
+                  <p className="mt-2 text-sm font-bold text-foreground">{selectedUser.address || "Non renseignee"}</p>
+                </div>
+                <div className="rounded-2xl bg-muted/40 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Verification email</p>
+                  <p className="mt-2 text-sm font-bold text-foreground">{selectedUser.isEmailVerified ? "Verifie" : "Non verifie"}</p>
+                </div>
+                <div className="rounded-2xl bg-muted/40 p-4">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Statut du compte</p>
+                  <p className="mt-2 text-sm font-bold text-foreground">{selectedUser.isSuspended ? "Suspendu" : "Actif"}</p>
+                </div>
+                {selectedUser.role === "owner" && (
+                  <div className="rounded-2xl bg-muted/40 p-4 sm:col-span-2">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Biens possedes</p>
+                    <p className="mt-2 text-sm font-bold text-foreground">{selectedUser.propertyCount || 0}</p>
+                  </div>
+                )}
+                {selectedUser.role === "tenant" && (
+                  <div className="rounded-2xl bg-muted/40 p-4 sm:col-span-2">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Demandes emises</p>
+                    <p className="mt-2 text-sm font-bold text-foreground">{selectedUser.requestCount || 0}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-6 flex gap-3">
+                {selectedUser.role !== "admin" && (
+                  <Button
+                    onClick={() => handleToggleUserSuspension(selectedUser)}
+                    disabled={updatingUserId === selectedUser._id}
+                    variant="outline"
+                    className={cn(
+                      "flex-1 rounded-xl font-black uppercase",
+                      selectedUser.isSuspended
+                        ? "border-emerald-200 text-emerald-600 hover:bg-emerald-50"
+                        : "border-red-200 text-red-500 hover:bg-red-50"
+                    )}
+                  >
+                    {updatingUserId === selectedUser._id ? "..." : selectedUser.isSuspended ? "Reactiver le compte" : "Suspendre le compte"}
+                  </Button>
+                )}
+                <Button variant="ghost" className="flex-1 rounded-xl font-black uppercase" onClick={() => setSelectedUser(null)}>
+                  Fermer
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* AI Chatbot */}
       <AIChatbot

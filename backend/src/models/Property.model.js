@@ -18,11 +18,20 @@ const propertySchema = new mongoose.Schema({
   equippedKitchen: { type: Boolean, default: false },
   balcony: { type: Boolean, default: false },
   parking: { type: Boolean, default: false },
-  availability: { type: String, required: true },
+  availability: {
+    type: String,
+    required: true,
+    default: () => new Date().toISOString().slice(0, 10),
+  },
   status: { 
     type: String, 
     enum: ['available', 'rented', 'maintenance'], 
     default: 'available' 
+  },
+  moderationStatus: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending',
   },
   images: {
     cover: { type: String },

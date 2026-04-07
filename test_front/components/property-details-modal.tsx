@@ -86,6 +86,7 @@ export function PropertyDetailsModal({
     { src: property.images.bathroom, label: "Salle de bain" },
     { src: property.images.exterior, label: "Extérieur" },
   ].filter(img => img.src)
+  const hasImages = images.length > 0
 
   const nextImage = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -114,13 +115,19 @@ export function PropertyDetailsModal({
           
           {/* Main Image */}
           <div className="relative h-[240px] sm:h-[280px] w-full bg-gray-100 flex-shrink-0">
-            <Image
-              src={images[currentImageIndex].src}
-              alt={images[currentImageIndex].label}
-              fill
-              className="object-cover"
-              priority
-            />
+            {hasImages ? (
+              <Image
+                src={images[currentImageIndex].src}
+                alt={images[currentImageIndex].label}
+                fill
+                className="object-cover"
+                priority
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-gray-100 text-gray-400">
+                <Home className="h-12 w-12" />
+              </div>
+            )}
             
             {/* Top Badges */}
             <div className="absolute top-4 left-4 flex flex-wrap gap-2">
@@ -161,11 +168,13 @@ export function PropertyDetailsModal({
             )}
             
             {/* Counter */}
-            <div className="absolute bottom-3 right-4">
-              <span className="bg-black/50 backdrop-blur-sm text-white px-2 py-0.5 rounded text-[10px] font-medium tracking-wide">
-                {currentImageIndex + 1} / {images.length}
-              </span>
-            </div>
+            {hasImages ? (
+              <div className="absolute bottom-3 right-4">
+                <span className="bg-black/50 backdrop-blur-sm text-white px-2 py-0.5 rounded text-[10px] font-medium tracking-wide">
+                  {currentImageIndex + 1} / {images.length}
+                </span>
+              </div>
+            ) : null}
           </div>
 
           <div className="p-6 md:p-8 space-y-8">

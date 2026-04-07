@@ -6,6 +6,7 @@ const createProperty = asyncHandler(async (req, res) => {
   const propertyBody = {
     ...req.body,
     owner: req.user._id,
+    moderationStatus: 'pending',
   };
   const property = await propertyService.createProperty(propertyBody);
   res.status(201).send(property);
@@ -17,6 +18,8 @@ const getProperties = asyncHandler(async (req, res) => {
   const filter = {};
   if (req.user.role === 'owner') {
     filter.owner = req.user._id;
+  } else if (req.user.role === 'tenant') {
+    filter.moderationStatus = 'approved';
   }
   const result = await propertyService.queryProperties(filter);
   res.send(result);
@@ -29,9 +32,10 @@ const getProperty = asyncHandler(async (req, res) => {
 
 const updateProperty = asyncHandler(async (req, res) => {
   const property = await propertyService.getPropertyById(req.params.propertyId);
+  const ownerId = property.owner?._id || property.owner;
   
   // Check authorization
-  if (property.owner.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+  if (req.user.role !== 'admin' && (!ownerId || ownerId.toString() !== req.user._id.toString())) {
     throw new ApiError(403, 'Forbidden');
   }
 
@@ -41,9 +45,10 @@ const updateProperty = asyncHandler(async (req, res) => {
 
 const deleteProperty = asyncHandler(async (req, res) => {
   const property = await propertyService.getPropertyById(req.params.propertyId);
+  const ownerId = property.owner?._id || property.owner;
   
   // Check authorization
-  if (property.owner.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+  if (req.user.role !== 'admin' && (!ownerId || ownerId.toString() !== req.user._id.toString())) {
     throw new ApiError(403, 'Forbidden');
   }
 

@@ -44,6 +44,7 @@ async function seedAdmin() {
       email: ADMIN_EMAIL,
       password: hashedPassword,
       role: 'admin',
+      isEmailVerified: true,
     });
 
     console.log('✅ Compte admin créé avec succès :');

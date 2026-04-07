@@ -39,16 +39,16 @@ export function TenantSidebar({ activeSection, onSectionChange }: TenantSidebarP
   const { user, logout } = useAuth()
 
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar text-sidebar-foreground">
+    <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-gradient-to-b from-[#1e3a8a] to-[#1d4ed8] text-white">
       <div className="flex h-full flex-col">
         {/* Logo */}
-        <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-6">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary">
-            <Home className="h-5 w-5 text-sidebar-primary-foreground" />
+        <div className="flex h-16 items-center gap-3 border-b border-white/20 px-6">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/20">
+            <Home className="h-5 w-5 text-white" />
           </div>
           <div>
             <h1 className="text-lg font-bold">ImmoSmart</h1>
-            <p className="text-xs text-sidebar-foreground/70">{t("role.tenant")}</p>
+            <p className="text-xs text-white/80">{t("role.tenant")}</p>
           </div>
         </div>
 
@@ -65,8 +65,8 @@ export function TenantSidebar({ activeSection, onSectionChange }: TenantSidebarP
                 className={cn(
                   "flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all duration-200",
                   isActive
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md"
-                    : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                    ? "bg-[#3b82f6] text-white shadow-md"
+                    : "text-white/85 hover:bg-white/15 hover:text-white"
                 )}
               >
                 <Icon className="h-5 w-5" />
@@ -77,21 +77,21 @@ export function TenantSidebar({ activeSection, onSectionChange }: TenantSidebarP
         </nav>
 
         {/* User Info */}
-        <div className="border-t border-sidebar-border p-4">
-          <div className="flex items-center gap-3 rounded-lg bg-sidebar-accent/50 p-3 mb-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground">
+        <div className="border-t border-white/20 p-4">
+          <div className="mb-3 flex items-center gap-3 rounded-lg bg-white/10 p-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white">
               <User className="h-5 w-5" />
             </div>
             <div className="flex-1 truncate">
               <p className="text-sm font-medium">{user?.name || "Locataire"}</p>
-              <p className="text-xs text-sidebar-foreground/70">{user?.email}</p>
+              <p className="text-xs text-white/75">{user?.email}</p>
             </div>
           </div>
           
           {/* Logout Button */}
           <button
             onClick={logout}
-            className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-sidebar-foreground/80 hover:bg-destructive/20 hover:text-destructive transition-all duration-200"
+            className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-white/85 transition-all duration-200 hover:bg-red-500/20 hover:text-red-100"
           >
             <LogOut className="h-5 w-5" />
             <span>{lang === "fr" ? "Deconnexion" : "Logout"}</span>

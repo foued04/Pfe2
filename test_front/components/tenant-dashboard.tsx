@@ -200,7 +200,7 @@ export function TenantDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#e9eef7]">
       <TenantSidebar 
         activeSection={activeSection} 
         onSectionChange={setActiveSection}
@@ -209,14 +209,14 @@ export function TenantDashboard() {
       {/* Main Content */}
       <div className="ml-64 transition-all duration-300">
         {/* Top Bar */}
-        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-background/95 px-6 py-3 backdrop-blur">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-blue-100 bg-white/90 px-6 py-3 backdrop-blur">
+          <div className="flex items-center gap-2 text-sm text-slate-500">
             <MapPin className="w-4 h-4" />
             <span>Monastir, Tunisie</span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">
-              {lang === "fr" ? "Bienvenue," : "Welcome,"} <span className="font-medium text-foreground">{user?.name}</span>
+            <span className="text-sm text-slate-500">
+              {lang === "fr" ? "Bienvenue," : "Welcome,"} <span className="font-medium text-slate-800">{user?.name}</span>
             </span>
             <Button
               variant="outline"

@@ -25,7 +25,7 @@ export function TenantSearchHeader({
   const { t } = useI18n()
 
   return (
-    <div className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <div className="sticky top-0 z-30 border-b border-blue-100 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
       <div className="px-6 py-4">
         {/* Title */}
         <div className="mb-4">
@@ -70,7 +70,7 @@ export function TenantSearchHeader({
 
           <Button
             onClick={onChatbotClick}
-            className="h-12 gap-2 rounded-xl bg-primary px-5 text-primary-foreground hover:bg-primary/90"
+            className="h-12 gap-2 rounded-xl bg-blue-600 px-5 text-white hover:bg-blue-700"
           >
             <Bot className="h-5 w-5" />
             <span className="hidden sm:inline">AI</span>

@@ -13,17 +13,20 @@ import {
 
 // ─── Palette (Blue Theme) ────────────────────────────────────────────────────────────────────────
 const C = {
-  primary: "#2563EB",        // blue principal
-  primaryDark: "#1D4ED8",    // blue fonce
-  primarySoft: "#60A5FA",    // blue clair
-  coral: "#3B82F6",       // accent blue
-  coralSoft: "#93C5FD",   // accent soft blue
-  borderLight: "#D7E6FF",       // bordure claire
-  bgMint: "#EFF6FF",   // fond bleu tres clair
-  bgWhite: "#F8FBFF",       // blanc bleute
+  primary: "#1D4ED8",
+  primaryDark: "#1E3A8A",
+  primarySoft: "#60A5FA",
+  accent: "#0F766E",
+  accentSoft: "#99F6E4",
+  borderLight: "#DBEAFE",
+  bgMint: "#EFF6FF",
+  bgWhite: "#F8FAFC",
+  bgSection: "#F1F5F9",
   textDark: "#1F2937",
-  textSecondary: "#6B7280",
+  textSecondary: "#64748B",
+  textMuted: "#94A3B8",
   white: "#FFFFFF",
+  shadow: "0 24px 60px rgba(15, 23, 42, 0.12)",
 }
 
 // ─── Type labels ────────────────────────────────────────────────────────────
@@ -44,7 +47,7 @@ const statusLabels: Record<string, string> = {
   available: "Disponible", rented: "Loué", maintenance: "Maintenance",
 }
 const statusColors: Record<string, string> = {
-  available: C.primarySoft, rented: C.coral, maintenance: "#f59e0b",
+  available: C.primarySoft, rented: C.accent, maintenance: "#f59e0b",
 }
 
 // ─── Shared button helper ───────────────────────────────────────────────────
@@ -57,21 +60,21 @@ function TealButton({ children, onClick, variant = "solid", style: extra }: {
       onClick={onClick}
       style={{
         display: "inline-flex", alignItems: "center", gap: "8px",
-        padding: "14px 28px", borderRadius: "12px", fontSize: "15px", fontWeight: 600,
+        padding: "15px 30px", borderRadius: "14px", fontSize: "15px", fontWeight: 700,
         cursor: "pointer", transition: "all 0.25s",
-        background: isSolid ? `linear-gradient(135deg, ${C.coral}, ${C.coralSoft})` : "transparent",
-        color: isSolid ? C.white : C.coral,
-        border: isSolid ? "none" : `2px solid ${C.coral}`,
-        boxShadow: isSolid ? "0 4px 14px rgba(242,125,114,0.25)" : "none",
+        background: isSolid ? `linear-gradient(135deg, ${C.primary}, ${C.primarySoft})` : "rgba(255,255,255,0.82)",
+        color: isSolid ? C.white : C.primary,
+        border: isSolid ? "none" : `1px solid ${C.borderLight}`,
+        boxShadow: isSolid ? "0 18px 34px rgba(37, 99, 235, 0.22)" : "0 10px 30px rgba(148, 163, 184, 0.12)",
         ...extra,
       }}
       onMouseEnter={(e) => {
-        if (isSolid) { e.currentTarget.style.boxShadow = "0 6px 20px rgba(242,125,114,0.35)"; e.currentTarget.style.transform = "translateY(-1px)" }
-        else { e.currentTarget.style.background = C.coral; e.currentTarget.style.color = C.white }
+        if (isSolid) { e.currentTarget.style.boxShadow = "0 22px 40px rgba(37, 99, 235, 0.28)"; e.currentTarget.style.transform = "translateY(-2px)" }
+        else { e.currentTarget.style.background = "#ffffff"; e.currentTarget.style.color = C.primary; e.currentTarget.style.transform = "translateY(-2px)" }
       }}
       onMouseLeave={(e) => {
-        if (isSolid) { e.currentTarget.style.boxShadow = "0 4px 14px rgba(242,125,114,0.25)"; e.currentTarget.style.transform = "translateY(0)" }
-        else { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.coral }
+        if (isSolid) { e.currentTarget.style.boxShadow = "0 18px 34px rgba(37, 99, 235, 0.22)"; e.currentTarget.style.transform = "translateY(0)" }
+        else { e.currentTarget.style.background = "rgba(255,255,255,0.82)"; e.currentTarget.style.color = C.primary; e.currentTarget.style.transform = "translateY(0)" }
       }}
     >
       {children}
@@ -85,16 +88,17 @@ function SectionTitle({ badge, title, subtitle }: { badge?: string; title: strin
     <div style={{ textAlign: "center", marginBottom: "48px" }}>
       {badge && (
         <span style={{
-          display: "inline-block", background: `${C.primary}14`, color: C.primary,
-          fontSize: "13px", fontWeight: 600, padding: "6px 16px", borderRadius: "100px",
-          marginBottom: "14px", letterSpacing: "0.5px", textTransform: "uppercase",
+          display: "inline-block", background: "rgba(255,255,255,0.86)", color: C.primary,
+          fontSize: "12px", fontWeight: 800, padding: "8px 16px", borderRadius: "999px",
+          marginBottom: "16px", letterSpacing: "0.14em", textTransform: "uppercase",
+          border: `1px solid ${C.borderLight}`, boxShadow: "0 10px 24px rgba(148, 163, 184, 0.10)",
         }}>{badge}</span>
       )}
-      <h2 style={{ margin: 0, fontSize: "clamp(24px, 3vw, 34px)", fontWeight: 800, color: C.textDark, lineHeight: 1.25 }}>
+      <h2 style={{ margin: 0, fontSize: "clamp(28px, 3vw, 40px)", fontWeight: 800, color: C.textDark, lineHeight: 1.15, letterSpacing: "-0.04em" }}>
         {title}
       </h2>
       {subtitle && (
-        <p style={{ margin: "12px auto 0", maxWidth: "600px", color: C.textSecondary, fontSize: "16px", lineHeight: 1.6 }}>
+        <p style={{ margin: "14px auto 0", maxWidth: "640px", color: C.textSecondary, fontSize: "17px", lineHeight: 1.7 }}>
           {subtitle}
         </p>
       )}
@@ -265,6 +269,19 @@ export function HomePage({ onLogin, onRegister }: HomePageProps) {
   const scrollToFurniture = () => {
     document.getElementById("furniture-section")?.scrollIntoView({ behavior: "smooth" })
   }
+  const scrollToContact = () => {
+    document.getElementById("contact-section")?.scrollIntoView({ behavior: "smooth" })
+  }
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  const handleNavClick = (link: string) => {
+    if (link === "Accueil") scrollToTop()
+    else if (link === "Propriétés") scrollToProperties()
+    else if (link === "Ameublement") scrollToFurniture()
+    else if (link === "Contact") scrollToContact()
+  }
 
   return (
     <div style={{ minHeight: "100vh", fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", color: C.textDark }}>
@@ -297,10 +314,7 @@ export function HomePage({ onLogin, onRegister }: HomePageProps) {
               fontWeight: 500, cursor: "pointer", padding: "8px 14px", borderRadius: "8px",
               transition: "all 0.2s",
             }}
-              onClick={() => {
-                if (link === "Propriétés") scrollToProperties()
-                else if (link === "Ameublement") scrollToFurniture()
-              }}
+              onClick={() => handleNavClick(link)}
               onMouseEnter={(e) => { e.currentTarget.style.color = C.primary; e.currentTarget.style.background = `${C.primary}08` }}
               onMouseLeave={(e) => { e.currentTarget.style.color = C.textSecondary; e.currentTarget.style.background = "none" }}
             >
@@ -319,13 +333,13 @@ export function HomePage({ onLogin, onRegister }: HomePageProps) {
             Connexion
           </button>
           <button onClick={onRegister} style={{
-            background: `linear-gradient(135deg, ${C.coral}, ${C.coralSoft})`,
+            background: `linear-gradient(135deg, ${C.primary}, ${C.primarySoft})`,
             border: "none", color: C.white, fontSize: "14px", fontWeight: 600,
             cursor: "pointer", padding: "10px 22px", borderRadius: "10px",
-            transition: "all 0.2s", boxShadow: "0 3px 12px rgba(242,125,114,0.2)",
+            transition: "all 0.2s", boxShadow: "0 12px 28px rgba(37, 99, 235, 0.22)",
           }}
-            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 5px 16px rgba(242,125,114,0.3)" }}
-            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 3px 12px rgba(242,125,114,0.2)" }}
+            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 16px 34px rgba(37, 99, 235, 0.28)" }}
+            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 12px 28px rgba(37, 99, 235, 0.22)" }}
           >
             S&apos;inscrire
           </button>
@@ -336,7 +350,7 @@ export function HomePage({ onLogin, onRegister }: HomePageProps) {
       <section style={{
         position: "relative", minHeight: "560px", display: "flex", alignItems: "center",
         overflow: "hidden",
-        background: `linear-gradient(135deg, ${C.bgMint} 0%, ${C.primarySoft}20 50%, ${C.coralSoft}15 100%)`,
+        background: `linear-gradient(135deg, ${C.bgMint} 0%, ${C.primarySoft}20 50%, ${C.accentSoft}20 100%)`,
       }}>
         {/* Decorative circles */}
         <div style={{ position: "absolute", top: "-80px", right: "-60px", width: "360px", height: "360px", borderRadius: "50%", background: `${C.primary}08` }} />
@@ -571,25 +585,33 @@ export function HomePage({ onLogin, onRegister }: HomePageProps) {
 
       {/* ═══════════════════════ 8. CTA PROPRIÉTAIRE ═══════════════════════ */}
       <section style={{
-        background: `linear-gradient(135deg, ${C.primaryDark} 0%, ${C.primary} 60%, ${C.primarySoft} 100%)`,
+        background: "linear-gradient(135deg, #17367f 0%, #2452b8 56%, #4d86de 100%)",
         padding: "72px clamp(24px, 5vw, 48px)",
       }}>
         <div style={{ maxWidth: "800px", margin: "0 auto", textAlign: "center" }}>
           <h2 style={{ margin: 0, fontSize: "clamp(24px, 3.5vw, 34px)", fontWeight: 800, color: C.white, lineHeight: 1.2 }}>
             Vous êtes propriétaire ?
           </h2>
-          <p style={{ margin: "16px 0 0", fontSize: "17px", color: "rgba(255,255,255,0.8)", lineHeight: 1.6 }}>
+          <p style={{ margin: "16px 0 0", fontSize: "17px", color: "rgba(241,245,249,0.92)", lineHeight: 1.6 }}>
             Publiez vos annonces sur ImmoSmart et atteignez des milliers de locataires potentiels à Monastir. Gestion simplifiée, visibilité maximale.
           </p>
           <div style={{ display: "flex", gap: "14px", justifyContent: "center", marginTop: "32px", flexWrap: "wrap" }}>
             <button onClick={onRegister} style={{
               padding: "16px 32px", borderRadius: "12px", fontSize: "16px", fontWeight: 700,
-              background: C.white, color: C.primary, border: "none", cursor: "pointer",
-              boxShadow: "0 4px 16px rgba(0,0,0,0.15)", transition: "all 0.2s",
+              background: "#F8FAFC", color: "#1D4ED8", border: "1px solid rgba(255,255,255,0.55)", cursor: "pointer",
+              boxShadow: "0 8px 24px rgba(15,23,42,0.18)", transition: "all 0.2s",
               display: "flex", alignItems: "center", gap: "8px",
             }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.2)" }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.15)" }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-2px)"
+                e.currentTarget.style.boxShadow = "0 14px 30px rgba(15,23,42,0.22)"
+                e.currentTarget.style.background = "#FFFFFF"
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)"
+                e.currentTarget.style.boxShadow = "0 8px 24px rgba(15,23,42,0.18)"
+                e.currentTarget.style.background = "#F8FAFC"
+              }}
             >
               Publier une annonce <ArrowRight size={18} />
             </button>
@@ -598,7 +620,7 @@ export function HomePage({ onLogin, onRegister }: HomePageProps) {
       </section>
 
       {/* ═══════════════════════ 9. FOOTER ═══════════════════════ */}
-      <footer style={{ background: C.primaryDark, padding: "60px clamp(24px, 5vw, 48px) 0", color: "rgba(255,255,255,0.8)" }}>
+      <footer id="contact-section" style={{ background: "#132d6b", padding: "60px clamp(24px, 5vw, 48px) 0", color: "rgba(226,232,240,0.9)" }}>
         <div style={{
           maxWidth: "1240px", margin: "0 auto",
           display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "40px",
@@ -606,7 +628,7 @@ export function HomePage({ onLogin, onRegister }: HomePageProps) {
           {/* Brand */}
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
-              <div style={{ width: "32px", height: "32px", borderRadius: "8px", background: "rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ width: "32px", height: "32px", borderRadius: "8px", background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <Home size={16} color={C.white} />
               </div>
               <span style={{ fontWeight: 800, fontSize: "18px", color: C.white }}>ImmoSmart</span>
@@ -621,9 +643,10 @@ export function HomePage({ onLogin, onRegister }: HomePageProps) {
             <h4 style={{ margin: "0 0 16px", fontSize: "14px", fontWeight: 700, color: C.white, textTransform: "uppercase", letterSpacing: "0.5px" }}>Navigation</h4>
             {["Accueil", "Propriétés", "Ameublement", "Contact"].map((link) => (
               <div key={link} style={{ marginBottom: "10px" }}>
-                <span style={{ fontSize: "14px", cursor: "pointer", transition: "color 0.2s" }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = C.white }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.7)" }}
+                <span style={{ fontSize: "14px", cursor: "pointer", transition: "color 0.2s", color: "rgba(226,232,240,0.84)" }}
+                  onClick={() => handleNavClick(link)}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "#FFFFFF" }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(226,232,240,0.84)" }}
                 >{link}</span>
               </div>
             ))}
@@ -646,12 +669,12 @@ export function HomePage({ onLogin, onRegister }: HomePageProps) {
               {[Facebook, Instagram, Linkedin].map((Icon, i) => (
                 <div key={i} style={{
                   width: "40px", height: "40px", borderRadius: "10px",
-                  background: "rgba(255,255,255,0.1)", display: "flex",
+                  background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.18)", display: "flex",
                   alignItems: "center", justifyContent: "center", cursor: "pointer",
                   transition: "background 0.2s",
                 }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.2)" }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.18)" }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.10)" }}
                 >
                   <Icon size={18} color={C.white} />
                 </div>
@@ -662,8 +685,8 @@ export function HomePage({ onLogin, onRegister }: HomePageProps) {
 
         {/* Bottom bar */}
         <div style={{
-          marginTop: "48px", padding: "20px 0", borderTop: "1px solid rgba(255,255,255,0.1)",
-          textAlign: "center", fontSize: "13px", color: "rgba(255,255,255,0.5)",
+          marginTop: "48px", padding: "20px 0", borderTop: "1px solid rgba(148,163,184,0.25)",
+          textAlign: "center", fontSize: "13px", color: "rgba(191,219,254,0.8)",
         }}>
           © 2026 ImmoSmart — Monastir, Tunisie. Tous droits réservés.
         </div>

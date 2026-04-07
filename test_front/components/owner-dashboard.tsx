@@ -54,6 +54,7 @@ export function OwnerDashboard() {
   const [isChatbotOpen, setIsChatbotOpen] = useState(false)
   const [properties, setProperties] = useState<any[]>([])
   const [editingProperty, setEditingProperty] = useState<any | null>(null)
+  const [newPropertyFormKey, setNewPropertyFormKey] = useState(0)
   const [isFetching, setIsFetching] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -110,9 +111,15 @@ export function OwnerDashboard() {
     fetchProperties()
   }, [user])
 
+  const openNewPropertyForm = () => {
+    setEditingProperty(null)
+    setNewPropertyFormKey((prev) => prev + 1)
+    setActiveSection("addProperty")
+  }
+
   const handleEditProperty = (property: any) => {
     setEditingProperty(property)
-    setActiveSection("addProperty") // Form handles edit if initialData is present
+    setActiveSection("editProperty")
   }
 
   const handleSaveProperty = async (savedData: any) => {
@@ -135,9 +142,10 @@ export function OwnerDashboard() {
       if (response.ok) {
         const result = await response.json()
         if (isEdit) {
-          setProperties(prev => prev.map(p => (p.id === result._id || p._id === result._id) ? result : p))
+          setProperties(prev => prev.map(p => ((p.id || p._id) === result._id ? result : p)))
         } else {
           setProperties(prev => [result, ...prev])
+          setNewPropertyFormKey((prev) => prev + 1)
         }
         setEditingProperty(null)
         setActiveSection("properties")
@@ -156,7 +164,7 @@ export function OwnerDashboard() {
   const renderContent = () => {
     switch (activeSection) {
       case "addProperty":
-        return <OwnerPropertyForm onSave={handleSaveProperty} onCancel={() => setActiveSection("properties")} />
+        return <OwnerPropertyForm key={newPropertyFormKey} onSave={handleSaveProperty} onCancel={() => setActiveSection("properties")} />
       case "editProperty":
         return <OwnerPropertyForm initialData={editingProperty} onSave={handleSaveProperty} onCancel={() => setActiveSection("properties")} />
       case "furniture":
@@ -200,11 +208,8 @@ export function OwnerDashboard() {
                 </p>
               </div>
               <Button 
-                onClick={() => {
-                  setEditingProperty(null)
-                  setActiveSection("addProperty")
-                }}
-                variant="coral"
+                onClick={openNewPropertyForm}
+                variant="default"
                 className="gap-2"
               >
                 <Plus className="h-4 w-4" />
@@ -251,10 +256,7 @@ export function OwnerDashboard() {
                   </p>
                 </div>
                 <Button 
-                  onClick={() => {
-                    setEditingProperty(null)
-                    setActiveSection("addProperty")
-                  }}
+                  onClick={openNewPropertyForm}
                   variant="outline" className="gap-2"
                 >
                   <Plus className="h-4 w-4" />
@@ -289,18 +291,18 @@ export function OwnerDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#e9eef7]">
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar text-sidebar-foreground">
+      <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-gradient-to-b from-[#1e3a8a] to-[#1d4ed8] text-white">
         <div className="flex h-full flex-col">
           {/* Logo */}
-          <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-6">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary">
-              <Home className="h-5 w-5 text-sidebar-primary-foreground" />
+          <div className="flex h-16 items-center gap-3 border-b border-white/20 px-6">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/20">
+              <Home className="h-5 w-5 text-white" />
             </div>
             <div>
               <h1 className="text-lg font-bold">ImmoSmart</h1>
-              <p className="text-xs text-sidebar-foreground/70">{t("role.owner")}</p>
+              <p className="text-xs text-white/80">{t("role.owner")}</p>
             </div>
           </div>
 
@@ -317,20 +319,23 @@ export function OwnerDashboard() {
                 <button
                   key={item.key}
                   onClick={() => {
-                    if (item.key === "addProperty") setEditingProperty(null)
+                    if (item.key === "addProperty") {
+                      openNewPropertyForm()
+                      return
+                    }
                     setActiveSection(item.key)
                   }}
                   className={cn(
                     "flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all duration-200",
                     isActive
-                      ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md"
-                      : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                      ? "bg-[#3b82f6] text-white shadow-md"
+                      : "text-white/85 hover:bg-white/15 hover:text-white"
                   )}
                 >
                   <Icon className="h-5 w-5" />
                   <span>{t(item.label)}</span>
                   {item.badge && (
-                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary-foreground/20 px-1.5 text-xs font-medium">
+                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-white/20 px-1.5 text-xs font-medium">
                       {item.badge}
                     </span>
                   )}
@@ -340,21 +345,21 @@ export function OwnerDashboard() {
           </nav>
 
           {/* User Info & Logout */}
-          <div className="border-t border-sidebar-border p-4">
-            <div className="flex items-center gap-3 rounded-lg bg-sidebar-accent/50 p-3 mb-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground">
+          <div className="border-t border-white/20 p-4">
+            <div className="mb-3 flex items-center gap-3 rounded-lg bg-white/10 p-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white">
                 <User className="h-5 w-5" />
               </div>
               <div className="flex-1 truncate">
                 <p className="text-sm font-medium">{user?.name || "Propriétaire"}</p>
-                <p className="text-xs text-sidebar-foreground/70">{user?.email}</p>
+                <p className="text-xs text-white/75">{user?.email}</p>
               </div>
             </div>
             
             {/* Logout Button */}
             <button
               onClick={logout}
-              className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-sidebar-foreground/80 hover:bg-destructive/20 hover:text-destructive transition-all duration-200"
+              className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-white/85 transition-all duration-200 hover:bg-red-500/20 hover:text-red-100"
             >
               <LogOut className="h-5 w-5" />
               <span>{lang === "fr" ? "Déconnexion" : "Logout"}</span>
@@ -366,14 +371,14 @@ export function OwnerDashboard() {
       {/* Main Content */}
       <div className="ml-64 transition-all duration-300">
         {/* Top Bar */}
-        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-background/95 px-6 py-3 backdrop-blur">
+        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-blue-100 bg-white/90 px-6 py-3 backdrop-blur">
           <div className="flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Monastir, Tunisie</span>
+            <MapPin className="w-4 h-4 text-slate-500" />
+            <span className="text-sm text-slate-500">Monastir, Tunisie</span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">
-              {lang === "fr" ? "Bienvenue," : "Welcome,"} <span className="font-medium text-foreground">{user?.name}</span>
+            <span className="text-sm text-slate-500">
+              {lang === "fr" ? "Bienvenue," : "Welcome,"} <span className="font-medium text-slate-800">{user?.name}</span>
             </span>
             <Button
               variant="outline"
