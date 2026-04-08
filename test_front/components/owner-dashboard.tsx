@@ -348,7 +348,11 @@ export function OwnerDashboard() {
           <div className="border-t border-white/20 p-4">
             <div className="mb-3 flex items-center gap-3 rounded-lg bg-white/10 p-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white">
-                <User className="h-5 w-5" />
+                {user?.avatar ? (
+                  <img src={user.avatar} alt="Profile" className="h-full w-full object-cover rounded-full" />
+                ) : (
+                  <User className="h-5 w-5" />
+                )}
               </div>
               <div className="flex-1 truncate">
                 <p className="text-sm font-medium">{user?.name || "Propriétaire"}</p>

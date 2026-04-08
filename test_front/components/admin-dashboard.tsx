@@ -333,7 +333,7 @@ export function AdminDashboard() {
             <div className="grid gap-6 sm:grid-cols-3">
               {[
                 { label: "Total Utilisateurs", value: users.length, icon: Users, color: "text-primary bg-primary/10" },
-                { label: "Propriétaires", value: owners.length, icon: Building, color: "text-orange-500 bg-orange-50" },
+                { label: "Propriétaires", value: owners.length, icon: Building, color: "text-primary bg-primary/10" },
                 { label: "Locataires", value: tenants.length, icon: UserCheck, color: "text-emerald-600 bg-emerald-50" },
               ].map((stat, i) => (
                 <Card key={i} className="border-none shadow-lg bg-card p-6 flex items-center gap-5">
@@ -383,7 +383,7 @@ export function AdminDashboard() {
               {(userFilters.role === "all" || userFilters.role === "owner") && (
                 <div className="space-y-6">
                   <div className="flex items-center gap-3">
-                    <div className="h-8 w-1.5 bg-orange-500 rounded-full" />
+                    <div className="h-8 w-1.5 bg-primary rounded-full" />
                     <h2 className="text-xl font-black text-foreground">Propriétaires ({owners.length})</h2>
                   </div>
                   <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
@@ -391,7 +391,7 @@ export function AdminDashboard() {
                       <Card key={user._id} className="border-none shadow-xl bg-card p-6 group hover:-translate-y-1 transition-all duration-300">
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-black text-xl">
+                            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black text-xl">
                               {user.fullName[0].toUpperCase()}
                             </div>
                             <div>
@@ -400,7 +400,7 @@ export function AdminDashboard() {
                             </div>
                           </div>
                           <div className="flex flex-col items-end gap-2">
-                            <Badge className="bg-orange-100 text-orange-600 border-none font-bold text-[10px]">OWNER</Badge>
+                            <Badge className="bg-primary/10 text-primary border-none font-bold text-[10px]">OWNER</Badge>
                             {user.isSuspended && (
                               <Badge className="bg-red-100 text-red-600 border-none font-bold text-[10px]">SUSPENDU</Badge>
                             )}
@@ -408,13 +408,13 @@ export function AdminDashboard() {
                         </div>
                         <div className="space-y-2 mb-6">
                            <div className="flex items-center gap-2 text-xs text-muted-foreground font-bold">
-                             <Phone className="w-3.5 h-3.5 text-orange-400" /> {user.phone || "Non renseigné"}
+                             <Phone className="w-3.5 h-3.5 text-primary" /> {user.phone || "Non renseigné"}
                            </div>
                            <div className="flex items-center gap-2 text-xs text-muted-foreground font-bold">
-                             <MapPin className="w-3.5 h-3.5 text-orange-400" /> {user.address || "Monastir, Tunisie"}
+                             <MapPin className="w-3.5 h-3.5 text-primary" /> {user.address || "Monastir, Tunisie"}
                            </div>
                            <div className="flex items-center gap-2 text-xs text-muted-foreground font-bold">
-                             <Home className="w-3.5 h-3.5 text-orange-400" /> {user.propertyCount || 0} biens possédés
+                             <Home className="w-3.5 h-3.5 text-primary" /> {user.propertyCount || 0} biens possédés
                            </div>
                         </div>
                         <div className="flex gap-2">
@@ -512,18 +512,18 @@ export function AdminDashboard() {
                   </div>
                   <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                     {admins.map((user) => (
-                      <Card key={user._id} className="border-none shadow-xl bg-gray-900 p-6 text-white">
+                      <Card key={user._id} className="border-none shadow-xl bg-card p-6">
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center font-black text-xl">
+                            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black text-xl">
                               {user.fullName[0].toUpperCase()}
                             </div>
                             <div>
-                              <h3 className="font-black text-white text-base tracking-tight">{user.fullName}</h3>
-                              <p className="text-xs text-gray-400 font-medium">{user.email}</p>
+                              <h3 className="font-black text-foreground text-base tracking-tight">{user.fullName}</h3>
+                              <p className="text-xs text-muted-foreground font-medium">{user.email}</p>
                             </div>
                           </div>
-                          <Badge className="bg-white/20 text-white border-none font-bold text-[10px]">ADMIN</Badge>
+                          <Badge className="bg-primary/10 text-primary border-none font-bold text-[10px]">ADMIN</Badge>
                         </div>
                       </Card>
                     ))}
@@ -818,18 +818,18 @@ export function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#e9eef7]">
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar text-sidebar-foreground">
+      <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-gradient-to-b from-[#1e3a8a] to-[#1d4ed8] text-white">
         <div className="flex h-full flex-col">
           {/* Logo */}
-          <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-6">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary">
-              <Shield className="h-5 w-5 text-sidebar-primary-foreground" />
+          <div className="flex h-16 items-center gap-3 border-b border-white/20 px-6">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/20">
+              <Shield className="h-5 w-5 text-white" />
             </div>
             <div>
               <h1 className="text-lg font-bold">ImmoSmart</h1>
-              <p className="text-xs text-sidebar-foreground/70">{t("role.admin")}</p>
+              <p className="text-xs text-white/80">{t("role.admin")}</p>
             </div>
           </div>
 
@@ -845,8 +845,8 @@ export function AdminDashboard() {
                   className={cn(
                     "flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all duration-200",
                     isActive
-                      ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md"
-                      : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                      ? "bg-[#3b82f6] text-white shadow-md"
+                      : "text-white/85 hover:bg-white/15 hover:text-white"
                   )}
                 >
                   <Icon className="h-5 w-5" />
@@ -857,21 +857,21 @@ export function AdminDashboard() {
           </nav>
 
           {/* Admin Info & Logout */}
-          <div className="border-t border-sidebar-border p-4">
-            <div className="flex items-center gap-3 rounded-lg bg-sidebar-accent/50 p-3 mb-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground">
+          <div className="border-t border-white/20 p-4">
+            <div className="mb-3 flex items-center gap-3 rounded-lg bg-white/10 p-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white">
                 <Shield className="h-5 w-5" />
               </div>
               <div className="flex-1 truncate">
                 <p className="text-sm font-medium">{user?.name || "Admin"}</p>
-                <p className="text-xs text-sidebar-foreground/70">{user?.email}</p>
+                <p className="text-xs text-white/80">{user?.email}</p>
               </div>
             </div>
             
             {/* Logout Button */}
             <button
               onClick={logout}
-              className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-sidebar-foreground/80 hover:bg-destructive/20 hover:text-destructive transition-all duration-200"
+              className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-white/85 hover:bg-red-500/20 hover:text-red-100 transition-all duration-200"
             >
               <LogOut className="h-5 w-5" />
               <span>{lang === "fr" ? "Deconnexion" : "Logout"}</span>
@@ -883,14 +883,14 @@ export function AdminDashboard() {
       {/* Main Content */}
       <div className="ml-64 transition-all duration-300">
         {/* Top Bar */}
-        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-background/95 px-6 py-3 backdrop-blur">
+        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-blue-100 bg-white/90 px-6 py-3 backdrop-blur">
           <div className="flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Monastir, Tunisie</span>
+            <MapPin className="w-4 h-4 text-slate-500" />
+            <span className="text-sm text-slate-500">Monastir, Tunisie</span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">
-              {lang === "fr" ? "Bienvenue," : "Welcome,"} <span className="font-medium text-foreground">{user?.name}</span>
+            <span className="text-sm text-slate-500">
+              {lang === "fr" ? "Bienvenue," : "Welcome,"} <span className="font-medium text-slate-800">{user?.name}</span>
             </span>
             <Button
               variant="outline"

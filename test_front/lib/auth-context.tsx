@@ -185,7 +185,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateProfile = async (profileData: Partial<User>): Promise<{ success: boolean; message?: string }> => {
     try {
       const token = localStorage.getItem("accessToken")
-      const response = await fetch(`${API_URL}/api/auth/profile`, {
+      const response = await fetch(`${API_URL}/auth/profile`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -215,7 +215,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updatePassword = async (currentPassword: string, newPassword: string): Promise<{ success: boolean; message?: string }> => {
     try {
       const token = localStorage.getItem("accessToken")
-      const response = await fetch(`${API_URL}/api/auth/password`, {
+      const response = await fetch(`${API_URL}/auth/password`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",

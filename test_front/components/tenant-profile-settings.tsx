@@ -71,9 +71,13 @@ export function TenantProfileSettings() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // ─── States ───────────────────────────────────────────────────────────
+  const nameParts = (user?.name || "").split(" ")
+  const defaultFirstName = nameParts[0] || ""
+  const defaultLastName = nameParts.slice(1).join(" ") || ""
+
   const [formData, setFormData] = useState({
-    firstName: user?.firstName || "",
-    lastName: user?.lastName || "",
+    firstName: user?.firstName || defaultFirstName,
+    lastName: user?.lastName || defaultLastName,
     email: user?.email || "",
     phone: user?.phone || "",
     address: user?.address || "",
@@ -96,10 +100,14 @@ export function TenantProfileSettings() {
 
   useEffect(() => {
     if (user) {
+      const nameParts = (user.name || "").split(" ")
+      const defaultFirstName = nameParts[0] || ""
+      const defaultLastName = nameParts.slice(1).join(" ") || ""
+
       setFormData(prev => ({
         ...prev,
-        firstName: user.firstName || "",
-        lastName: user.lastName || "",
+        firstName: user.firstName || defaultFirstName,
+        lastName: user.lastName || defaultLastName,
         email: user.email || "",
         phone: user.phone || "",
         address: user.address || "",

@@ -7,7 +7,7 @@ interface ImageCaptchaProps {
   onVerify: (isValid: boolean) => void
 }
 
-type Category = "Maisons" | "Voitures" | "Immeubles" | "Escaliers" | "Piscines" | "Salons" | "Jardins"
+type Category = "Maisons" | "Voitures" | "Immeubles" | "Escaliers" | "Piscines" | "Salons" | "Jardins" | "Chats" | "Chiens" | "Fleurs"
 
 interface CaptchaImage {
   id: number
@@ -58,6 +58,24 @@ const IMAGES: CaptchaImage[] = [
   { id: 35, category: "Jardins", url: "https://images.unsplash.com/photo-1704457030496-3463cf1b8650?auto=format&fit=crop&w=300&h=300&q=80" },
   { id: 36, category: "Jardins", url: "https://images.unsplash.com/photo-1762811054947-605b20298615?auto=format&fit=crop&w=300&h=300&q=80" },
   { id: 37, category: "Jardins", url: "https://images.unsplash.com/photo-1622015663084-307d19eabbbf?auto=format&fit=crop&w=300&h=300&q=80" },
+  // Chats
+  { id: 38, category: "Chats", url: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=300&h=300&q=80" },
+  { id: 39, category: "Chats", url: "https://images.unsplash.com/photo-1495360010541-f48722b34f7d?auto=format&fit=crop&w=300&h=300&q=80" },
+  { id: 40, category: "Chats", url: "https://images.unsplash.com/photo-1519052537078-e6302a4968d4?auto=format&fit=crop&w=300&h=300&q=80" },
+  { id: 41, category: "Chats", url: "https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=300&h=300&q=80" },
+  { id: 42, category: "Chats", url: "https://images.unsplash.com/photo-1529778458726-365c73224b17?auto=format&fit=crop&w=300&h=300&q=80" },
+  // Chiens
+  { id: 43, category: "Chiens", url: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=300&h=300&q=80" },
+  { id: 44, category: "Chiens", url: "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=300&h=300&q=80" },
+  { id: 45, category: "Chiens", url: "https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?auto=format&fit=crop&w=300&h=300&q=80" },
+  { id: 46, category: "Chiens", url: "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=300&h=300&q=80" },
+  { id: 47, category: "Chiens", url: "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=300&h=300&q=80" },
+  // Fleurs
+  { id: 48, category: "Fleurs", url: "https://images.unsplash.com/photo-1490750967868-88cb4ecb0701?auto=format&fit=crop&w=300&h=300&q=80" },
+  { id: 49, category: "Fleurs", url: "https://images.unsplash.com/photo-1468327768560-75b778cbb551?auto=format&fit=crop&w=300&h=300&q=80" },
+  { id: 50, category: "Fleurs", url: "https://images.unsplash.com/photo-1462275646964-a0e3386b89fa?auto=format&fit=crop&w=300&h=300&q=80" },
+  { id: 51, category: "Fleurs", url: "https://images.unsplash.com/photo-1460500063983-994d4c27756c?auto=format&fit=crop&w=300&h=300&q=80" },
+  { id: 52, category: "Fleurs", url: "https://images.unsplash.com/photo-1508610048659-a06b669e3319?auto=format&fit=crop&w=300&h=300&q=80" },
 ]
 
 export function ImageCaptcha({ onVerify }: ImageCaptchaProps) {
@@ -68,7 +86,7 @@ export function ImageCaptcha({ onVerify }: ImageCaptchaProps) {
   const [isSuccess, setIsSuccess] = useState(false)
   const [loadedImages, setLoadedImages] = useState<number[]>([])
 
-  const categories: Category[] = ["Maisons", "Voitures", "Immeubles", "Escaliers", "Piscines", "Salons", "Jardins"]
+  const categories: Category[] = ["Maisons", "Voitures", "Immeubles", "Escaliers", "Piscines", "Salons", "Jardins", "Chats", "Chiens", "Fleurs"]
 
   const generateNewChallenge = () => {
     const randomCategory = categories[Math.floor(Math.random() * categories.length)]
@@ -132,7 +150,7 @@ export function ImageCaptcha({ onVerify }: ImageCaptchaProps) {
       .map(img => img.id)
     
     const isSolved = 
-      selectedIds.length === correctIds.length && 
+      selectedIds.length > 0 && 
       selectedIds.every(id => correctIds.includes(id))
 
     if (isSolved) {
