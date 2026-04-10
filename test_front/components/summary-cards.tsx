@@ -2,66 +2,68 @@
 
 import { useI18n } from "@/lib/i18n"
 import { Card, CardContent } from "@/components/ui/card"
+import type { Property } from "@/lib/property-data"
 import {
   Building2,
   CheckCircle2,
   Key,
   FileText,
   TrendingUp,
-  TrendingDown,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-const stats = [
-  {
-    key: "dashboard.totalProperties",
-    value: 12,
-    icon: Building2,
-    trend: "+2",
-    trendUp: true,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
-  },
-  {
-    key: "dashboard.availableProperties",
-    value: 4,
-    icon: CheckCircle2,
-    trend: "+1",
-    trendUp: true,
-    color: "text-blue-600",
-    bgColor: "bg-blue-100",
-  },
-  {
-    key: "dashboard.rentedProperties",
-    value: 8,
-    icon: Key,
-    trend: "-1",
-    trendUp: false,
-    color: "text-blue-700",
-    bgColor: "bg-blue-100",
-  },
-  {
-    key: "dashboard.estimatedRevenue",
-    value: "24 500 TND",
-    icon: TrendingUp,
-    trend: "+12%",
-    trendUp: true,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
-  },
-  {
-    key: "dashboard.requestsReceived",
-    value: 7,
-    icon: FileText,
-    trend: "+3",
-    trendUp: true,
-    color: "text-blue-600",
-    bgColor: "bg-blue-100",
-  },
-]
+interface SummaryCardsProps {
+  properties: Property[]
+  requestsCount: number
+}
 
-export function SummaryCards() {
+export function SummaryCards({ properties = [], requestsCount = 0 }: SummaryCardsProps) {
   const { t } = useI18n()
+
+  const totalProperties = properties.length
+  const availableProperties = properties.filter(p => p.status === "available").length
+  const rentedProperties = properties.filter(p => p.status === "rented").length
+  const estimatedRevenue = properties
+    .filter(p => p.status === "rented")
+    .reduce((acc, p) => acc + (p.rent || 0), 0)
+
+  const stats = [
+    {
+      key: "dashboard.totalProperties",
+      value: totalProperties,
+      icon: Building2,
+      color: "text-primary",
+      bgColor: "bg-primary/10",
+    },
+    {
+      key: "dashboard.availableProperties",
+      value: availableProperties,
+      icon: CheckCircle2,
+      color: "text-blue-600",
+      bgColor: "bg-blue-100",
+    },
+    {
+      key: "dashboard.rentedProperties",
+      value: rentedProperties,
+      icon: Key,
+      color: "text-blue-700",
+      bgColor: "bg-blue-100",
+    },
+    {
+      key: "dashboard.estimatedRevenue",
+      value: `${estimatedRevenue.toLocaleString()} TND`,
+      icon: TrendingUp,
+      color: "text-primary",
+      bgColor: "bg-primary/10",
+    },
+    {
+      key: "dashboard.requestsReceived",
+      value: requestsCount,
+      icon: FileText,
+      color: "text-blue-600",
+      bgColor: "bg-blue-100",
+    },
+  ]
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
@@ -79,21 +81,6 @@ export function SummaryCards() {
                 )}
               >
                 {stat.icon && <stat.icon className={cn("h-5 w-5", stat.color)} />}
-              </div>
-              <div
-                className={cn(
-                  "flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
-                  stat.trendUp
-                    ? "bg-blue-100 text-blue-700"
-                    : "bg-blue-100 text-blue-700"
-                )}
-              >
-                {stat.trendUp ? (
-                  <TrendingUp className="h-3 w-3" />
-                ) : (
-                  <TrendingDown className="h-3 w-3" />
-                )}
-                {stat.trend}
               </div>
             </div>
             <div className="mt-4">

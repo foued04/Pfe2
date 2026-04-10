@@ -23,6 +23,7 @@ export interface TenantNotification {
     intervention?: NotificationIntervention
   }
   contractData?: {
+    contractId: string
     propertyTitle: string
     propertyAddress: string
     propertyImage: string

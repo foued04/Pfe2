@@ -1,5 +1,5 @@
 const express = require('express');
-const { auth } = require('../middlewares/auth.middleware');
+const { auth, optionalAuth } = require('../middlewares/auth.middleware');
 const propertyController = require('../controllers/property.controller');
 
 const router = express.Router();
@@ -7,7 +7,7 @@ const router = express.Router();
 router
   .route('/')
   .post(auth, propertyController.createProperty)
-  .get(auth, propertyController.getProperties);
+  .get(optionalAuth, propertyController.getProperties);
 
 router
   .route('/:propertyId')

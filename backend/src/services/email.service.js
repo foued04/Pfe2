@@ -97,8 +97,80 @@ const sendResetPasswordEmail = async (to, code) => {
   }
 };
 
+/**
+ * Send contract notification email
+ * @param {string} to
+ * @param {object} contractData
+ * @returns {Promise}
+ */
+const sendContractEmail = async (to, contractData) => {
+  const subject = 'Contrat de location à signer - ImmoSmart';
+  const text = `Bonjour,\n\nLe propriétaire a signé et envoyé le contrat de location pour le bien "${contractData.propertyTitle}". Veuillez vous connecter à votre compte ImmoSmart pour le consulter et le signer.\n\nCordialement,\nL'équipe ImmoSmart`;
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 10px;">
+      <h2 style="color: #2EC4C7; text-align: center;">Contrat de location à signer</h2>
+      <p>Bonjour,</p>
+      <p>Le propriétaire a signé et envoyé le contrat de location pour le bien suivant :</p>
+      <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h3 style="margin: 0 0 10px; color: #111827;">${contractData.propertyTitle}</h3>
+        <p style="margin: 0; color: #6b7280;">${contractData.propertyAddress}</p>
+        <p style="margin: 10px 0 0; font-weight: bold;">Loyer: ${contractData.rent}€/mois</p>
+      </div>
+      <p>Veuillez vous connecter à votre compte ImmoSmart pour consulter le contrat et le signer.</p>
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/tenant/dashboard" style="background: #2EC4C7; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Accéder à mon compte</a>
+      </div>
+      <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
+      <p style="font-size: 12px; color: #6b7280; text-align: center;">&copy; 2024 ImmoSmart. Tous droits réservés.</p>
+    </div>
+  `;
+  
+  try {
+    await sendEmail(to, subject, text, html);
+  } catch (error) {
+    console.error(`[SMTP ERROR]:`, error.message);
+  }
+};
+
+/**
+ * Send contract signed notification email
+ * @param {string} to
+ * @param {object} contractData
+ * @returns {Promise}
+ */
+const sendContractSignedEmail = async (to, contractData) => {
+  const subject = 'Contrat signé par le locataire - ImmoSmart';
+  const text = `Bonjour,\n\nLe locataire a signé le contrat de location pour le bien "${contractData.propertyTitle}". Vous pouvez maintenant l'activer dans votre compte ImmoSmart.\n\nCordialement,\nL'équipe ImmoSmart`;
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 10px;">
+      <h2 style="color: #2EC4C7; text-align: center;">Contrat signé par le locataire</h2>
+      <p>Bonjour,</p>
+      <p>Le locataire a signé le contrat de location pour le bien suivant :</p>
+      <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h3 style="margin: 0 0 10px; color: #111827;">${contractData.propertyTitle}</h3>
+        <p style="margin: 0; color: #6b7280;">${contractData.propertyAddress}</p>
+        <p style="margin: 10px 0 0; font-weight: bold;">Loyer: ${contractData.rent}€/mois</p>
+      </div>
+      <p>Vous pouvez maintenant activer le contrat dans votre compte ImmoSmart.</p>
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/owner/dashboard" style="background: #2EC4C7; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Accéder à mon compte</a>
+      </div>
+      <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
+      <p style="font-size: 12px; color: #6b7280; text-align: center;">&copy; 2024 ImmoSmart. Tous droits réservés.</p>
+    </div>
+  `;
+  
+  try {
+    await sendEmail(to, subject, text, html);
+  } catch (error) {
+    console.error(`[SMTP ERROR]:`, error.message);
+  }
+};
+
 module.exports = {
   sendEmail,
   sendVerificationEmail,
   sendResetPasswordEmail,
+  sendContractEmail,
+  sendContractSignedEmail,
 };

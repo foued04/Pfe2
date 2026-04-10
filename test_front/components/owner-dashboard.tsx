@@ -40,7 +40,6 @@ const navItems = [
   { key: "map", icon: Map, label: "nav.map" },
   { key: "requests", icon: FileText, label: "nav.requests", badge: 5 },
   { key: "messages", icon: MessageSquare, label: "nav.messages", badge: 3 },
-  { key: "analytics", icon: BarChart3, label: "nav.analytics" },
   { key: "furniture", icon: ShoppingCart, label: "nav.furniture" },
   { key: "profile", icon: User, label: "nav.profile" },
 ]
@@ -57,6 +56,7 @@ export function OwnerDashboard() {
   const [newPropertyFormKey, setNewPropertyFormKey] = useState(0)
   const [isFetching, setIsFetching] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [requestCount, setRequestCount] = useState(0)
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
 
@@ -107,8 +107,27 @@ export function OwnerDashboard() {
     }
   }
 
+  const fetchRequestsCount = async () => {
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/rental-requests`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      if (response.ok) {
+        const data = await response.json()
+        const pendingCount = data.filter((r: any) => r.status === "En attente").length
+        setRequestCount(pendingCount)
+      }
+    } catch (err) {
+      console.error("Fetch requests count error:", err)
+    }
+  }
+
   useEffect(() => {
     fetchProperties()
+    fetchRequestsCount()
   }, [user])
 
   const openNewPropertyForm = () => {
@@ -126,6 +145,12 @@ export function OwnerDashboard() {
     setIsFetching(true)
     try {
       const token = localStorage.getItem("accessToken")
+      if (!token || token === "undefined") {
+        alert(lang === "fr" ? "Votre session a expiré. Veuillez vous reconnecter." : "Your session has expired. Please log in again.")
+        logout()
+        setIsFetching(false)
+        return
+      }
       const isEdit = !!editingProperty
       const url = isEdit ? `${API_URL}/properties/${editingProperty.id || editingProperty._id}` : `${API_URL}/properties`
       const method = isEdit ? "PUT" : "POST"
@@ -149,9 +174,12 @@ export function OwnerDashboard() {
         }
         setEditingProperty(null)
         setActiveSection("properties")
+      } else if (response.status === 401) {
+        alert(lang === "fr" ? "Votre session a expiré. Veuillez vous reconnecter." : "Your session has expired. Please log in again.")
+        logout()
       } else {
-        const err = await response.json()
-        alert(err.message || (lang === "fr" ? "Erreur lors de l'enregistrement." : "Error saving property."))
+        const err = await response.json().catch(() => null)
+        alert(err?.message || (lang === "fr" ? "Erreur lors de l'enregistrement." : "Error saving property."))
       }
     } catch (err) {
       console.error("Save property error:", err)
@@ -243,7 +271,7 @@ export function OwnerDashboard() {
         return (
           <main className="p-6">
             <section className="mb-8">
-              <SummaryCards />
+              <SummaryCards properties={properties} requestsCount={requestCount} />
             </section>
             <section>
               <div className="mb-6 flex items-center justify-between">
@@ -275,7 +303,7 @@ export function OwnerDashboard() {
                 </div>
               ) : (
                 <OwnerPropertiesGrid 
-                  properties={properties.slice(0, 3)} // limit for overview
+                  properties={properties.slice(0, 3)}
                   onManageFurniture={(id) => {
                     setPreSelectedPropertyId(id)
                     setActiveSection("furniture")
@@ -334,7 +362,12 @@ export function OwnerDashboard() {
                 >
                   <Icon className="h-5 w-5" />
                   <span>{t(item.label)}</span>
-                  {item.badge && (
+                  {item.key === "requests" && requestCount > 0 && (
+                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-bold text-white shadow-sm">
+                      {requestCount}
+                    </span>
+                  )}
+                  {item.key !== "requests" && item.badge && !["requests", "messages"].includes(item.key) && (
                     <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-white/20 px-1.5 text-xs font-medium">
                       {item.badge}
                     </span>

@@ -24,9 +24,12 @@ const contractSchema = new mongoose.Schema({
   },
   status: { 
     type: String, 
-    enum: ['Draft', 'SignedByOwner', 'SignedByBoth'], 
+    enum: ['Draft', 'SignedByOwner', 'SentToTenant', 'SignedByTenant', 'SignedByBoth'], 
     default: 'Draft' 
   },
+  ownerSignature: { type: String }, // Base64 signature
+  tenantSignature: { type: String }, // Base64 signature
+  tenantMessage: { type: String }, // Optional message from owner when sending
   content: { type: String }, // Optional detailed contract text
   rentAmount: { type: Number, required: true },
   depositAmount: { type: Number, required: true },

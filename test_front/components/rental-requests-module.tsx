@@ -34,7 +34,7 @@ export function RentalRequestsModule() {
   const { user } = useAuth()
 
   const [requests, setRequests] = useState<RentalRequest[]>([])
-  const [contracts, setContracts] = useState<Contract[]>(mockContracts)
+  const [contracts, setContracts] = useState<Contract[]>([])
   const [currentView, setCurrentView] = useState<ModuleView>("list")
   const [selectedRequest, setSelectedRequest] = useState<RentalRequest | null>(null)
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null)
@@ -60,12 +60,14 @@ export function RentalRequestsModule() {
         const mapped = data.map((r: any) => ({
           id: r._id,
           propertyId: r.property?._id,
-          propertyName: r.property?.title || "Propriété inconnue",
+          propertyTitle: r.property?.title || "Propriété inconnue",
           propertyAddress: r.property?.address || "Adresse inconnue",
           propertyRent: r.property?.rent || 0,
           tenantName: r.tenant?.fullName || "Utilisateur inconnu",
           tenantEmail: r.tenant?.email || "",
           tenantPhone: r.tenant?.phone || "",
+          tenantId: r.tenant?._id,
+          propertyImage: r.property?.images?.cover || "/placeholder-property.jpg",
           date: r.date,
           status: r.status as RequestStatus,
           message: r.message || "",
@@ -98,9 +100,107 @@ export function RentalRequestsModule() {
   }), [requests])
 
   // Handlers
-  const handleViewDetails = (request: RentalRequest) => {
+  const handleViewDetails = async (request: RentalRequest) => {
     setSelectedRequest(request)
+    
+    // Check if contract exists to enable "Voir le contrat"
+    if (request.status === "Contrat généré" || request.status === "Contrat actif") {
+        try {
+            const token = localStorage.getItem("accessToken")
+            const response = await fetch(`${API_URL}/contracts/request/${request.id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            })
+            if (response.ok) {
+                const data = await response.json()
+                setContracts(prev => [...prev.filter(c => c.id !== data._id), {
+                    id: data._id,
+                    requestId: data.request?._id || data.request,
+                    status: data.status,
+                    ownerSignature: data.ownerSignature,
+                    tenantSignature: data.tenantSignature
+                    // ... other fields if needed, but the main purpose is to have it in the list
+                } as any])
+            }
+        } catch (err) { console.error("Fetch contract for detail error:", err) }
+    }
+    
     setCurrentView("detail")
+  }
+
+  const handleViewContractById = async (requestId: string) => {
+    setIsLoading(true)
+    try {
+        const token = localStorage.getItem("accessToken")
+        const response = await fetch(`${API_URL}/contracts/request/${requestId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+        if (response.ok) {
+            const fullData = await response.json()
+            const finalContract: Contract = {
+                id: fullData._id,
+                requestId: fullData.request?._id || fullData.request,
+                propertyId: fullData.property?._id || fullData.property,
+                propertyTitle: fullData.property?.title || "...",
+                ownerName: fullData.owner?.fullName || "...",
+                ownerEmail: fullData.owner?.email || "...",
+                ownerPhone: fullData.owner?.phone || "...",
+                tenantName: fullData.tenant?.fullName || "...",
+                tenantEmail: fullData.tenant?.email || "...",
+                tenantPhone: fullData.tenant?.phone || "...",
+                propertyRent: fullData.rentAmount,
+                propertyDeposit: fullData.depositAmount,
+                propertySurface: fullData.property?.surface || 0,
+                propertyAddress: fullData.property?.address || "...",
+                propertyType: fullData.property?.type || "Appartement",
+                startDate: fullData.startDate || "",
+                endDate: fullData.endDate || "",
+                duration: fullData.request?.duration || "12 mois",
+                status: fullData.status,
+                ownerSignature: fullData.ownerSignature,
+                tenantSignature: fullData.tenantSignature,
+                createdAt: fullData.createdAt
+            }
+            setSelectedContract(finalContract)
+            setCurrentView("contract")
+        } else {
+            // If not found, fallback to generate? or just alert
+            alert("Contrat non trouvé.")
+        }
+    } catch (err) {
+        console.error("View contract error:", err)
+    } finally {
+        setIsLoading(false)
+    }
+  }
+
+  const handleActivateContract = async (contractId: string) => {
+    setIsLoading(true)
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/contracts/${contractId}/activate`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+      if (response.ok) {
+        const updated = await response.json()
+        alert(lang === "fr" ? "Contrat activé avec succès ! Le bien est désormais loué." : "Contract activated successfully! The property is now rented.")
+        
+        // Update local state
+        setRequests(prev => prev.map(r => r.id === updated.request ? { ...r, status: "Contrat actif" } : r))
+        if (selectedRequest) setSelectedRequest(prev => prev ? { ...prev, status: "Contrat actif" } : null)
+        
+        handleBackToList()
+      } else {
+        const err = await response.json()
+        alert(err.message || "Erreur lors de l'activation")
+      }
+    } catch (err) {
+      console.error("Activate contract error:", err)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleAccept = async (requestId: string) => {
@@ -159,50 +259,107 @@ export function RentalRequestsModule() {
   }
 
   const handleGenerateContract = async (requestId: string) => {
-    // 1. Mark request as 'Acceptée' functionally, but we immediately generate the contract
-    const request = requests.find(r => r.id === requestId)
-    if (!request) return
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/contracts/generate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ requestId })
+      })
 
-    // Ensure no duplicate contracts
-    const existing = contracts.find(c => c.requestId === requestId)
-    if (existing) {
-      setSelectedContract(existing)
-      setCurrentView("contract")
-      // Update request status just in case
-      setRequests(prev => prev.map(r => r.id === requestId ? { ...r, status: "Contrat généré" as RequestStatus } : r))
-      if (selectedRequest?.id === requestId) setSelectedRequest(prev => prev ? { ...prev, status: "Contrat généré" as RequestStatus } : null)
-      return
+      if (response.ok) {
+        const contract = await response.json()
+        const mappedContract: Contract = {
+          id: contract._id,
+          requestId: contract.request,
+          propertyId: contract.property,
+          propertyTitle: "...", 
+          ownerName: user?.name || "Propriétaire",
+          ownerEmail: user?.email || "",
+          ownerPhone: "",
+          tenantName: "",
+          tenantEmail: "",
+          tenantPhone: "",
+          propertyRent: contract.rentAmount,
+          propertySurface: 0,
+          propertyAddress: "",
+          propertyType: "Appartement",
+          startDate: contract.startDate || "",
+          endDate: contract.endDate || "",
+          duration: "12 mois",
+          propertyDeposit: contract.depositAmount,
+          status: contract.status,
+          ownerSignature: contract.ownerSignature,
+          tenantSignature: contract.tenantSignature,
+          createdAt: contract.createdAt
+        }
+        
+        // Better: Fetch the full contract details from backend to get populated fields
+        const fullContractResponse = await fetch(`${API_URL}/contracts/request/${requestId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        if (fullContractResponse.ok) {
+          const fullData = await fullContractResponse.json()
+          const finalContract: Contract = {
+            id: fullData._id,
+            requestId: fullData.request?._id || fullData.request,
+            propertyId: fullData.property?._id || fullData.property,
+            propertyTitle: fullData.property?.title || "...",
+            ownerName: fullData.owner?.fullName || "...",
+            ownerEmail: fullData.owner?.email || "...",
+            ownerPhone: fullData.owner?.phone || "...",
+            tenantName: fullData.tenant?.fullName || "...",
+            tenantEmail: fullData.tenant?.email || "...",
+            tenantPhone: fullData.tenant?.phone || "...",
+            propertyRent: fullData.rentAmount,
+            propertyDeposit: fullData.depositAmount,
+            propertySurface: fullData.property?.surface || 0,
+            propertyAddress: fullData.property?.address || "...",
+            propertyType: fullData.property?.type || "Appartement",
+            startDate: fullData.startDate || "",
+            endDate: fullData.endDate || "",
+            duration: fullData.request?.duration || "12 mois",
+            status: fullData.status,
+            ownerSignature: fullData.ownerSignature,
+            tenantSignature: fullData.tenantSignature,
+            createdAt: fullData.createdAt
+          }
+          setContracts(prev => [...prev.filter(c => c.id !== finalContract.id), finalContract])
+          setSelectedContract(finalContract)
+        }
+        
+        setRequests(prev => prev.map(r => r.id === requestId ? { ...r, status: "Contrat généré" as RequestStatus } : r))
+        setCurrentView("contract")
+      }
+    } catch (err) {
+      console.error("Generate contract error:", err)
     }
-
-    // 2. Automatically generate the contract immediately
-    const newContract = generateContract(
-      request,
-      user?.name || "Propriétaire",
-      user?.email || "",
-      user?.phone || ""
-    )
-
-    setContracts(prev => [...prev, newContract])
-    setSelectedContract(newContract)
-
-    // 3. Update status (Logically moves from En attente -> Acceptée -> Contrat généré)
-    setRequests(prev => prev.map(r => 
-      r.id === requestId ? { ...r, status: "Contrat généré" as RequestStatus } : r
-    ))
-    
-    if (selectedRequest?.id === requestId) {
-      setSelectedRequest(prev => prev ? { ...prev, status: "Contrat généré" as RequestStatus } : null)
-    }
-
-    // 4. Open the contract view for signature
-    setCurrentView("contract")
   }
 
-  const handleOwnerSign = (signature: string) => {
+  const handleOwnerSign = async (signature: string) => {
     if (!selectedContract) return
-    const updated = { ...selectedContract, ownerSignature: signature, status: "SignedByOwner" as const }
-    setSelectedContract(updated)
-    setContracts(prev => prev.map(c => c.id === updated.id ? updated : c))
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/contracts/${selectedContract.id}/sign`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ signature })
+      })
+
+      if (response.ok) {
+        const updated = await response.json()
+        setSelectedContract(prev => prev ? { ...prev, ownerSignature: signature, status: "SignedByOwner" } : null)
+        setContracts(prev => prev.map(c => c.id === selectedContract.id ? { ...c, ownerSignature: signature, status: "SignedByOwner" } : c))
+      }
+    } catch (err) {
+      console.error("Owner sign error:", err)
+    }
   }
 
   const handleTenantSign = (signature: string) => {
@@ -221,15 +378,27 @@ export function RentalRequestsModule() {
     ))
   }
 
-  const handleSendToTenant = (message: string) => {
+  const handleSendToTenant = async (message: string) => {
     if (!selectedContract) return
-    const updated = { 
-      ...selectedContract, 
-      tenantMessage: message, 
-      status: "SentToTenant" as const 
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/contracts/${selectedContract.id}/send`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ message })
+      })
+
+      if (response.ok) {
+        setSelectedContract(prev => prev ? { ...prev, status: "SentToTenant" } : null)
+        setContracts(prev => prev.map(c => c.id === selectedContract.id ? { ...c, status: "SentToTenant" } : c))
+        alert(lang === "fr" ? "Contrat envoyé au locataire !" : "Contract sent to tenant!")
+      }
+    } catch (err) {
+      console.error("Send to tenant error:", err)
     }
-    setSelectedContract(updated)
-    setContracts(prev => prev.map(c => c.id === updated.id ? updated : c))
   }
 
   const handleBackToList = () => {
@@ -266,11 +435,12 @@ export function RentalRequestsModule() {
     return (
       <div className="p-6">
         <ContractView 
-          contract={selectedContract}
-          onBack={handleBackToDetail}
+          contract={selectedContract} 
+          onBack={handleBackToDetail} 
           onOwnerSign={handleOwnerSign}
           onTenantSign={handleTenantSign}
           onSendToTenant={handleSendToTenant}
+          userRole="owner"
         />
       </div>
     )
@@ -285,6 +455,10 @@ export function RentalRequestsModule() {
           onAccept={handleAccept}
           onReject={handleReject}
           onGenerateContract={handleGenerateContract}
+          onViewContract={handleViewContractById}
+          onActivateContract={handleActivateContract}
+          contractId={contracts.find(c => c.requestId === selectedRequest.id)?.id}
+          contractStatus={contracts.find(c => c.requestId === selectedRequest.id)?.status}
         />
       </div>
     )

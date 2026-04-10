@@ -13,14 +13,20 @@ const createProperty = asyncHandler(async (req, res) => {
 });
 
 const getProperties = asyncHandler(async (req, res) => {
-  // If user is owner, they might only want their properties? 
-  // Let's allow filtering by owner if provided, or default to all if admin
   const filter = {};
-  if (req.user.role === 'owner') {
+  
+  if (!req.user) {
+    // Public access: only show approved properties
+    filter.moderationStatus = 'approved';
+  } else if (req.user.role === 'owner') {
+    // Owner: see their own properties
     filter.owner = req.user._id;
   } else if (req.user.role === 'tenant') {
+    // Tenant: only show approved properties
     filter.moderationStatus = 'approved';
   }
+  // Admin sees all by default (no filter added)
+  
   const result = await propertyService.queryProperties(filter);
   res.send(result);
 });

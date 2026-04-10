@@ -28,12 +28,59 @@ export interface Property {
   availability: string
   status: "available" | "rented" | "maintenance"
   images: PropertyImage
+  owner?: {
+    _id?: string
+    fullName?: string
+    email?: string
+    phone?: string
+  }
   ownerName: string
   ownerEmail: string
   ownerPhone: string
   lat: number
   lng: number
   createdAt: string
+  moderationStatus?: "pending" | "approved" | "rejected"
+}
+
+export function mapBackendProperty(p: any): Property {
+  return {
+    id: p._id || p.id,
+    title: p.title || "Sans titre",
+    description: p.description || "",
+    city: p.city || "Monastir",
+    department: p.department || p.city || "Monastir",
+    address: p.address || "",
+    rent: p.rent || 0,
+    deposit: p.deposit || 0,
+    type: p.type || "s1",
+    surface: p.surface || 0,
+    bedrooms: p.bedrooms || 0,
+    bathrooms: p.bathrooms || 0,
+    livingRooms: p.livingRooms || 1,
+    equippedKitchen: Boolean(p.equippedKitchen),
+    balcony: Boolean(p.balcony),
+    parking: Boolean(p.parking),
+    meuble: Boolean(p.meuble),
+    availability: p.availability || "-",
+    status: p.status || "available",
+    images: {
+      cover: p.images?.cover || "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80",
+      kitchen: p.images?.kitchen || "",
+      bathroom: p.images?.bathroom || "",
+      bedroom: p.images?.bedroom || "",
+      livingRoom: p.images?.livingRoom || "",
+      exterior: p.images?.exterior || ""
+    },
+    owner: p.owner && typeof p.owner === 'object' ? p.owner : undefined,
+    ownerName: p.owner?.fullName || p.ownerName || "Propriétaire",
+    ownerEmail: p.owner?.email || p.ownerEmail || "-",
+    ownerPhone: p.owner?.phone || p.ownerPhone || "-",
+    lat: p.lat || 35.777,
+    lng: p.lng || 10.826,
+    createdAt: p.createdAt || new Date().toISOString().slice(0, 10),
+    moderationStatus: p.moderationStatus
+  }
 }
 
 // Monastir, Tunisia properties

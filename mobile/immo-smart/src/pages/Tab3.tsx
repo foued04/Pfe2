@@ -77,8 +77,9 @@ const Tab3: React.FC = () => {
         setPassword("")
         setSuccess("Connexion reussie.")
       } else if (mode === "register") {
-        if (password !== confirmPassword) {
-          throw new Error("Les mots de passe ne correspondent pas")
+        if (password.trim() !== confirmPassword.trim()) {
+          console.warn("Mismatch:", password, confirmPassword);
+          throw new Error("Les deux mots de passe ne correspondent pas.")
         }
         if (!acceptTerms) {
           throw new Error("Veuillez accepter les conditions d'utilisation")
@@ -139,7 +140,9 @@ const Tab3: React.FC = () => {
         setSuccess("Mot de passe reinitialise avec succes. Vous pouvez vous connecter.")
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Operation impossible")
+      const msg = err instanceof Error ? err.message : "Operation impossible";
+      console.error("Auth Error:", msg);
+      setError(msg);
     } finally {
       setBusy(false)
     }
@@ -308,9 +311,12 @@ const Tab3: React.FC = () => {
                       <input
                         type={showPassword ? "text" : "password"}
                         value={mode === "reset-password" ? newPassword : password}
-                        onChange={(event) =>
-                          mode === "reset-password" ? setNewPassword(event.target.value) : setPassword(event.target.value)
-                        }
+                        onChange={(event) => {
+                          const val = event.target.value;
+                          if (mode === "reset-password") setNewPassword(val);
+                          else setPassword(val);
+                          if (error) setError("");
+                        }}
                         placeholder={mode === "reset-password" ? "Nouveau mot de passe" : "6 caracteres minimum"}
                       />
                       <button type="button" className="eye-btn" onClick={() => setShowPassword((prev) => !prev)}>
@@ -329,7 +335,10 @@ const Tab3: React.FC = () => {
                         <input
                           type={showPassword ? "text" : "password"}
                           value={confirmPassword}
-                          onChange={(event) => setConfirmPassword(event.target.value)}
+                          onChange={(event) => {
+                            setConfirmPassword(event.target.value);
+                            if (error) setError("");
+                          }}
                           placeholder="Repetez le mot de passe"
                         />
                       </div>
@@ -363,7 +372,6 @@ const Tab3: React.FC = () => {
                     </label>
                   </>
                 )}
-
                 {mode === "verify-email" && (
                   <label className="auth-field">
                     <span>Code de verification</span>
@@ -421,8 +429,8 @@ const Tab3: React.FC = () => {
                   </button>
                 ) : null}
 
-                {error ? <p className="auth-status error">{error}</p> : null}
-                {success ? <p className="auth-status success">{success}</p> : null}
+                {error && <div className="auth-status error" key={error} style={{ display: 'block' }}>{error}</div>}
+                {success && <div className="auth-status success" key={success} style={{ display: 'block' }}>{success}</div>}
 
                 <button type="submit" className="submit-btn" disabled={busy || loading}>
                   {busy

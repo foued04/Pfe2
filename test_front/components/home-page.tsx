@@ -1,8 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
-import { mockProperties } from "@/lib/property-data"
-import type { Property } from "@/lib/property-data"
+import { mockProperties, mapBackendProperty, type Property } from "@/lib/property-data"
 import { PropertyDetailsModal } from "@/components/property-details-modal"
 import {
   Search, MapPin, Bed, Bath, Maximize, Home, Building2,
@@ -230,11 +229,39 @@ function FurnitureCategoryCard({ icon: Icon, title, image }: { icon: any; title:
 interface HomePageProps { onLogin: () => void; onRegister: () => void }
 
 export function HomePage({ onLogin, onRegister }: HomePageProps) {
+  const [properties, setProperties] = useState<Property[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [typeFilter, setTypeFilter] = useState("all")
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null)
   const [favorites, setFavorites] = useState<string[]>([])
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+
+  const fetchProperties = async () => {
+    try {
+      setIsLoading(true)
+      const response = await fetch(`${API_URL}/properties`)
+      if (!response.ok) throw new Error("Failed to fetch")
+      const data = await response.json()
+      
+      // Map backend structure using the centralized mapper
+      const mappedData = data.map(mapBackendProperty)
+      
+      setProperties(mappedData)
+    } catch (error) {
+      console.error("Error fetching properties:", error)
+      // Fallback to mock data if API fails (optional, but keep it for now)
+      setProperties(mockProperties.map(mapBackendProperty))
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchProperties()
+  }, [])
 
   const [currentImageIdx, setCurrentImageIdx] = useState(0)
   const heroImages = useMemo(() => [
@@ -252,12 +279,12 @@ export function HomePage({ onLogin, onRegister }: HomePageProps) {
   }, [heroImages.length])
 
   const filtered = useMemo(() => {
-    return mockProperties.filter((p) => {
+    return properties.filter((p) => {
       const matchSearch = search === "" || p.title.toLowerCase().includes(search.toLowerCase()) || p.city.toLowerCase().includes(search.toLowerCase()) || p.address.toLowerCase().includes(search.toLowerCase())
       const matchType = typeFilter === "all" || p.type === typeFilter
       return matchSearch && matchType
     })
-  }, [search, typeFilter])
+  }, [search, typeFilter, properties])
 
   const toggleFavorite = (id: string) => {
     setFavorites((prev) => (prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]))
@@ -424,7 +451,7 @@ export function HomePage({ onLogin, onRegister }: HomePageProps) {
             <FeatureCard icon={MessageSquare} title="Contact direct" text="Échangez directement avec les propriétaires sans intermédiaire. Communication fluide et transparente." />
             <FeatureCard icon={Search} title="Recherche intelligente" text="Filtrez par type, surface, budget et localisation pour trouver le bien qui correspond exactement à vos besoins." />
             <FeatureCard icon={Sofa} title="Ameublement intégré" text="Bien non meublé ? Consultez notre catalogue de meubles et équipez votre logement en quelques clics." />
-            <FeatureCard icon={Sparkles} title="Solution digitale" text="Gestion des contrats, paiements et maintenance — tout est centralisé sur une seule plateforme moderne." />
+            <FeatureCard icon={Sparkles} title="Solution digitale" text="Gestion des contrats, paiements et maintenance — tout est centralisé on une seule plateforme moderne." />
             <FeatureCard icon={Eye} title="Confiance & clarté" text="Photos réelles, descriptions détaillées, avis vérifiés. Prenez vos décisions en toute sérénité." />
           </div>
         </div>

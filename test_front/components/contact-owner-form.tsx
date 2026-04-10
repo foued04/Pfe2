@@ -28,9 +28,10 @@ interface ContactOwnerFormProps {
   property: Property | null
   isOpen: boolean
   onClose: () => void
+  onSuccess?: () => void
 }
 
-export function ContactOwnerForm({ property, isOpen, onClose }: ContactOwnerFormProps) {
+export function ContactOwnerForm({ property, isOpen, onClose, onSuccess }: ContactOwnerFormProps) {
   const { t, lang } = useI18n()
   const { user } = useAuth()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -76,6 +77,7 @@ export function ContactOwnerForm({ property, isOpen, onClose }: ContactOwnerForm
         // Reset form
         setFormData(prev => ({ ...prev, message: "", visitDate: "" }))
         alert(lang === "fr" ? "Demande envoyée avec succès !" : "Request sent successfully!")
+        if (onSuccess) onSuccess()
       } else {
         const err = await response.json()
         alert(err.message || "Erreur lors de l'envoi de la demande.")
@@ -192,6 +194,8 @@ export function ContactOwnerForm({ property, isOpen, onClose }: ContactOwnerForm
                   <SelectValue placeholder="Sélectionner" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="1 mois">1 mois</SelectItem>
+                  <SelectItem value="3 mois">3 mois</SelectItem>
                   <SelectItem value="6 mois">6 mois</SelectItem>
                   <SelectItem value="12 mois">12 mois</SelectItem>
                   <SelectItem value="24 mois">24 mois</SelectItem>

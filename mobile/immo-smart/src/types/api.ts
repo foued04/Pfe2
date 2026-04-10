@@ -7,6 +7,8 @@ export type UserRole = "admin" | "owner" | "tenant"
 export type AuthUser = {
   id: string
   name: string
+  firstName?: string
+  lastName?: string
   email: string
   phone: string
   role: UserRole

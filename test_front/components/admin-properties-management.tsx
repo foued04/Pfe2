@@ -21,7 +21,7 @@ import {
   Package
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { Property } from "@/lib/property-data"
+import { type Property, mapBackendProperty as centralMapBackendProperty } from "@/lib/property-data"
 
 type ValidationStatus = "pending" | "approved" | "rejected"
 
@@ -30,36 +30,6 @@ interface ManagedProperty extends Property {
   rejectionReason?: string
 }
 
-type BackendProperty = {
-  _id: string
-  title: string
-  description: string
-  city: string
-  address: string
-  rent: number
-  deposit: number
-  type: Property["type"]
-  surface: number
-  bedrooms: number
-  bathrooms: number
-  equippedKitchen?: boolean
-  balcony?: boolean
-  parking?: boolean
-  meuble?: boolean
-  availability?: string
-  status?: Property["status"]
-  moderationStatus?: ValidationStatus
-  images?: Partial<Property["images"]>
-  owner?: {
-    fullName?: string
-    email?: string
-    phone?: string
-  }
-  createdAt?: string
-}
-
-const EMPTY_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 400'%3E%3Crect width='600' height='400' fill='%23eaf7f8'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%2389a5ad' font-family='Arial' font-size='28'%3EAucune image%3C/text%3E%3C/svg%3E"
-
 const formatDate = (value?: string) => {
   if (!value) return "-"
   const date = new Date(value)
@@ -67,42 +37,17 @@ const formatDate = (value?: string) => {
   return date.toISOString().slice(0, 10)
 }
 
-const mapBackendProperty = (property: BackendProperty): ManagedProperty => ({
-  id: property._id,
-  title: property.title || "Sans titre",
-  description: property.description || "",
-  city: property.city || "Monastir",
-  department: property.city || "Monastir",
-  address: property.address || "",
-  rent: property.rent || 0,
-  deposit: property.deposit || 0,
-  type: property.type || "s1",
-  surface: property.surface || 0,
-  bedrooms: property.bedrooms || 0,
-  bathrooms: property.bathrooms || 0,
-  livingRooms: 1,
-  equippedKitchen: Boolean(property.equippedKitchen),
-  balcony: Boolean(property.balcony),
-  parking: Boolean(property.parking),
-  meuble: Boolean(property.meuble),
-  availability: property.availability || "",
-  status: property.status || "available",
-  images: {
-    cover: property.images?.cover || EMPTY_IMAGE,
-    kitchen: property.images?.kitchen || EMPTY_IMAGE,
-    bathroom: property.images?.bathroom || EMPTY_IMAGE,
-    bedroom: property.images?.bedroom || EMPTY_IMAGE,
-    livingRoom: property.images?.livingRoom || EMPTY_IMAGE,
-    exterior: property.images?.exterior || EMPTY_IMAGE,
-  },
-  ownerName: property.owner?.fullName || "Proprietaire inconnu",
-  ownerEmail: property.owner?.email || "-",
-  ownerPhone: property.owner?.phone || "-",
-  lat: 35.777,
-  lng: 10.826,
-  createdAt: formatDate(property.createdAt),
-  validationStatus: property.moderationStatus || "pending",
-})
+const mapBackendProperty = (property: any): ManagedProperty => {
+  const mapped = centralMapBackendProperty(property)
+  return {
+    ...mapped,
+    // Add admin-specific fields
+    validationStatus: property.moderationStatus || property.validationStatus || "pending",
+    rejectionReason: property.rejectionReason || "",
+    // Ensure dates are formatted for the table
+    createdAt: formatDate(property.createdAt),
+  }
+}
 
 export function AdminPropertiesManagement() {
   const [properties, setProperties] = useState<ManagedProperty[]>([])
@@ -146,7 +91,7 @@ export function AdminPropertiesManagement() {
         throw new Error("Erreur lors du chargement des proprietes.")
       }
 
-      const data: BackendProperty[] = await response.json()
+      const data = await response.json()
       setProperties(data.map(mapBackendProperty))
     } catch (error) {
       console.error("Error fetching admin properties:", error)
@@ -204,7 +149,7 @@ export function AdminPropertiesManagement() {
   const getStatusBadge = (status: ValidationStatus) => {
     switch (status) {
       case "approved":
-        return <Badge className="bg-emerald-100 text-emerald-600 border-none font-bold">Approuvé</Badge>
+        return <Badge className="bg-emerald-100 text-emerald-600 border-none font-bold">Publié</Badge>
       case "pending":
         return <Badge className="bg-orange-100 text-orange-600 border-none font-bold animate-pulse">En attente</Badge>
       case "rejected":
@@ -214,7 +159,6 @@ export function AdminPropertiesManagement() {
 
   return (
     <div className="p-8 space-y-8 animate-in fade-in duration-700">
-      {/* ... (Header and Filters remain the same) */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-black text-foreground tracking-tight">Gestion des Biens Immobiliers</h1>
@@ -254,7 +198,6 @@ export function AdminPropertiesManagement() {
         </div>
       </Card>
 
-      {/* Properties List */}
       <div className="grid gap-6">
         {isLoading && (
           <Card className="border-none shadow-xl bg-card p-8">
@@ -264,7 +207,6 @@ export function AdminPropertiesManagement() {
         {filteredProperties.map((property) => (
           <Card key={property.id} className="border-none shadow-xl bg-card overflow-hidden group hover:shadow-2xl transition-all duration-500">
             <div className="flex flex-col lg:flex-row">
-              {/* Image Section */}
               <div className="relative w-full lg:w-72 h-48 lg:h-auto shrink-0 overflow-hidden">
                 <img 
                   src={property.images.cover} 
@@ -276,7 +218,6 @@ export function AdminPropertiesManagement() {
                 </div>
               </div>
 
-              {/* Content Section */}
               <div className="flex-1 p-6 flex flex-col justify-between">
                 <div>
                   <div className="flex justify-between items-start mb-2">
@@ -311,7 +252,7 @@ export function AdminPropertiesManagement() {
 
                 <div className="flex items-center justify-between mt-6 gap-4">
                   <div className="flex gap-2 w-full lg:w-auto">
-                    {property.validationStatus === "pending" && (
+                    {property.validationStatus === "pending" ? (
                       <>
                         <Button 
                           onClick={() => handleApprove(property.id)}
@@ -328,19 +269,31 @@ export function AdminPropertiesManagement() {
                           className="flex-1 lg:flex-none h-11 px-8 rounded-2xl bg-red-50 text-red-600 border-red-200 border-2 font-black uppercase text-[11px] tracking-widest hover:bg-red-100"
                         >
                           <X className="w-4 h-4 mr-2" />
-                          Rejeter
+                          {updatingId === property.id ? "..." : "Rejeter"}
                         </Button>
                       </>
-                    )}
-                    {property.validationStatus !== "pending" && (
-                      <Button 
-                        variant="outline"
-                        disabled={updatingId === property.id}
-                        onClick={() => property.validationStatus === "approved" ? setRejectingId(property.id) : handleApprove(property.id)}
-                        className="h-11 px-8 rounded-2xl font-black uppercase text-[11px] tracking-widest border-2"
-                      >
-                        {updatingId === property.id ? "..." : "Changer le statut"}
-                      </Button>
+                    ) : (
+                      <>
+                        {property.validationStatus === "approved" ? (
+                          <Button 
+                            variant="outline"
+                            disabled={updatingId === property.id}
+                            onClick={() => setRejectingId(property.id)}
+                            className="h-11 px-8 rounded-2xl font-black uppercase text-[11px] tracking-widest border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-50"
+                          >
+                            <Check className="w-4 h-4 mr-2" /> PUBLIÉ (Cliquer pour retirer)
+                          </Button>
+                        ) : (
+                          <Button 
+                            variant="outline"
+                            disabled={updatingId === property.id}
+                            onClick={() => handleApprove(property.id)}
+                            className="h-11 px-8 rounded-2xl font-black uppercase text-[11px] tracking-widest border-2 border-red-500 text-red-600 hover:bg-red-50"
+                          >
+                            <X className="w-4 h-4 mr-2" /> REJETÉ (Cliquer pour approuver)
+                          </Button>
+                        )}
+                      </>
                     )}
                   </div>
                   <Button 
@@ -366,11 +319,9 @@ export function AdminPropertiesManagement() {
         )}
       </div>
 
-      {/* Property Detail Modal */}
       {selectedProperty && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-500 overflow-y-auto">
           <div className="relative w-full max-w-5xl bg-background rounded-[2rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-500 my-8">
-            {/* Close Button */}
             <button 
               onClick={() => setSelectedProperty(null)}
               className="absolute top-6 right-6 z-10 p-2 rounded-full bg-black/20 hover:bg-black/40 text-white transition-all shadow-lg"
@@ -379,7 +330,6 @@ export function AdminPropertiesManagement() {
             </button>
 
             <div className="flex flex-col lg:flex-row h-full">
-              {/* Left Side: Images */}
               <div className="w-full lg:w-1/2 bg-muted p-1 flex flex-col gap-1">
                  <div className="h-[400px] lg:h-[500px] w-full rounded-2xl overflow-hidden relative">
                     <img src={selectedProperty.images.cover} className="w-full h-full object-cover" alt="Main" />
@@ -396,10 +346,8 @@ export function AdminPropertiesManagement() {
                  </div>
               </div>
 
-              {/* Right Side: Details */}
               <div className="flex-1 p-8 lg:p-12 overflow-y-auto max-h-[800px] scrollbar-hide">
                  <div className="space-y-8">
-                    {/* Header */}
                     <div>
                       <div className="flex items-center gap-2 text-primary font-black uppercase text-[10px] tracking-[0.2em] mb-2">
                         <Building className="w-3 h-3" /> {selectedProperty.type} • {selectedProperty.city}
@@ -412,7 +360,6 @@ export function AdminPropertiesManagement() {
                       </p>
                     </div>
 
-                    {/* Price & Primary Info */}
                     <div className="grid grid-cols-2 gap-6 py-8 border-y border-border/50">
                        <div>
                           <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1.5">Loyer Mensuel</p>
@@ -424,7 +371,6 @@ export function AdminPropertiesManagement() {
                        </div>
                     </div>
 
-                    {/* Description */}
                     <div>
                       <h4 className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-4">Description complète</h4>
                       <p className="text-base text-foreground/80 leading-relaxed font-medium">
@@ -432,7 +378,6 @@ export function AdminPropertiesManagement() {
                       </p>
                     </div>
 
-                    {/* Features Grid */}
                     <div className="grid grid-cols-3 gap-6 bg-muted/30 p-6 rounded-3xl border border-border/30">
                        {[
                          { label: "Surface", value: `${selectedProperty.surface} m²`, icon: Layers },
@@ -451,7 +396,6 @@ export function AdminPropertiesManagement() {
                        ))}
                     </div>
 
-                    {/* Owner Card */}
                     <div className="p-6 rounded-3xl border-2 border-primary/10 bg-primary/5 flex items-center gap-5">
                        <div className="w-16 h-16 rounded-full bg-primary text-white flex items-center justify-center font-black text-2xl shadow-lg ring-4 ring-white">
                          {selectedProperty.ownerName[0]}
@@ -466,52 +410,68 @@ export function AdminPropertiesManagement() {
                        </div>
                     </div>
 
-                    {/* Admin Action Block */}
                     <div className="pt-8 border-t border-border/50">
                        {selectedProperty.validationStatus === "pending" ? (
-                         <div className="space-y-6">
-                            <div className="flex flex-col gap-2">
-                               <h4 className="text-[10px] font-black uppercase text-red-600 tracking-widest">Zone de décision</h4>
-                               <p className="text-sm text-muted-foreground font-medium">Vérifiez toutes les informations avant de valider cette annonce.</p>
-                            </div>
-                            <div className="flex gap-4">
-                               <Button 
-                                 onClick={() => handleApprove(selectedProperty.id)}
-                                 disabled={updatingId === selectedProperty.id}
-                                 className="flex-1 h-14 rounded-2xl bg-emerald-500 hover:bg-emerald-600 font-black uppercase text-xs tracking-[0.1em] text-white shadow-xl shadow-emerald-200 border-none"
-                               >
-                                 <Check className="w-5 h-5 mr-3" />
-                                 {updatingId === selectedProperty.id ? "..." : "Approuver l'annonce"}
-                               </Button>
-                               <Button 
-                                 onClick={() => setRejectingId(selectedProperty.id)}
-                                 disabled={updatingId === selectedProperty.id}
-                                 variant="outline"
-                                 className="flex-1 h-14 rounded-2xl bg-red-50 text-red-600 border-red-200 border-2 font-black uppercase text-xs tracking-[0.1em] hover:bg-red-100"
-                               >
-                                 <X className="w-5 h-5 mr-3" />
-                                 Rejeter l&apos;annonce
-                               </Button>
-                            </div>
-                         </div>
+                          <div className="space-y-6">
+                             <div className="flex flex-col gap-2">
+                                <h4 className="text-[10px] font-black uppercase text-red-600 tracking-widest">Zone de décision</h4>
+                                <p className="text-sm text-muted-foreground font-medium">Vérifiez toutes les informations avant de valider cette annonce.</p>
+                             </div>
+                             <div className="flex gap-4">
+                                <Button 
+                                  onClick={() => handleApprove(selectedProperty.id)}
+                                  disabled={updatingId === selectedProperty.id}
+                                  className="flex-1 h-14 rounded-2xl bg-emerald-500 hover:bg-emerald-600 font-black uppercase text-xs tracking-[0.1em] text-white shadow-xl shadow-emerald-200 border-none"
+                                >
+                                  <Check className="w-5 h-5 mr-3" />
+                                  {updatingId === selectedProperty.id ? "..." : "Approuver l'annonce"}
+                                </Button>
+                                <Button 
+                                  onClick={() => setRejectingId(selectedProperty.id)}
+                                  disabled={updatingId === selectedProperty.id}
+                                  variant="outline"
+                                  className="flex-1 h-14 rounded-2xl bg-red-50 text-red-600 border-red-200 border-2 font-black uppercase text-xs tracking-[0.1em] hover:bg-red-100"
+                                >
+                                  <X className="w-5 h-5 mr-3" />
+                                  Rejeter l&apos;annonce
+                                </Button>
+                             </div>
+                          </div>
+                       ) : selectedProperty.validationStatus === "approved" ? (
+                          <div className="flex items-center justify-between p-6 rounded-3xl bg-emerald-50 border border-emerald-200">
+                             <div>
+                                <p className="text-[10px] font-black uppercase text-emerald-600 tracking-widest mb-1">Statut actuel</p>
+                                <div className="flex items-center gap-3">
+                                   <Badge className="bg-emerald-500 text-white border-none font-bold italic">ANNONCE PUBLIÉE</Badge>
+                                   <span className="text-sm font-bold text-foreground">Visible sur la page d'accueil</span>
+                                </div>
+                             </div>
+                             <Button 
+                               variant="outline"
+                               disabled={updatingId === selectedProperty.id}
+                               onClick={() => setRejectingId(selectedProperty.id)}
+                               className="rounded-2xl bg-red-50 text-red-600 border-red-200 border-2 font-black uppercase text-[10px] tracking-widest h-10 px-6"
+                             >
+                                <X className="w-4 h-4 mr-2" /> {updatingId === selectedProperty.id ? "..." : "Retirer l'annonce"}
+                             </Button>
+                          </div>
                        ) : (
-                         <div className="flex items-center justify-between p-6 rounded-3xl bg-muted/50 border border-border/50">
-                            <div>
-                               <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1">Statut actuel</p>
-                               <div className="flex items-center gap-3">
-                                  {getStatusBadge(selectedProperty.validationStatus)}
-                                  <span className="text-sm font-bold text-foreground">Action effectuée le {selectedProperty.createdAt}</span>
-                               </div>
-                            </div>
-                            <Button 
-                              variant="outline"
-                              disabled={updatingId === selectedProperty.id}
-                              onClick={() => selectedProperty.validationStatus === "approved" ? setRejectingId(selectedProperty.id) : handleApprove(selectedProperty.id)}
-                              className="rounded-2xl font-black uppercase text-[10px] tracking-widest h-10 border-2"
-                            >
-                               {updatingId === selectedProperty.id ? "..." : "Modifier la decision"}
-                            </Button>
-                         </div>
+                        <div className="flex items-center justify-between p-6 rounded-3xl bg-red-50 border border-red-200">
+                             <div>
+                                <p className="text-[10px] font-black uppercase text-red-600 tracking-widest mb-1">Statut actuel</p>
+                                <div className="flex items-center gap-3">
+                                   <Badge className="bg-red-500 text-white border-none font-bold italic">ANNONCE REJETÉE</Badge>
+                                   <span className="text-sm font-bold text-foreground">Non visible par les locataires</span>
+                                </div>
+                             </div>
+                             <Button 
+                               disabled={updatingId === selectedProperty.id}
+                               onClick={() => handleApprove(selectedProperty.id)}
+                               className="rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white border-none font-black uppercase text-[10px] tracking-widest h-10 px-6 shadow-lg shadow-emerald-200"
+                             >
+                                <Check className="w-4 h-4 mr-2" /> {updatingId === selectedProperty.id ? "..." : "Ré-Approuver"}
+                             </Button>
+                          </div>
                        )}
                     </div>
                  </div>
@@ -521,7 +481,6 @@ export function AdminPropertiesManagement() {
         </div>
       )}
 
-      {/* Rejection Modal */}
       {rejectingId && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
           <Card className="w-full max-w-md border-none shadow-2xl bg-card p-8 animate-in zoom-in-95 duration-300">

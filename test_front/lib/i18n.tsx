@@ -29,7 +29,7 @@ const translations = {
     "nav.profile": "Profile",
     
     // Navigation - Tenant
-    "nav.search": "Search",
+    "nav.search": "Explore",
     "nav.favorites": "Favorites",
     "nav.myRequests": "My Requests",
     "nav.housingNeeds": "Housing Needs",
@@ -39,6 +39,7 @@ const translations = {
     "nav.dashboard": "Dashboard",
     "nav.users": "Users",
     "nav.allProperties": "All Properties",
+    "nav.realEstate": "Real Estate",
     "nav.reports": "Reports",
     "nav.settings": "Settings",
     "nav.map": "Map",
@@ -306,7 +307,7 @@ const translations = {
     "nav.profile": "Profil",
     
     // Navigation - Tenant
-    "nav.search": "Rechercher",
+    "nav.search": "Explorer",
     "nav.favorites": "Favoris",
     "nav.myRequests": "Mes Demandes",
     "nav.housingNeeds": "Besoins Logement",
@@ -316,6 +317,7 @@ const translations = {
     "nav.dashboard": "Tableau de Bord",
     "nav.users": "Utilisateurs",
     "nav.allProperties": "Toutes les Propriétés",
+    "nav.realEstate": "Gestion des Biens",
     "nav.reports": "Rapports",
     "nav.settings": "Paramètres",
     "nav.map": "Carte",

@@ -13,6 +13,13 @@ const getContractByRequestId = async (requestId) => {
   return contract;
 };
 
+const getContractById = async (contractId) => {
+    return Contract.findById(contractId)
+        .populate('property')
+        .populate('owner', 'fullName email phone')
+        .populate('tenant', 'fullName email phone');
+};
+
 const updateContract = async (contractId, updateBody) => {
   const contract = await Contract.findById(contractId);
   if (!contract) {
@@ -20,11 +27,15 @@ const updateContract = async (contractId, updateBody) => {
   }
   Object.assign(contract, updateBody);
   await contract.save();
-  return contract;
+  return Contract.findById(contractId)
+    .populate('property')
+    .populate('owner', 'fullName email phone')
+    .populate('tenant', 'fullName email phone');
 };
 
 module.exports = {
   createContract,
   getContractByRequestId,
+  getContractById,
   updateContract,
 };

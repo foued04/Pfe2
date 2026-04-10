@@ -41,6 +41,7 @@ const NotificationSchema = new mongoose.Schema({
     }
   },
   contractData: {
+    contractId: String,
     propertyTitle: String,
     propertyAddress: String,
     propertyImage: String,

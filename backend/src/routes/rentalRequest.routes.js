@@ -10,6 +10,10 @@ router
   .get(auth, rentalRequestController.getRequests);
 
 router
+  .route('/:requestId')
+  .delete(auth, rentalRequestController.deleteRequest);
+
+router
   .route('/:requestId/status')
   .put(auth, rentalRequestController.updateRequestStatus);
 

@@ -38,9 +38,10 @@ interface ContractViewProps {
   onOwnerSign: (signature: string) => void
   onTenantSign: (signature: string) => void
   onSendToTenant: (message: string) => void
+  userRole: "owner" | "tenant"
 }
 
-export function ContractView({ contract, onBack, onOwnerSign, onTenantSign, onSendToTenant }: ContractViewProps) {
+export function ContractView({ contract, onBack, onOwnerSign, onTenantSign, onSendToTenant, userRole }: ContractViewProps) {
   const { lang, t } = useI18n()
   const statusCfg = contractStatusConfig[contract.status]
   
@@ -241,13 +242,13 @@ export function ContractView({ contract, onBack, onOwnerSign, onTenantSign, onSe
                 label={lang === "fr" ? "Le Propriétaire" : "The Owner"}
                 existingSignature={contract.ownerSignature}
                 onSign={onOwnerSign}
-                disabled={contract.status !== "Draft"}
+                disabled={contract.status !== "Draft" || userRole !== "owner"}
               />
               <SignaturePad
                 label={lang === "fr" ? "Le Locataire" : "The Tenant"}
                 existingSignature={contract.tenantSignature}
                 onSign={onTenantSign}
-                disabled={contract.status !== "SentToTenant"}
+                disabled={contract.status !== "SentToTenant" || userRole !== "tenant"}
               />
             </div>
           </div>

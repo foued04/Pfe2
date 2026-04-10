@@ -14,6 +14,9 @@ import {
 } from "lucide-react"
 import { Input } from "./ui/input"
 import { Button } from "./ui/button"
+import { RentalRequestDetailsModal } from "./rental-request-details-modal"
+import { ContractView } from "./contract-view"
+import { Contract } from "@/lib/rental-request-data"
 
 export function TenantRequestsModule() {
   const { lang } = useI18n()
@@ -23,6 +26,11 @@ export function TenantRequestsModule() {
   const [searchQuery, setSearchQuery] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  
+  // New state for details and contract
+  const [selectedRequest, setSelectedRequest] = useState<RentalRequest | null>(null)
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+  const [viewingContract, setViewingContract] = useState<Contract | null>(null)
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
 
@@ -46,11 +54,17 @@ export function TenantRequestsModule() {
             id: r.property?._id,
             title: r.property?.title || "Propriété inconnue",
             address: r.property?.address || "Adresse inconnue",
-            price: r.property?.rent || 0,
-            image: r.property?.images?.cover || "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80"
+            rent: r.property?.rent || 0,
+            owner: r.property?.owner, // Crucial for ChatModule
+            images: {
+              cover: r.property?.images?.cover || "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80",
+            }
           },
-          date: r.date,
-          message: r.message
+          price: r.property?.rent || 0,
+          createdAt: r.date || new Date().toLocaleDateString(),
+          startDate: r.date || new Date().toLocaleDateString(), // Use date as fallback
+          duration: r.duration || "12 mois",
+          message: r.message || ""
         }))
         setRequests(mapped)
       } else {
@@ -93,16 +107,119 @@ export function TenantRequestsModule() {
     return matchesFilter && matchesSearch
   })
 
-  const handleCancel = (id: string) => {
-    setRequests((prev) => prev.filter((r) => r.id !== id))
+  const handleCancel = async (id: string) => {
+    if (!confirm(lang === "fr" ? "Êtes-vous sûr de vouloir annuler cette demande ?" : "Are you sure you want to cancel this request?")) return
+    
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/rental-requests/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      
+      if (response.ok) {
+        setRequests((prev) => prev.filter((r) => r.id !== id))
+        setIsDetailsOpen(false)
+        setSelectedRequest(null)
+      } else {
+        alert(lang === "fr" ? "Erreur lors de l'annulation" : "Error while cancelling")
+      }
+    } catch (err) {
+      console.error("Cancel request error:", err)
+    }
   }
 
   const handleViewDetails = (id: string) => {
-    console.log("View details for", id)
+    const request = requests.find(r => r.id === id)
+    if (request) {
+      setSelectedRequest(request)
+      setIsDetailsOpen(true)
+    }
   }
 
-  const handleViewContract = (id: string) => {
-    console.log("View contract for", id)
+  const handleViewContract = async (requestId: string) => {
+    setIsLoading(true)
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/contracts/request/${requestId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      
+      if (response.ok) {
+        const fullData = await response.json()
+        const finalContract: Contract = {
+          id: fullData._id,
+          requestId: fullData.request?._id || fullData.request,
+          propertyId: fullData.property?._id || fullData.property,
+          propertyTitle: fullData.property?.title || "...",
+          ownerName: fullData.owner?.fullName || "...",
+          ownerEmail: fullData.owner?.email || "...",
+          ownerPhone: fullData.owner?.phone || "...",
+          tenantName: fullData.tenant?.fullName || "...",
+          tenantEmail: fullData.tenant?.email || "...",
+          tenantPhone: fullData.tenant?.phone || "...",
+          propertyRent: fullData.rentAmount,
+          propertyDeposit: fullData.depositAmount,
+          propertySurface: fullData.property?.surface || 0,
+          propertyAddress: fullData.property?.address || "...",
+          propertyType: fullData.property?.type || "Appartement",
+          startDate: fullData.startDate || "",
+          endDate: fullData.endDate || "",
+          duration: fullData.request?.duration || "12 mois",
+          status: fullData.status,
+          ownerSignature: fullData.ownerSignature,
+          tenantSignature: fullData.tenantSignature,
+          createdAt: fullData.createdAt
+        }
+        setViewingContract(finalContract)
+      } else {
+        alert(lang === "fr" ? "Contrat non encore disponible" : "Contract not yet available")
+      }
+    } catch (err) {
+      console.error("Fetch contract error:", err)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (viewingContract) {
+    return (
+      <div className="p-6">
+        <ContractView 
+          contract={viewingContract}
+          onBack={() => setViewingContract(null)}
+          onOwnerSign={() => {}} // Tenant cannot sign for owner
+          onTenantSign={async (signature) => {
+            try {
+              const token = localStorage.getItem("accessToken")
+              const response = await fetch(`${API_URL}/contracts/${viewingContract.id}/sign`, {
+                method: "PUT",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({ signature })
+              })
+
+              if (response.ok) {
+                setViewingContract(prev => prev ? { ...prev, tenantSignature: signature, status: "SignedByBoth" } : null)
+                alert(lang === "fr" ? "Contrat signé avec succès !" : "Contract signed successfully!")
+                // Refresh requests to update status to 'Contrat actif'
+                fetchRequests()
+              }
+            } catch (err) {
+              console.error("Tenant sign error:", err)
+            }
+          }}
+          onSendToTenant={() => {}} // Handled by owner
+          userRole="tenant"
+        />
+      </div>
+    )
   }
 
   return (
@@ -226,6 +343,14 @@ export function TenantRequestsModule() {
           </div>
         )}
       </div>
+
+      <RentalRequestDetailsModal
+        isOpen={isDetailsOpen}
+        onClose={() => setIsDetailsOpen(false)}
+        request={selectedRequest}
+        onCancel={handleCancel}
+        onViewContract={handleViewContract}
+      />
     </div>
   )
 }

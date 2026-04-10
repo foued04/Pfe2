@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useI18n } from "@/lib/i18n"
 import { mockNotifications, TenantNotification, NotificationType } from "@/lib/notifications-data"
 import { Badge } from "./ui/badge"
@@ -19,6 +19,8 @@ import {
   Mail,
   ChevronRight
 } from "lucide-react"
+import { ContractView } from "./contract-view"
+import { Contract } from "@/lib/rental-request-data"
 
 export function TenantNotificationsModule() {
   const { lang } = useI18n()
@@ -26,6 +28,123 @@ export function TenantNotificationsModule() {
   const [activeType, setActiveType] = useState<NotificationType | "Tous">("Tous")
   const [activeNotifId, setActiveNotifId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
+  const [contractToView, setContractToView] = useState<Contract | null>(null)
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+
+  const handleViewContract = async (contractId: string) => {
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/contracts/request/${contractId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.ok) {
+        const data = await response.json()
+        // Map backend contract to frontend format
+        const contract: Contract = {
+          id: data._id,
+          requestId: data.request,
+          propertyId: data.property._id,
+          propertyTitle: data.property.title,
+          propertyAddress: data.property.address,
+          propertyType: data.property.type,
+          propertySurface: data.property.surface,
+          propertyRent: data.rentAmount,
+          propertyDeposit: data.depositAmount,
+          ownerName: data.owner.fullName,
+          ownerEmail: data.owner.email,
+          ownerPhone: data.owner.phone,
+          tenantName: data.tenant.fullName,
+          tenantEmail: data.tenant.email,
+          tenantPhone: data.tenant.phone,
+          startDate: data.startDate || '',
+          endDate: data.endDate || '',
+          duration: data.duration || '',
+          status: data.status,
+          ownerSignature: data.ownerSignature,
+          tenantSignature: data.tenantSignature,
+          tenantMessage: data.tenantMessage,
+          createdAt: data.createdAt
+        }
+        setContractToView(contract)
+      }
+    } catch (err) {
+      console.error("Fetch contract error:", err)
+    }
+  }
+
+  const handleTenantSign = async (signature: string) => {
+    if (!contractToView) return
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/contracts/${contractToView._id}/sign`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify({ signature })
+      })
+      if (response.ok) {
+        const updatedContract = await response.json()
+        setContractToView(updatedContract)
+        // Refresh notifications
+        const notifResponse = await fetch(`${API_URL}/notifications`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        if (notifResponse.ok) {
+          const data = await notifResponse.json()
+          const mapped = data.map((n: any) => ({
+            id: n._id,
+            type: n.type as NotificationType,
+            title: n.title,
+            preview: n.preview || n.content,
+            date: n.createdAt,
+            content: n.content,
+            status: n.status || "En attente" as const,
+            isRead: n.isRead || false,
+            contractData: n.contractData
+          }))
+          setNotifications(prev => [...mapped, ...prev.filter(p => !mapped.some(m => m.id === p.id))])
+        }
+      }
+    } catch (err) {
+      console.error("Sign contract error:", err)
+    }
+  }
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const token = localStorage.getItem("accessToken")
+        const response = await fetch(`${API_URL}/notifications`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        if (response.ok) {
+          const data = await response.json()
+          // Map backend notifications to frontend format
+          const mapped = data.map((n: any) => ({
+            id: n._id,
+            type: n.type as NotificationType,
+            title: n.title,
+            preview: n.preview || n.content,
+            date: n.createdAt,
+            content: n.content,
+            status: n.status || "En attente" as const,
+            isRead: n.isRead || false,
+            contractData: n.contractData
+          }))
+          setNotifications(prev => [...mapped, ...prev.filter(p => !mapped.some(m => m.id === p.id))])
+        }
+      } catch (err) {
+        console.error("Fetch notifications error:", err)
+      }
+    }
+    
+    fetchNotifications()
+    const interval = setInterval(fetchNotifications, 30000) // Refresh every 30s
+    return () => clearInterval(interval)
+  }, [])
 
   const filteredNotifs = useMemo(() => {
     return notifications
@@ -61,7 +180,18 @@ export function TenantNotificationsModule() {
   }
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex overflow-hidden bg-background">
+    <>
+      {contractToView && (
+        <ContractView
+          contract={contractToView}
+          onBack={() => setContractToView(null)}
+          onOwnerSign={() => {}}
+          onTenantSign={handleTenantSign}
+          onSendToTenant={() => {}}
+          userRole="tenant"
+        />
+      )}
+      <div className="h-[calc(100vh-4rem)] flex overflow-hidden bg-background">
       {/* Colonne Gauche - Liste */}
       <div className="w-full md:w-[400px] flex-shrink-0 border-r border-border/50 flex flex-col bg-muted/5">
         <div className="p-6 space-y-4 border-b border-border/50 bg-background/50 backdrop-blur-md">
@@ -275,7 +405,10 @@ export function TenantNotificationsModule() {
                       <p className="text-2xl font-black text-emerald-600">{activeNotif.contractData.rent} DT</p>
                     </div>
                   </div>
-                  <Button className="w-full h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-lg font-black shadow-lg shadow-emerald-200">
+                  <Button 
+                    className="w-full h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-lg font-black shadow-lg shadow-emerald-200"
+                    onClick={() => activeNotif.contractData?.contractId && handleViewContract(activeNotif.contractData.contractId)}
+                  >
                     <FileSignature className="w-5 h-5 mr-3" />
                     Consulter le Contrat
                   </Button>
@@ -298,5 +431,6 @@ export function TenantNotificationsModule() {
         )}
       </div>
     </div>
+    </>
   )
 }

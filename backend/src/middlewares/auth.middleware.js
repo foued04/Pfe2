@@ -24,6 +24,23 @@ const auth = asyncHandler(async (req, res, next) => {
   }
 });
 
+const optionalAuth = asyncHandler(async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1];
+    try {
+      const payload = jwt.verify(token, JWT_SECRET);
+      const user = await User.findById(payload.sub);
+      if (user) {
+        req.user = user;
+      }
+    } catch (error) {
+      // Ignore errors for optional auth
+    }
+  }
+  next();
+});
+
 const authorize = (...roles) => {
   return (req, res, next) => {
     if (!req.user || !roles.includes(req.user.role)) {
@@ -35,5 +52,6 @@ const authorize = (...roles) => {
 
 module.exports = {
   auth,
+  optionalAuth,
   authorize
 };

@@ -43,10 +43,16 @@ export function RentalRequestCard({
           color: "bg-red-100 text-red-700 border-red-200",
           icon: XCircle,
         }
-      case "contract_in_progress":
+      case "active":
         return {
-          label: "Contrat en cours",
-          color: "bg-blue-100 text-blue-700 border-blue-200",
+          label: "Contrat actif",
+          color: "bg-green-100 text-green-700 border-green-200",
+          icon: CheckCircle,
+        }
+      default:
+        return {
+          label: status,
+          color: "bg-gray-100 text-gray-700 border-gray-200",
           icon: FileText,
         }
     }
@@ -61,8 +67,8 @@ export function RentalRequestCard({
         {/* Property Image */}
         <div className="relative w-full md:w-72 h-48 md:h-auto overflow-hidden">
           <img
-            src={property.images.cover}
-            alt={property.title}
+            src={property?.images?.cover || "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80"}
+            alt={property?.title || "Property"}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           />
           <div className="absolute top-3 left-3">
@@ -84,7 +90,7 @@ export function RentalRequestCard({
               </p>
             </div>
             <div className="text-right">
-              <span className="text-xl font-bold text-primary">{price.toLocaleString()} DT</span>
+              <span className="text-xl font-bold text-primary">{(price || property?.rent || 0).toLocaleString()} DT</span>
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">Par mois</p>
             </div>
           </div>

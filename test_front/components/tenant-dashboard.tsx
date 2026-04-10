@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import type { Property } from "@/lib/property-data"
+import { mapBackendProperty, type Property } from "@/lib/property-data"
 import { mockProperties } from "@/lib/property-data"
 import { TenantSidebar } from "./tenant-sidebar"
 import { TenantSearchHeader } from "./tenant-search-header"
@@ -67,7 +67,8 @@ export function TenantDashboard() {
         })
         if (response.ok) {
           const data = await response.json()
-          setProperties(data)
+          // Ensure all properties are correctly mapped (handling nested owner results from backend)
+          setProperties(data.map(mapBackendProperty))
         } else {
           setError("Erreur lors du chargement des biens")
         }
@@ -115,6 +116,10 @@ export function TenantDashboard() {
     setMapSelectedProperty(property)
     setSelectedProperty(property)
     setIsDetailsOpen(true)
+  }
+
+  const handleRequestSent = () => {
+    setActiveSection("myRequests")
   }
 
   const renderContent = () => {
@@ -256,6 +261,7 @@ export function TenantDashboard() {
         property={selectedProperty}
         isOpen={isContactOpen}
         onClose={() => setIsContactOpen(false)}
+        onSuccess={handleRequestSent}
       />
 
       <AIChatbot

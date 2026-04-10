@@ -258,18 +258,18 @@ export function PropertyDetailsModal({
                 </div>
                 <div>
                   <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Propriétaire</div>
-                  <div className="font-semibold text-gray-900">{property.ownerName}</div>
+                  <div className="font-semibold text-gray-900">{property.owner?.fullName || property.ownerName || "Propriétaire"}</div>
                 </div>
               </div>
               
               <div className="flex flex-col gap-1.5 text-sm">
-                <a href={`mailto:${property.ownerEmail}`} className="flex items-center gap-2 text-gray-600 hover:text-primary transition-colors">
+                <a href={`mailto:${property.owner?.email || property.ownerEmail}`} className="flex items-center gap-2 text-gray-600 hover:text-primary transition-colors">
                   <Mail className="h-4 w-4 shrink-0" />
-                  <span>{property.ownerEmail}</span>
+                  <span>{property.owner?.email || property.ownerEmail || "-"}</span>
                 </a>
-                <a href={`tel:${property.ownerPhone}`} className="flex items-center gap-2 text-gray-600 hover:text-primary transition-colors">
+                <a href={`tel:${property.owner?.phone || property.ownerPhone}`} className="flex items-center gap-2 text-gray-600 hover:text-primary transition-colors">
                   <Phone className="h-4 w-4 shrink-0" />
-                  <span>{property.ownerPhone}</span>
+                  <span>{property.owner?.phone || property.ownerPhone || "-"}</span>
                 </a>
               </div>
             </div>

@@ -32,6 +32,7 @@ type AuthContextType = {
   register: (payload: RegisterPayload) => Promise<RegisterResult>
   verifyEmail: (email: string, code: string) => Promise<LoginResult>
   logout: () => void
+  setUser: (user: AuthUser | null) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -39,6 +40,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 const mapUser = (backendUser: BackendAuthResponse["user"]): AuthUser => ({
   id: backendUser._id || backendUser.id || "",
   name: backendUser.fullName,
+  firstName: backendUser.firstName,
+  lastName: backendUser.lastName,
   email: backendUser.email,
   phone: backendUser.phone || "",
   role: backendUser.role,
@@ -160,6 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       register,
       verifyEmail,
       logout,
+      setUser,
     }),
     [user, token, loading],
   )

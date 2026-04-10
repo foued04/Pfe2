@@ -23,6 +23,8 @@ import {
   FileSignature,
   Zap,
 } from "lucide-react"
+import { ChatModule } from "./chat-module"
+import { useAuth } from "@/lib/auth-context"
 
 interface RentalRequestDetailProps {
   request: RentalRequest
@@ -30,6 +32,10 @@ interface RentalRequestDetailProps {
   onAccept: (requestId: string) => void
   onReject: (requestId: string) => void
   onGenerateContract: (requestId: string) => void
+  onViewContract: (requestId: string) => void
+  onActivateContract: (contractId: string) => void
+  contractId?: string
+  contractStatus?: string
 }
 
 export function RentalRequestDetail({ 
@@ -38,8 +44,13 @@ export function RentalRequestDetail({
   onAccept, 
   onReject,
   onGenerateContract,
+  onViewContract,
+  onActivateContract,
+  contractId,
+  contractStatus,
 }: RentalRequestDetailProps) {
   const { lang } = useI18n()
+  const { user } = useAuth()
   const statusCfg = requestStatusConfig[request.status]
 
   // Timeline steps
@@ -208,10 +219,18 @@ export function RentalRequestDetail({
           <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{request.message}</p>
         </div>
       </div>
+      
+      {/* Messaging Section */}
+      <ChatModule 
+        contextId={request.id}
+        contextTitle={`Demande ${request.propertyTitle}`}
+        recipientId={(request as any).tenantId || (request as any).tenant?._id}
+        category="Demandes"
+      />
 
       {/* Action Buttons */}
       <div className="flex flex-wrap gap-3 justify-end bg-card border border-border/50 rounded-2xl p-5">
-        {request.status === "En attente" && (
+        {(request.status === "En attente" || request.status === "Acceptée" || request.status === "Contrat généré") && (
           <>
             <Button
               variant="outline"
@@ -219,28 +238,51 @@ export function RentalRequestDetail({
               onClick={() => onReject(request.id)}
             >
               <X className="h-4 w-4" />
-              {lang === "fr" ? "Refuser la demande" : "Reject request"}
+              {lang === "fr" ? "Annuler/Refuser" : "Cancel/Reject"}
             </Button>
-            <Button
-              className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-lg shadow-emerald-600/20"
-              onClick={() => onAccept(request.id)}
-            >
-              <Check className="h-4 w-4" />
-              {lang === "fr" ? "Accepter la demande" : "Accept request"}
-            </Button>
+            {request.status === "En attente" && (
+              <Button
+                className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-lg shadow-emerald-600/20"
+                onClick={() => onAccept(request.id)}
+              >
+                <Check className="h-4 w-4" />
+                {lang === "fr" ? "Accepter la demande" : "Accept request"}
+              </Button>
+            )}
           </>
+        )}
+
+        {request.status === "Acceptée" && (
+          <Button
+            className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-600/20"
+            onClick={() => onGenerateContract(request.id)}
+          >
+            <FileText className="h-4 w-4" />
+            {lang === "fr" ? "Générer le contrat" : "Generate contract"}
+          </Button>
         )}
 
 
 
         {(request.status === "Contrat généré" || request.status === "Contrat actif") && (
           <Button
-            className="gap-2 font-bold"
-            onClick={() => onGenerateContract(request.id)}
+            variant="outline"
+            className="gap-2 font-bold border-blue-200 text-blue-700 hover:bg-blue-50"
+            onClick={() => onViewContract(request.id)}
           >
             <FileText className="h-4 w-4" />
             {lang === "fr" ? "Voir le contrat" : "View contract"}
           </Button>
+        )}
+
+        {contractStatus === "SignedByTenant" && (
+            <Button
+              className="gap-2 bg-violet-600 hover:bg-violet-700 text-white font-bold shadow-lg shadow-violet-600/20"
+              onClick={() => contractId && onActivateContract(contractId)}
+            >
+              <Zap className="h-4 w-4" />
+              {lang === "fr" ? "Valider & Activer le contrat" : "Validate & Activate contract"}
+            </Button>
         )}
       </div>
     </div>

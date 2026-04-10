@@ -11,6 +11,7 @@ const contractRoutes = require('./routes/contract.routes');
 const notificationRoutes = require('./routes/notification.routes');
 const furnitureRoutes = require('./routes/furniture.routes');
 const userRoutes = require('./routes/user.routes');
+const messageRoutes = require('./routes/message.routes');
 const { errorHandler } = require('./middlewares/error.middleware');
 
 const app = express();
@@ -18,7 +19,7 @@ const app = express();
 // Middlewares
 app.use(helmet());
 app.use(cors({
-  origin: '*', // For development. You can specify ['http://localhost:3000', 'http://localhost:3001'] if needed.
+  origin: '*', 
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
@@ -38,6 +39,7 @@ app.use('/api/contracts', contractRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/furniture', furnitureRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/messages', messageRoutes);
 
 // Error Handler
 app.use(errorHandler);

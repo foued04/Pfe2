@@ -309,17 +309,46 @@
 /* ── Status Messages ── */
 
 .auth-status {
-  margin: 8px 0;
-  font-size: 14px;
-  font-weight: 600;
+  padding: 16px;
+  border-radius: 18px;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  margin: 14px 0;
+  display: block;
+  border: 1px solid transparent;
 }
 
 .auth-status.error {
-  color: #B34F47;
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #b91c1c;
+  box-shadow: 0 8px 20px rgba(220, 38, 38, 0.2);
+  animation: authStatusSlide 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .auth-status.success {
-  color: #059669;
+  background: #f3faf7;
+  color: #047857;
+  border-color: #def7ec;
+}
+
+@media (prefers-color-scheme: dark) {
+  .auth-status.error {
+    background: #ef4444;
+    color: #ffffff;
+    border-color: #dc2626;
+  }
+  .auth-status.success {
+    background: rgba(6, 78, 59, 0.2);
+    color: #34d399;
+    border-color: rgba(6, 78, 59, 0.4);
+  }
+}
+
+@keyframes authStatusSlide {
+  from { opacity: 0; transform: translateY(-12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* ── Submit Button ── */

@@ -402,15 +402,19 @@
 }
 
 .error {
-  background: rgba(180, 35, 24, 0.18);
-  border: 1px solid rgba(255, 164, 154, 0.24);
-  color: #ffd7d2;
+  background: #dc2626;
+  border: 1px solid #b91c1c;
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 10px 24px rgba(220, 38, 38, 0.2);
 }
 
 .success {
-  background: rgba(19, 121, 91, 0.18);
-  border: 1px solid rgba(158, 234, 204, 0.18);
-  color: #d9fff1;
+  background: #059669;
+  border: 1px solid #047857;
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 10px 24px rgba(5, 150, 105, 0.15);
 }
 
 .checks {

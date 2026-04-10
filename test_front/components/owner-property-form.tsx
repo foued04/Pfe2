@@ -42,6 +42,33 @@ const propertyTypes = [
   { value: "villa", label: "Villa" },
 ]
 
+const TUNISIA_REGIONS: Record<string, string[]> = {
+  "Ariana": ["Ariana Ville", "Ettadhamen", "Kalaat el-Andalous", "Mnihla", "Raoued", "Sidi Thabet", "Soukra"],
+  "Béja": ["Amdoun", "Béja Nord", "Béja Sud", "Goubellat", "Medjez el-Bab", "Nefza", "Téboursouk", "Testour", "Thibar"],
+  "Ben Arous": ["Ben Arous", "Bou Mhel el-Bassatine", "El Mourouj", "Ezzahra", "Fouchana", "Hammam Chott", "Hammam Lif", "Mohamedia", "Medina Jedida", "Megrine", "Mornag", "Radès"],
+  "Bizerte": ["Bizerte Nord", "Bizerte Sud", "El Alia", "Ghar El Melh", "Ghezala", "Joumine", "Mateur", "Menzel Bourguiba", "Menzel Jemil", "Ras Jebel", "Sejnane", "Tinja", "Utique", "Zarzouna"],
+  "Gabès": ["Gabès Médina", "Gabès Ouest", "Gabès Sud", "Ghannouch", "El Hamma", "Matmata", "Mareth", "Menzel Habib", "Métouia", "Nouvelle Matmata"],
+  "Gafsa": ["Belkhir", "El Guettar", "El Ksar", "Gafsa Nord", "Gafsa Sud", "Mdhilla", "Métlaoui", "Oum El Araies", "Redeyef", "Sened", "Sidi Aïch"],
+  "Jendouba": ["Aïn Draham", "Balta-Bou Aouane", "Bou Salem", "Fernana", "Ghardimaou", "Jendouba Sud", "Jendouba Nord", "Oued Meliz", "Tabarka"],
+  "Kairouan": ["Bou Hajla", "Chebika", "Echrarda", "Haffouz", "Hajeb El Ayoun", "Kairouan Nord", "Kairouan Sud", "Nasrallah", "Oueslatia", "Sbikha"],
+  "Kasserine": ["El Ayoun", "Ezzouhour", "Fériana", "Foussana", "Hassi El Ferid", "Jedelienne", "Kasserine Nord", "Kasserine Sud", "Majel Bel Abbès", "Sbeitla", "Sbiba", "Thala"],
+  "Kébili": ["Douz Nord", "Douz Sud", "Faouar", "Kébili Nord", "Kébili Sud", "Souk Lahad"],
+  "Le Kef": ["Dahmani", "Jérissa", "El Ksour", "Sers", "Tajerouine", "Kalaat Senan", "Kalaa Khasba", "Le Kef Est", "Le Kef Ouest", "Nebeur", "Sakiet Sidi Youssef", "Touiref"],
+  "Mahdia": ["Bou Merdes", "Chebba", "Chorbane", "El Jem", "Essouassi", "Hebira", "Ksour Essef", "Mahdia", "Melloulent", "Ouled Chamekh", "Sidi Alouane"],
+  "La Manouba": ["Borj El Amri", "Djedeida", "Douar Hicher", "El Batan", "La Manouba", "Mornaguia", "Oued Ellil", "Tébourba"],
+  "Médenine": ["Ben Gardane", "Beni Khedache", "Djerba Ajim", "Djerba Houmt Souk", "Djerba Midoun", "Médenine Nord", "Médenine Sud", "Sidi Makhlouf", "Zarzis"],
+  "Monastir": ["Bekalta", "Bembla", "Beni Hassen", "Jemmal", "Ksar Hellal", "Ksibet el-Médiouni", "Moknine", "Monastir", "Ouerdanine", "Sahline", "Sayada-Lamta-Bou Hajar", "Téboulba", "Zéramdine"],
+  "Nabeul": ["Béni Khalled", "Béni Khiar", "Bou Argoub", "Dar Chaâbane El Fehri", "El Mida", "Grombalia", "Hammam Ghezèze", "Hammamet", "Kélibia", "Korba", "Menzel Bouzelfa", "Menzel Temime", "Nabeul", "Soliman", "Takelsa"],
+  "Sfax": ["Agareb", "Bir Ali Ben Khalifa", "El Amra", "El Hencha", "Graiba", "Jebiniana", "Kerkennah", "Mahrès", "Menzel Chaker", "Sakiet Eddaïer", "Sakiet Ezzit", "Sfax Ouest", "Sfax Sud", "Sfax Ville", "Skhira", "Thyna"],
+  "Sidi Bouzid": ["Ben Aoun", "Bir El Hafey", "Cebbala Ouled Asker", "Jilma", "Mazzouna", "Meknassy", "Menzel Bouzaiane", "Ouled Haffouz", "Regueb", "Sidi Bouzid Est", "Sidi Bouzid Ouest", "Souk Jedid"],
+  "Siliana": ["Bargou", "Bou Arada", "El Aroussa", "El Krib", "Gaâfour", "Kesra", "Makthar", "Rouhia", "Siliana Nord", "Siliana Sud"],
+  "Sousse": ["Akouda", "Bouficha", "Enfidha", "Hammam Sousse", "Hergla", "Kalaa Kebira", "Kalaa Seghira", "Kondar", "M'saken", "Sidi Bou Ali", "Sidi El Hani", "Sousse Jawhara", "Sousse Médina", "Sousse Riadh", "Sousse Sidi Abdelhamid"],
+  "Tataouine": ["Bir Lahmar", "Dehiba", "Ghomrassen", "Remada", "Smar", "Tataouine Nord", "Tataouine Sud"],
+  "Tozeur": ["Degache", "Hazoua", "Nefta", "Tameghza", "Tozeur"],
+  "Tunis": ["Bab El Bhar", "Bab Souika", "Carthage", "Cité El Khadra", "Djebel Jelloud", "El Menzah", "El Omrane", "El Omrane Supérieur", "El Ouardia", "Ettahrir", "Ezzouhour", "Hraïria", "Kabaria", "La Goulette", "La Marsa", "Le Bardo", "Le Kram", "Médina", "Séjoumi", "Sidi El Béchir", "Sidi Hassine"],
+  "Zaghouan": ["Bir Mcherga", "El Fahs", "Nadhour", "Saouaf", "Zaghouan", "Zriba"]
+}
+
 interface ImageUploadState {
   cover: string | null
   kitchen: string | null
@@ -322,24 +349,40 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
               </h3>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="city">{t("form.city")}</Label>
-                  <Input
-                    id="city"
-                    value={formData.city}
-                    onChange={(e) => updateField("city", e.target.value)}
-                    placeholder="Tunis"
-                    required
-                  />
+                  <Label>Gouvernorat</Label>
+                  <Select
+                    value={formData.department}
+                    onValueChange={(val) => {
+                      updateField("department", val)
+                      updateField("city", "")
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner le gouvernorat" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.keys(TUNISIA_REGIONS).sort().map((gov) => (
+                        <SelectItem key={gov} value={gov}>{gov}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="department">{t("form.department")}</Label>
-                  <Input
-                    id="department"
-                    value={formData.department}
-                    onChange={(e) => updateField("department", e.target.value)}
-                    placeholder="Grand Tunis"
-                    required
-                  />
+                  <Label>Délégation</Label>
+                  <Select
+                    value={formData.city}
+                    onValueChange={(val) => updateField("city", val)}
+                    disabled={!formData.department}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={formData.department ? "Sélectionner la délégation" : "Choisir d'abord un gouvernorat"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(TUNISIA_REGIONS[formData.department] || []).map((del) => (
+                        <SelectItem key={del} value={del}>{del}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="address">{t("form.address")}</Label>
@@ -398,8 +441,13 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
                   <Input
                     id="surface"
                     type="number"
+                    min={9}
+                    max={1000}
                     value={formData.surface}
-                    onChange={(e) => updateField("surface", e.target.value)}
+                    onChange={(e) => {
+                      const v = Math.min(1000, Math.max(0, Number(e.target.value)))
+                      updateField("surface", v ? String(v) : "")
+                    }}
                     placeholder="85"
                     required
                   />
@@ -409,8 +457,13 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
                   <Input
                     id="bedrooms"
                     type="number"
+                    min={0}
+                    max={10}
                     value={formData.bedrooms}
-                    onChange={(e) => updateField("bedrooms", e.target.value)}
+                    onChange={(e) => {
+                      const v = Math.min(10, Math.max(0, Number(e.target.value)))
+                      updateField("bedrooms", String(v))
+                    }}
                     placeholder="2"
                     required
                   />
@@ -420,8 +473,13 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
                   <Input
                     id="bathrooms"
                     type="number"
+                    min={0}
+                    max={5}
                     value={formData.bathrooms}
-                    onChange={(e) => updateField("bathrooms", e.target.value)}
+                    onChange={(e) => {
+                      const v = Math.min(5, Math.max(0, Number(e.target.value)))
+                      updateField("bathrooms", String(v))
+                    }}
                     placeholder="1"
                     required
                   />
@@ -431,8 +489,13 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
                   <Input
                     id="livingRooms"
                     type="number"
+                    min={0}
+                    max={5}
                     value={formData.livingRooms}
-                    onChange={(e) => updateField("livingRooms", e.target.value)}
+                    onChange={(e) => {
+                      const v = Math.min(5, Math.max(0, Number(e.target.value)))
+                      updateField("livingRooms", String(v))
+                    }}
                     placeholder="1"
                     required
                   />

@@ -117,6 +117,8 @@ export function AuthForms({ initialView = "login", onClose }: { initialView?: Vi
   const [error, setError] = useState("")
   const [successMsg, setSuccessMsg] = useState("")
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
@@ -129,6 +131,11 @@ export function AuthForms({ initialView = "login", onClose }: { initialView?: Vi
   const [isCaptchaVerified, setIsCaptchaVerified] = useState(false)
   const [showCaptchaOverlay, setShowCaptchaOverlay] = useState(false)
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+  
+  const handleFieldChange = (setter: (val: string) => void) => (val: string) => {
+    setter(val);
+    if (error) setError("");
+  };
 
   const resetFields = () => {
     setName("")
@@ -142,6 +149,8 @@ export function AuthForms({ initialView = "login", onClose }: { initialView?: Vi
     setError("")
     setSuccessMsg("")
     setShowPassword(false)
+    setShowConfirmPassword(false)
+    setShowConfirmNewPassword(false)
   }
 
   useEffect(() => setIsMounted(true), [])
@@ -177,8 +186,13 @@ export function AuthForms({ initialView = "login", onClose }: { initialView?: Vi
         const r = await login(email, password, isAdminLogin ? "admin" : undefined)
         if (!r.success) setError(r.message || "Email ou mot de passe incorrect")
       } else if (view === "register") {
+        if (password.length < 6) {
+          setError("Le mot de passe doit contenir au moins 6 caracteres.")
+          setIsLoading(false)
+          return
+        }
         if (password !== confirmPassword) {
-          setError("Les mots de passe ne correspondent pas.")
+          setError("Les deux mots de passe ne correspondent pas.")
           setIsLoading(false)
           return
         }
@@ -290,15 +304,15 @@ export function AuthForms({ initialView = "login", onClose }: { initialView?: Vi
             )}
 
             <form className={styles.form} onSubmit={submit}>
-              {view === "register" && <Field label="Nom complet" value={name} onChange={setName} placeholder="Ex: Mohamed Ben Ali" icon={<BadgeCheck size={18} />} autoComplete="name" />}
-              {(view === "login" || view === "register" || view === "forgot-password") && <Field label="Email" value={email} onChange={setEmail} placeholder={isAdminLogin ? ADMIN_EMAIL : "votre@email.tn"} type="email" icon={<Home size={18} />} autoComplete="email" />}
-              {(view === "login" || view === "register") && <Field label="Mot de passe" value={password} onChange={setPassword} placeholder="6 caracteres minimum" type={showPassword ? "text" : "password"} icon={<KeyRound size={18} />} autoComplete={view === "login" ? "current-password" : "new-password"} action={<button type="button" className={styles.eye} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>} />}
-              {view === "register" && <Field label="Confirmer le mot de passe" value={confirmPassword} onChange={setConfirmPassword} placeholder="Repetez le mot de passe" type={showPassword ? "text" : "password"} icon={<ShieldCheck size={18} />} autoComplete="new-password" />}
-              {view === "register" && <Field label="Telephone" value={phone} onChange={(val) => setPhone(val.replace(/\D/g, "").slice(0, 8))} placeholder="Ex: 22 333 444" type="tel" icon={<Building2 size={18} />} autoComplete="tel" />}
+              {view === "register" && <Field label="Nom complet" value={name} onChange={handleFieldChange(setName)} placeholder="Ex: Mohamed Ben Ali" icon={<BadgeCheck size={18} />} autoComplete="name" />}
+              {(view === "login" || view === "register" || view === "forgot-password") && <Field label="Email" value={email} onChange={handleFieldChange(setEmail)} placeholder={isAdminLogin ? ADMIN_EMAIL : "votre@email.tn"} type="email" icon={<Home size={18} />} autoComplete="email" />}
+              {(view === "login" || view === "register") && <Field label="Mot de passe" value={password} onChange={handleFieldChange(setPassword)} placeholder="6 caracteres minimum" type={showPassword ? "text" : "password"} icon={<KeyRound size={18} />} autoComplete={view === "login" ? "current-password" : "new-password"} action={<button type="button" className={styles.eye} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>} />}
+              {view === "register" && <Field label="Confirmer le mot de passe" value={confirmPassword} onChange={handleFieldChange(setConfirmPassword)} placeholder="Repetez le mot de passe" type={showConfirmPassword ? "text" : "password"} icon={<ShieldCheck size={18} />} autoComplete="new-password" action={<button type="button" className={styles.eye} onClick={() => setShowConfirmPassword(!showConfirmPassword)}>{showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>} />}
+              {view === "register" && <Field label="Telephone" value={phone} onChange={(val) => handleFieldChange(setPhone)(val.replace(/\D/g, "").slice(0, 8))} placeholder="Ex: 22 333 444" type="tel" icon={<Building2 size={18} />} autoComplete="tel" />}
               {view === "login" && !isAdminLogin && <div className={styles.rowRight}><button type="button" className={styles.link} onClick={() => { setView("forgot-password"); setError(""); setSuccessMsg("") }}>Mot de passe oublie ?</button></div>}
-              {view === "verify-code" && <CodeInput value={resetCode} onChange={setResetCode} />}
-              {view === "reset-password" && <Field label="Nouveau mot de passe" value={newPassword} onChange={setNewPassword} placeholder="Nouveau mot de passe" type={showPassword ? "text" : "password"} icon={<KeyRound size={18} />} autoComplete="new-password" action={<button type="button" className={styles.eye} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>} />}
-              {view === "reset-password" && <Field label="Confirmer le nouveau mot de passe" value={confirmNewPassword} onChange={setConfirmNewPassword} placeholder="Confirmez le mot de passe" type={showPassword ? "text" : "password"} icon={<ShieldCheck size={18} />} autoComplete="new-password" />}
+              {view === "verify-code" && <CodeInput value={resetCode} onChange={handleFieldChange(setResetCode)} />}
+              {view === "reset-password" && <Field label="Nouveau mot de passe" value={newPassword} onChange={handleFieldChange(setNewPassword)} placeholder="Nouveau mot de passe" type={showPassword ? "text" : "password"} icon={<KeyRound size={18} />} autoComplete="new-password" action={<button type="button" className={styles.eye} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>} />}
+              {view === "reset-password" && <Field label="Confirmer le nouveau mot de passe" value={confirmNewPassword} onChange={handleFieldChange(setConfirmNewPassword)} placeholder="Confirmez le mot de passe" type={showConfirmNewPassword ? "text" : "password"} icon={<ShieldCheck size={18} />} autoComplete="new-password" action={<button type="button" className={styles.eye} onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}>{showConfirmNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>} />}
               {view === "register" && !isAdminLogin && (
                 <label className={styles.field}>
                   <span className={styles.label}>Type de compte</span>

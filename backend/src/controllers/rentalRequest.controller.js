@@ -52,8 +52,21 @@ const updateRequestStatus = asyncHandler(async (req, res) => {
   res.send(updatedRequest);
 });
 
+const deleteRequest = asyncHandler(async (req, res) => {
+  const requestId = req.params.requestId;
+  const request = await rentalRequestService.getRentalRequestById(requestId);
+  
+  if (request.tenant._id.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+    throw new ApiError(403, 'Forbidden');
+  }
+
+  await rentalRequestService.deleteRentalRequestById(requestId);
+  res.status(204).send();
+});
+
 module.exports = {
   createRequest,
   getRequests,
   updateRequestStatus,
+  deleteRequest,
 };

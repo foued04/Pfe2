@@ -7,7 +7,7 @@ export type MessageCategory =
   | "Maintenance"
   | "Admin"
 
-export type ParticipantRole = "Owner" | "Tenant" | "Admin"
+export type ParticipantRole = "owner" | "tenant" | "admin"
 
 export interface MessageParticipant {
   id: string
@@ -20,6 +20,7 @@ export interface Message {
   id: string
   conversationId: string
   senderId: string // Matches Participant id
+  senderRole?: ParticipantRole
   content: string
   timestamp: string // ISO Date string
   isRead: boolean
@@ -50,7 +51,7 @@ export const messageCategoryConfig: Record<MessageCategory, { label_fr: string; 
 export const mockCurrentUser = {
   id: "owner-1",
   name: "Mohamed Ben Ali",
-  role: "Owner" as ParticipantRole,
+  role: "owner" as ParticipantRole,
 }
 
 export const mockConversations: Conversation[] = [
@@ -61,7 +62,7 @@ export const mockConversations: Conversation[] = [
     contextTitle: "Contrat #ctr-002 - Villa Luxe S+4 Khnis",
     participants: [
       mockCurrentUser,
-      { id: "tenant-6", name: "Mohamed Jlassi", role: "Tenant" }
+      { id: "tenant-6", name: "Mohamed Jlassi", role: "tenant" }
     ],
     lastUpdatedAt: "2026-03-29T10:30:00Z",
   },
@@ -72,7 +73,7 @@ export const mockConversations: Conversation[] = [
     contextTitle: "Demande location - Studio Cozy Skanes",
     participants: [
       mockCurrentUser,
-      { id: "tenant-2", name: "Amine Trabelsi", role: "Tenant" }
+      { id: "tenant-2", name: "Amine Trabelsi", role: "tenant" }
     ],
     lastUpdatedAt: "2026-03-28T14:15:00Z",
   },
@@ -83,7 +84,7 @@ export const mockConversations: Conversation[] = [
     contextTitle: "Problème Plomberie - Appartement Centre Monastir",
     participants: [
       mockCurrentUser,
-      { id: "tenant-3", name: "Fatma Gharbi", role: "Tenant" }
+      { id: "tenant-3", name: "Fatma Gharbi", role: "tenant" }
     ],
     lastUpdatedAt: "2026-03-26T09:45:00Z",
   },
@@ -93,7 +94,7 @@ export const mockConversations: Conversation[] = [
     contextTitle: "Validation de votre compte propriétaire",
     participants: [
       mockCurrentUser,
-      { id: "admin-1", name: "Équipe ImmoSmart", role: "Admin" }
+      { id: "admin-1", name: "Équipe ImmoSmart", role: "admin" }
     ],
     lastUpdatedAt: "2026-03-15T11:00:00Z",
   }

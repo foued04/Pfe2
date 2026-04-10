@@ -7,13 +7,28 @@ const createRentalRequest = async (requestBody) => {
   if (!property) {
     throw new ApiError(404, 'Property not found');
   }
-  return RentalRequest.create(requestBody);
+
+  const rentalRequest = await RentalRequest.create(requestBody);
+
+  // Create notification for the owner
+  const Notification = require('../models/Notification.model');
+  await Notification.create({
+    recipient: property.owner,
+    type: 'Système',
+    title: 'Nouvelle demande de location',
+    preview: `Une nouvelle demande pour "${property.title}" est arrivée.`,
+    content: `Le locataire a envoyé une demande pour le bien situé à ${property.address}. Loyer: ${property.rent} TND.`,
+    status: 'En attente',
+    isRead: false
+  });
+
+  return rentalRequest;
 };
 
 const queryRentalRequests = async (filter = {}) => {
   return RentalRequest.find(filter)
     .populate('tenant', 'fullName email phone')
-    .populate('property', 'title address rent images');
+    .populate('property', 'title address rent images owner');
 };
 
 const getRentalRequestById = async (id) => {
@@ -33,9 +48,19 @@ const updateRentalRequestStatus = async (requestId, status) => {
   return request;
 };
 
+const deleteRentalRequestById = async (id) => {
+  const request = await RentalRequest.findById(id);
+  if (!request) {
+    throw new ApiError(404, 'Rental request not found');
+  }
+  await request.deleteOne();
+  return request;
+};
+
 module.exports = {
   createRentalRequest,
   queryRentalRequests,
   getRentalRequestById,
   updateRentalRequestStatus,
+  deleteRentalRequestById,
 };
