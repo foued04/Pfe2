@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { useI18n } from "@/lib/i18n"
 import { useAuth } from "@/lib/auth-context"
-import { AIChatbot } from "./ai-chatbot"
 import { PropertyMap } from "./property-map"
 import { Button } from "./ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
@@ -17,7 +16,6 @@ import {
   Settings,
   TrendingUp,
   TrendingDown,
-  Bot,
   Shield,
   Building,
   UserCheck,
@@ -39,7 +37,9 @@ import {
   X,
   Eye,
   MoreVertical,
-  User
+  User,
+  BookOpen,
+  ShieldCheck
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { mockProperties } from "@/lib/property-data"
@@ -51,6 +51,18 @@ import { AdminProfile } from "./admin-profile"
 import { AdminPropertiesManagement } from "./admin-properties-management"
 import { AdminFurnitureManagement } from "./admin-furniture-management"
 import { AdminReports } from "./admin-reports"
+import { AdminVerificationModule } from "./admin-verification-module"
+
+const navItems = [
+  { key: "dashboard", icon: LayoutDashboard, label: "Tableau de Bord", labelEn: "Dashboard" },
+  { key: "users", icon: Users, label: "Utilisateurs", labelEn: "Users" },
+  { key: "properties", icon: Building, label: "Gestion des Biens", labelEn: "Property Management" },
+  { key: "furniture", icon: Sofa, label: "Mobilier & Équipements", labelEn: "Furniture & Equipment" },
+  { key: "map", icon: Map, label: "Carte Interactive", labelEn: "Interactive Map" },
+  { key: "verifications", icon: ShieldCheck, label: "Vérifications", labelEn: "Verifications" },
+  { key: "reports", icon: TrendingUp, label: "Rapports & Stats", labelEn: "Reports & Analytics" },
+  { key: "settings", icon: Settings, label: "Paramètres", labelEn: "Settings" },
+]
 
 const initialUserGrowthData = [
   { month: "Oct", users: 1500, properties: 400 },
@@ -73,15 +85,6 @@ const initialUserRoleData = [
   { name: "Locataires", value: 2424, color: "#2EC4C7" },
 ]
 
-const navItems = [
-  { key: "dashboard", icon: LayoutDashboard, label: "nav.dashboard" },
-  { key: "users", icon: Users, label: "nav.users" },
-  { key: "properties", icon: Building, label: "nav.realEstate" },
-  { key: "furniture", icon: Sofa, label: "nav.furniture" },
-  { key: "map", icon: Map, label: "nav.map" },
-  { key: "reports", icon: FileText, label: "nav.reports" },
-  { key: "profile", icon: User, label: "nav.profile" },
-]
 
 const initialStatsData = [
   {
@@ -132,7 +135,6 @@ export function AdminDashboard() {
   const { t, lang, setLang } = useI18n()
   const { user, logout } = useAuth()
   const [activeSection, setActiveSection] = useState("dashboard")
-  const [isChatbotOpen, setIsChatbotOpen] = useState(false)
   const [users, setUsers] = useState<any[]>([])
   const [userFilters, setUserFilters] = useState({ search: "", role: "all", status: "all" })
   const [isUserLoading, setIsUserLoading] = useState(false)
@@ -145,6 +147,7 @@ export function AdminDashboard() {
   const [moderatingPropertyId, setModeratingPropertyId] = useState<string | null>(null)
   const [selectedUser, setSelectedUser] = useState<any | null>(null)
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null)
+  const [pendingVerificationsCount, setPendingVerificationsCount] = useState(0)
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
 
@@ -170,7 +173,7 @@ export function AdminDashboard() {
           color: "text-orange-600 bg-orange-100",
         },
         {
-          label: { fr: "PropriÃ©taires", en: "Owners" },
+          label: { fr: "Propriétaires", en: "Owners" },
           value: (data.totals?.owners || 0).toLocaleString("fr-FR"),
           change: `${data.totals?.availableProperties || 0}`,
           trend: "up",
@@ -186,7 +189,7 @@ export function AdminDashboard() {
           color: "text-emerald-600 bg-emerald-100",
         },
         {
-          label: { fr: "PropriÃ©tÃ©s", en: "Properties" },
+          label: { fr: "Propriétés", en: "Properties" },
           value: (data.totals?.totalProperties || 0).toLocaleString("fr-FR"),
           change: `${data.totals?.rentedProperties || 0}`,
           trend: "up",
@@ -231,10 +234,29 @@ export function AdminDashboard() {
     }
   }, [activeSection, userFilters.role, userFilters.search])
 
+  const fetchPendingVerificationsCount = async () => {
+    try {
+      const response = await fetch(`${API_URL}/verifications/pending`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+        }
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setPendingVerificationsCount(data.length)
+      }
+    } catch (error) {
+      console.error("Error fetching verifications count:", error)
+    }
+  }
+
   useEffect(() => {
     if (activeSection === "dashboard") {
       fetchDashboardStats()
     }
+    fetchPendingVerificationsCount()
+    const interval = setInterval(fetchPendingVerificationsCount, 30000)
+    return () => clearInterval(interval)
   }, [activeSection])
 
   const handleModerateProperty = async (propertyId: string, moderationStatus: "approved" | "rejected") => {
@@ -537,9 +559,11 @@ export function AdminDashboard() {
         return <AdminPropertiesManagement />
       case "furniture":
         return <AdminFurnitureManagement />
-      case "reports":
-        return <AdminReports />
-      case "profile":
+      case "rapports":
+        return <AdminReportsModule />
+      case "verifications":
+        return <AdminVerificationModule />
+      case "profil":
         return (
           <main className="p-8 space-y-8 animate-in fade-in duration-700">
             <AdminProfile />
@@ -850,7 +874,12 @@ export function AdminDashboard() {
                   )}
                 >
                   <Icon className="h-5 w-5" />
-                  <span>{t(item.label)}</span>
+                  <span>{lang === "fr" ? item.label : item.labelEn}</span>
+                  {item.key === "verifications" && pendingVerificationsCount > 0 && (
+                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-black text-white shadow-lg animate-bounce-short">
+                      {pendingVerificationsCount}
+                    </span>
+                  )}
                 </button>
               )
             })}
@@ -892,15 +921,8 @@ export function AdminDashboard() {
             <span className="text-sm text-slate-500">
               {lang === "fr" ? "Bienvenue," : "Welcome,"} <span className="font-medium text-slate-800">{user?.name}</span>
             </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsChatbotOpen(true)}
-              className="gap-2"
-            >
-              <Bot className="h-4 w-4" />
-              AI
-            </Button>
+
+
             <Button
               variant="outline"
               size="sm"
@@ -989,12 +1011,6 @@ export function AdminDashboard() {
         </div>
       )}
 
-      {/* AI Chatbot */}
-      <AIChatbot
-        isOpen={isChatbotOpen}
-        onClose={() => setIsChatbotOpen(false)}
-        userRole="admin"
-      />
     </div>
   )
 }

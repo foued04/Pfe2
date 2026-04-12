@@ -3,11 +3,13 @@ const contractService = require('../services/contract.service');
 const rentalRequestService = require('../services/rentalRequest.service');
 const propertyService = require('../services/property.service');
 const { sendContractEmail, sendContractSignedEmail } = require('../services/email.service');
+const { createAutomatedMessage } = require('../utils/message.utils');
 const ApiError = require('../utils/ApiError');
+const Notification = require('../models/Notification.model');
 
 // @desc    Générer un contrat à partir d'une demande
 // @route   POST /api/contracts/generate
-exports.generateContract = asyncHandler(async (req, res) => {
+const generateContract = asyncHandler(async (req, res) => {
   const { requestId } = req.body;
   const request = await rentalRequestService.getRentalRequestById(requestId);
 
@@ -43,8 +45,18 @@ exports.generateContract = asyncHandler(async (req, res) => {
 
 // @desc    Récupérer un contrat par l'ID de la demande
 // @route   GET /api/contracts/request/:requestId
-exports.getContract = asyncHandler(async (req, res) => {
+const getContract = asyncHandler(async (req, res) => {
   const contract = await contractService.getContractByRequestId(req.params.requestId);
+  if (!contract) {
+    throw new ApiError(404, 'Contrat non trouvé');
+  }
+  res.send(contract);
+});
+
+// @desc    Récupérer un contrat par son ID
+// @route   GET /api/contracts/:contractId
+const getContractById = asyncHandler(async (req, res) => {
+  const contract = await contractService.getContractById(req.params.contractId);
   if (!contract) {
     throw new ApiError(404, 'Contrat non trouvé');
   }
@@ -53,7 +65,7 @@ exports.getContract = asyncHandler(async (req, res) => {
 
 // @desc    Signer un contrat
 // @route   PUT /api/contracts/:contractId/sign
-exports.signContract = asyncHandler(async (req, res) => {
+const signContract = asyncHandler(async (req, res) => {
   const { contractId } = req.params;
   const { signature } = req.body;
 
@@ -75,7 +87,6 @@ exports.signContract = asyncHandler(async (req, res) => {
   // Send notification to owner when tenant signs
   if (req.user.role !== 'owner' && contract.status === 'SignedByTenant') {
     try {
-        const Notification = require('../models/Notification.model');
         await Notification.create({
             recipient: contract.owner._id,
             type: 'Contrat',
@@ -101,12 +112,29 @@ exports.signContract = asyncHandler(async (req, res) => {
     } catch (err) { console.error("Notification error:", err); }
   }
 
+  // Automated chat notification
+  try {
+    const isOwner = req.user.role === 'owner';
+    const recipientId = isOwner ? (contract.tenant?._id || contract.tenant) : (contract.owner?._id || contract.owner);
+    
+    await createAutomatedMessage({
+      senderId: req.user._id,
+      recipientId: recipientId,
+      contextId: contract.request?._id || contract.request,
+      contextTitle: contract.property?.title || 'Contrat de location',
+      content: `J'ai signé le contrat de location pour "${contract.property?.title || 'le bien'}". Veuillez le consulter.`,
+      metadata: { contractId: contract._id, type: 'contract_signed' }
+    });
+  } catch (err) {
+    console.error("Auto-message error in signContract:", err);
+  }
+
   res.send(contract);
 });
 
 // @desc    Valider et Activer un contrat
 // @route   PUT /api/contracts/:contractId/activate
-exports.activateContract = asyncHandler(async (req, res) => {
+const activateContract = asyncHandler(async (req, res) => {
   const { contractId } = req.params;
   const contract = await contractService.getContractById(contractId);
 
@@ -128,12 +156,25 @@ exports.activateContract = asyncHandler(async (req, res) => {
   await rentalRequestService.updateRentalRequestStatus(contract.request, 'Contrat actif');
   await propertyService.updatePropertyById(contract.property, { status: 'rented' });
 
+  // Automated chat notification when contract is activated
+  try {
+    await createAutomatedMessage({
+      senderId: req.user._id,
+      recipientId: contract.tenant._id,
+      contextId: contract.request._id || contract.request,
+      contextTitle: contract.property?.title || 'Contrat de location',
+      content: `Félicitations ! Le contrat de location pour "${contract.property?.title || 'votre bien'}" a été activé. Bienvenue chez vous !`
+    });
+  } catch (err) {
+    console.error("Auto-message error in activateContract:", err);
+  }
+
   res.send(updatedContract);
 });
 
 // @desc    Envoyer le contrat au locataire
 // @route   PUT /api/contracts/:contractId/send
-exports.sendToTenant = asyncHandler(async (req, res) => {
+const sendToTenant = asyncHandler(async (req, res) => {
   const { contractId } = req.params;
   const { message } = req.body;
 
@@ -144,7 +185,6 @@ exports.sendToTenant = asyncHandler(async (req, res) => {
 
   // Create notification for tenant when owner sends contract
   try {
-    const Notification = require('../models/Notification.model');
     await Notification.create({
       recipient: contract.tenant._id,
       type: 'Contrat',
@@ -176,5 +216,81 @@ exports.sendToTenant = asyncHandler(async (req, res) => {
     console.error("Email error:", err);
   }
 
+  // Automated chat notification when owner sends contract
+  try {
+    await createAutomatedMessage({
+      senderId: req.user._id,
+      recipientId: contract.tenant?._id || contract.tenant,
+      contextId: contract.request?._id || contract.request,
+      contextTitle: contract.property?.title || 'Contrat de location',
+      content: message || "J'ai préparé et signé le contrat de location. Vous pouvez maintenant le consulter et le signer.",
+      metadata: { contractId: contract._id, type: 'contract_sent' }
+    });
+  } catch (err) {
+    console.error("Auto-message error in sendToTenant:", err);
+  }
+
   res.send(contract);
 });
+
+// @desc    Renvoyer le contrat au propriétaire (après signature du locataire)
+// @route   PUT /api/contracts/:contractId/send-back
+const sendBackToOwner = asyncHandler(async (req, res) => {
+  const { contractId } = req.params;
+  const { message } = req.body;
+
+  const contract = await contractService.getContractById(contractId);
+  if (!contract) {
+    throw new ApiError(404, 'Contrat non trouvé');
+  }
+
+  const updatedContract = await contractService.updateContract(contractId, { 
+    status: 'SignedByTenant' 
+  });
+
+  // Create notification for owner
+  try {
+    await Notification.create({
+      recipient: contract.owner._id,
+      type: 'Contrat',
+      title: 'Contrat signé par le locataire',
+      preview: `Le locataire a signé le contrat et vous l'a renvoyé.`,
+      content: message || `Le locataire a signé le contrat pour le bien "${contract.property?.title}". Vous pouvez maintenant l'activer.`,
+      contractData: {
+        contractId: contractId,
+        propertyTitle: contract.property?.title || 'Votre bien',
+        propertyAddress: contract.property?.address || '',
+        propertyImage: contract.property?.image || '',
+        rent: contract.rentAmount || 0
+      }
+    });
+  } catch (err) { 
+    console.error("Notification error in sendBackToOwner:", err); 
+  }
+
+  // Automated chat notification
+  try {
+    await createAutomatedMessage({
+      senderId: req.user._id,
+      recipientId: contract.owner._id,
+      contextId: contract.request._id || contract.request,
+      contextTitle: contract.property?.title || 'Contrat de location',
+      content: message || "J'ai signé le contrat de location. Vous pouvez maintenant l'activer.",
+      metadata: { contractId: contract._id, type: 'contract_signed_back' }
+    });
+  } catch (err) {
+    console.error("Auto-message error in sendBackToOwner:", err);
+  }
+
+  res.send(updatedContract);
+});
+
+module.exports = {
+  generateContract,
+  getContract,
+  getContractById,
+  signContract,
+  activateContract,
+  sendToTenant,
+  sendBackToOwner
+};

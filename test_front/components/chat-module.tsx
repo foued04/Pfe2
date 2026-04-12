@@ -36,9 +36,12 @@ export function ChatModule({ contextId, contextTitle, recipientId, category }: C
       })
       if (response.ok) {
         const data = await response.json()
-        if (data) {
-          setMessages(data.messages)
+        if (data && data.conversation) {
+          setMessages(data.messages || [])
           setConversationId(data.conversation._id)
+        } else {
+          setMessages([])
+          setConversationId(null)
         }
       }
     } catch (err) {
@@ -193,7 +196,7 @@ export function ChatModule({ contextId, contextTitle, recipientId, category }: C
                       <div className={cn(
                         "absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/80 text-white text-[8px] font-black px-2 py-1 rounded shadow-lg z-40 pointer-events-none whitespace-nowrap",
                         isMe ? "-left-16" : "-right-16"
-                      )}>
+                      )} suppressHydrationWarning>
                         {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>

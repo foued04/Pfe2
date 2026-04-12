@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import { useI18n } from "@/lib/i18n"
 import { useAuth } from "@/lib/auth-context"
+import { cn } from "@/lib/utils"
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
 import { Label } from "./ui/label"
@@ -10,7 +11,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
 import { Separator } from "./ui/separator"
 import { Badge } from "./ui/badge"
-import { useToast } from "./ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog"
 import { 
   User, 
   Mail, 
@@ -35,33 +42,19 @@ import {
   DollarSign,
   TrendingUp,
   Wrench,
-  ShieldCheck
+  ShieldCheck,
+  Eye,
+  RefreshCw,
+  ExternalLink, Landmark, Fingerprint
 } from "lucide-react"
 import { Progress } from "./ui/progress"
 
-export function OwnerProfile() {
+export function OwnerProfile({ properties = [], requestCount = 0 }: { properties?: any[], requestCount?: number }) {
   const { lang, setLang } = useI18n()
   const { user, updateProfile, updatePassword } = useAuth()
   const { toast } = useToast()
 
   const isFr = lang === "fr"
-
-  // Analytics Data (Mock)
-  const ownerStats = {
-    totalProperties: 12,
-    rentedProperties: 8,
-    occupancyRate: 66,
-    monthlyRevenue: 9800,
-  }
-
-  const revenueData = [
-    { month: "Jan", amount: 7500 },
-    { month: "Fév", amount: 8200 },
-    { month: "Mar", amount: 9800 },
-    { month: "Avr", amount: 9800 },
-    { month: "Mai", amount: 10500 },
-    { month: "Juin", amount: 12000 },
-  ]
 
   const [isLoading, setIsLoading] = useState(false)
 
@@ -81,8 +74,118 @@ export function OwnerProfile() {
     confirm: ""
   })
 
-  // ─── File Upload Ref ───────────────────────────────────────────────────
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const docInputRef = useRef<HTMLInputElement>(null)
+
+  // ─── Documents State ───────────────────────────────────────────────────
+  const [uploadingType, setUploadingType] = useState<"id" | "rib" | "other">("other")
+  const [viewingDoc, setViewingDoc] = useState<{ name: string, url: string, type: string } | null>(null)
+  const [documents, setDocuments] = useState<any[]>(() => {
+    const docs = []
+    
+    // Identity Document (CIN)
+    if (user?.documents?.cin?.url) {
+      docs.push({
+        id: "cin",
+        name: isFr ? "Pièce d'Identité.pdf" : "ID_Document.pdf",
+        date: user.documents.cin.uploadedAt ? new Date(user.documents.cin.uploadedAt).toLocaleDateString() : "---",
+        status: user.documents.cin.status,
+        comment: user.documents.cin.comment,
+        type: "id",
+        previewUrl: user.documents.cin.url
+      })
+    }
+
+    // Bank Details (RIB)
+    if (user?.documents?.rib?.url) {
+      docs.push({
+        id: "rib",
+        name: isFr ? "Relevé Bancaire (RIB).pdf" : "Bank_Details_RIB.pdf",
+        date: user.documents.rib.uploadedAt ? new Date(user.documents.rib.uploadedAt).toLocaleDateString() : "---",
+        status: user.documents.rib.status,
+        comment: user.documents.rib.comment,
+        type: "rib",
+        previewUrl: user.documents.rib.url
+      })
+    }
+
+    return docs
+  })
+
+  // ─── Real-Time Analytics Logic ────────────────────────────────────────
+  const ownerStats = useMemo(() => {
+    const total = properties.length
+    const rented = properties.filter(p => p.status === 'rented').length
+    const maintenance = properties.filter(p => p.status === 'maintenance').length
+    const occupancy = total > 0 ? Math.round((rented / total) * 100) : 0
+    const revenue = properties
+      .filter(p => p.status === 'rented')
+      .reduce((sum, p) => sum + (p.rent || 0), 0)
+
+    // Management Health Score Algorithm (Weighted out of 100)
+    // 1. Occupancy Rate (45%)
+    const occupancyPoints = (occupancy / 100) * 45
+    
+    // 2. Maintenance Status (15%) - Deduct 5 points per inactive/maintenance property
+    const maintenancePoints = Math.max(0, 15 - (maintenance * 5))
+    
+    // 3. Document Compliance (20%)
+    // Only count documents that have been MANUALY VERIFIED by an admin
+    const cinVerified = documents.find(d => d.type === 'id')?.status === 'verified'
+    const ribVerified = documents.find(d => d.type === 'rib')?.status === 'verified'
+    const docPoints = (cinVerified ? 10 : 0) + (ribVerified ? 10 : 0)
+    
+    // 4. Financial Stability (20%) - Bonus for at least one active revenue stream
+    const stabilityPoints = rented > 0 ? 20 : 5
+    
+    const rawScore = Math.round(occupancyPoints + maintenancePoints + docPoints + stabilityPoints)
+    // Floor the score at 20 if they have a profile, but show real progress
+    const managementScore = total === 0 ? Math.min(40, 20 + docPoints) : rawScore
+
+    return {
+      totalProperties: total,
+      rentedProperties: rented,
+      occupancyRate: occupancy,
+      monthlyRevenue: revenue,
+      managementScore,
+      maintenanceAlerts: maintenance
+    }
+  }, [properties, documents])
+
+  // ─── Sync Documents with User Context ──────────────────────────────────
+  useEffect(() => {
+    if (!user?.documents) return;
+    
+    setDocuments(prev => prev.map(d => {
+      const typeKey = d.type === 'id' ? 'cin' : d.type === 'rib' ? 'rib' : null;
+      if (!typeKey) return d;
+      
+      const docData = user.documents![typeKey as keyof typeof user.documents];
+      if (!docData) return d;
+
+      return {
+        ...d,
+        name: docData.url ? (typeKey === 'cin' ? (isFr ? "CIN_Importé.pdf" : "ID_Uploaded.pdf") : (isFr ? "RIB_Importé.pdf" : "RIB_Uploaded.pdf")) : d.name,
+        date: docData.uploadedAt ? new Date(docData.uploadedAt).toLocaleDateString() : d.date,
+        status: docData.status,
+        comment: docData.comment,
+        previewUrl: docData.url || d.previewUrl
+      }
+    }));
+  }, [user?.documents, isFr]);
+
+  // Simulated revenue data based on current monthly revenue
+  const revenueData = useMemo(() => {
+    const base = ownerStats.monthlyRevenue
+    return [
+      { month: "Jan", amount: Math.round(base * 0.8) },
+      { month: "Fév", amount: Math.round(base * 0.9) },
+      { month: "Mar", amount: base },
+      { month: "Avr", amount: base },
+      { month: "Mai", amount: Math.round(base * 1.05) },
+      { month: "Juin", amount: Math.round(base * 1.1) },
+    ]
+  }, [ownerStats.monthlyRevenue])
 
   // ─── Handlers ──────────────────────────────────────────────────────────
 
@@ -186,6 +289,98 @@ export function OwnerProfile() {
     
     setIsLoading(false)
   }
+
+  const triggerUpload = (type: "id" | "rib" | "other") => {
+    setUploadingType(type)
+    docInputRef.current?.click()
+  }
+
+  const handleDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const docType = uploadingType
+      const previewUrl = URL.createObjectURL(file)
+      
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+      
+      try {
+        const response = await fetch(`${API_URL}/verifications/upload/${docType === 'id' ? 'cin' : 'rib'}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+          },
+          body: JSON.stringify({ url: previewUrl }) // In a real app we'd upload the file to cloud storage
+        })
+
+        if (!response.ok) throw new Error("Upload failed")
+
+        const result = await response.json()
+        
+        const newDoc = {
+          id: docType,
+          name: file.name,
+          date: new Date().toLocaleDateString(),
+          size: (file.size / (1024 * 1024)).toFixed(1) + " Mo",
+          status: 'pending',
+          type: docType,
+          previewUrl: previewUrl
+        }
+
+        setDocuments(prev => {
+          const filtered = prev.filter(d => d.type !== docType)
+          return [...filtered, newDoc]
+        })
+
+        toast({
+          title: isFr ? "Document envoyé" : "Document submitted",
+          description: isFr 
+            ? "Votre document est en attente de vérification par un administrateur." 
+            : "Your document is pending administrator verification.",
+        })
+      } catch (error) {
+        console.error("Upload error:", error)
+        toast({
+          title: "Erreur",
+          description: "Impossible d'envoyer le document.",
+          variant: "destructive"
+        })
+      }
+      
+      if (docInputRef.current) docInputRef.current.value = ""
+    }
+  }
+
+  const removeDocument = (id: string) => {
+    // Revoke URL if it exists to prevent leaks
+    const doc = documents.find(d => d.id === id)
+    if (doc?.previewUrl) URL.revokeObjectURL(doc.previewUrl)
+    
+    setDocuments(prev => prev.filter(d => d.id !== id))
+    toast({
+      title: isFr ? "Document supprimé" : "Document removed",
+      variant: "destructive"
+    })
+  }
+
+  const openPreview = (doc: any) => {
+    if (!doc.previewUrl) {
+      toast({
+        title: isFr ? "Aperçu non disponible" : "Preview not available",
+        description: isFr ? "Ce document a été généré par le système et ne possède pas d'aperçu." : "This document was system-generated and has no live preview.",
+      })
+      return
+    }
+
+    if (doc.name.toLowerCase().endsWith('.pdf')) {
+      window.open(doc.previewUrl, '_blank')
+    } else {
+      setViewingDoc({ name: doc.name, url: doc.previewUrl, type: doc.type })
+    }
+  }
+
+  // Helper to check if a RIB exists
+  const hasRIB = documents.some(doc => doc.type === "rib")
 
   return (
     <div className="p-6 max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
@@ -513,9 +708,14 @@ export function OwnerProfile() {
                     <p className="text-xs font-medium text-indigo-700/70 uppercase tracking-wider">
                       {isFr ? "Revenu Mensuel" : "Monthly Revenue"}
                     </p>
-                    <Badge className="bg-indigo-100 text-indigo-700 border-0 text-[9px] px-1.5 h-4">+12%</Badge>
+                    <Badge className="bg-indigo-100 text-indigo-700 border-0 text-[10px] px-1.5 h-4 flex items-center gap-1">
+                      <TrendingUp className="h-2 w-2" />
+                      Stable
+                    </Badge>
                   </div>
-                  <h3 className="text-2xl font-black text-indigo-900">{ownerStats.monthlyRevenue} <span className="text-xs opacity-50">TND</span></h3>
+                  <h3 className="text-2xl font-black text-indigo-900">
+                    {ownerStats.monthlyRevenue.toLocaleString()} <span className="text-xs opacity-50 font-bold uppercase ml-1">TND</span>
+                  </h3>
                 </CardContent>
               </Card>
             </div>
@@ -559,20 +759,37 @@ export function OwnerProfile() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-start gap-3 p-3 rounded-xl border border-amber-100 bg-amber-50/30">
-                    <Wrench className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-xs font-bold text-amber-900">{isFr ? "Fuite d'eau signalée" : "Water leak reported"}</p>
-                      <p className="text-[10px] text-amber-800/70 mt-0.5">{isFr ? "Villa Monastir - Intervention urgente recommandée." : "Monastir Villa - Urgent action recommended."}</p>
+                  {properties.filter((p: any) => p.status === 'maintenance').length > 0 ? (
+                    properties.filter((p: any) => p.status === 'maintenance').map((p: any, i: number) => (
+                      <div key={i} className="flex items-start gap-3 p-3 rounded-xl border border-amber-100 bg-amber-50/30">
+                        <Wrench className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-xs font-bold text-amber-900">{p.title}</p>
+                          <p className="text-[10px] text-amber-800/70 mt-0.5">{isFr ? "En maintenance - Intervention recommandée." : "Under maintenance - Action recommended."}</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="flex items-start gap-3 p-3 rounded-xl border border-emerald-100 bg-emerald-50/30">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-bold text-emerald-900">{isFr ? "Aucune alerte" : "No active alerts"}</p>
+                        <p className="text-[10px] text-emerald-800/70 mt-0.5">{isFr ? "Tous vos biens sont en bon état." : "All your properties are in good condition."}</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center justify-between p-3 rounded-xl border border-blue-100 bg-blue-50/30">
-                    <div className="flex items-center gap-3">
-                      <FileText className="h-4 w-4 text-blue-600" />
-                      <span className="text-[10px] font-bold text-blue-900">{isFr ? "2 nouveaux contrats à signer" : "2 new contracts to sign"}</span>
+                  )}
+
+                  {requestCount > 0 && (
+                    <div className="flex items-center justify-between p-3 rounded-xl border border-blue-100 bg-blue-50/30">
+                      <div className="flex items-center gap-3">
+                        <FileText className="h-4 w-4 text-blue-600" />
+                        <span className="text-[10px] font-bold text-blue-900">
+                          {isFr ? `${requestCount} nouvelles demandes de location` : `${requestCount} new rental requests`}
+                        </span>
+                      </div>
+                      <ArrowRight className="h-3 w-3 text-blue-400" />
                     </div>
-                    <ArrowRight className="h-3 w-3 text-blue-400" />
-                  </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -584,34 +801,43 @@ export function OwnerProfile() {
                   <svg className="h-full w-full" viewBox="0 0 100 100">
                     <circle className="text-muted/20 stroke-current" strokeWidth="8" fill="transparent" r="38" cx="50" cy="50" />
                     <circle 
-                      className="text-primary stroke-current" 
+                      className="text-primary stroke-current transition-all duration-1000 ease-in-out" 
                       strokeWidth="8" 
                       strokeLinecap="round" 
                       fill="transparent" 
                       r="38" cx="50" cy="50" 
                       strokeDasharray="238.76" 
-                      strokeDashoffset="35.8" // 85% score
+                      style={{ 
+                        strokeDashoffset: 238.76 - (238.76 * ownerStats.managementScore) / 100 
+                      }}
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center flex-col">
-                    <span className="text-xl font-black text-foreground">85</span>
+                    <span className="text-xl font-black text-foreground">{ownerStats.managementScore}</span>
                     <span className="text-[8px] font-bold text-muted-foreground uppercase">Score</span>
                   </div>
                 </div>
                 <div>
                   <h4 className="font-bold text-foreground flex items-center gap-2">
-                    <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                    {isFr ? "Excellent Santé de Gestion" : "Excellent Management Health"}
+                    <ShieldCheck className={cn("h-4 w-4", ownerStats.managementScore > 70 ? "text-emerald-600" : "text-amber-500")} />
+                    {ownerStats.managementScore > 80 
+                      ? (isFr ? "Excellente Santé de Gestion" : "Excellent Management Health")
+                      : ownerStats.managementScore > 50
+                      ? (isFr ? "Bonne Santé de Gestion" : "Good Management Health")
+                      : (isFr ? "Optimisation Requise" : "Optimization Required")}
                   </h4>
                   <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-                    {isFr 
-                      ? "Votre portefeuille est performant. Vos paiements sont à jour et le taux d'occupation est stable. Optimisez vos revenus en finalisant l'annonce du Studio Skanes." 
-                      : "Your portfolio is performing well. Payments are up to date and occupancy is stable. Optimize your income by finalizing the Skanes Studio listing."}
+                    {ownerStats.managementScore > 80 
+                      ? (isFr 
+                          ? "Votre portefeuille est performant. Vos paiements sont à jour et le taux d'occupation est excellent. Continuez ainsi !" 
+                          : "Your portfolio is performing well. Payments are up to date and occupancy is excellent. Keep it up!")
+                      : (isFr 
+                          ? `Votre score est de ${ownerStats.managementScore}. Augmentez votre taux d'occupation et téléchargez vos documents pour améliorer votre santé de gestion.` 
+                          : `Your score is ${ownerStats.managementScore}. Increase your occupancy rate and upload your documents to improve your management health.`)}
                   </p>
                 </div>
               </CardContent>
             </Card>
-
           </div>
         </TabsContent>
 
@@ -625,39 +851,188 @@ export function OwnerProfile() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* ID Document */}
-                <div className="p-4 border border-border/50 rounded-xl bg-card hover:border-primary/50 transition-colors group cursor-pointer relative overflow-hidden flex flex-col items-center justify-center text-center gap-3 h-40">
-                  <div className="absolute top-2 right-2 flex gap-1">
-                    <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[9px] px-1.5 py-0">Valide</Badge>
+                <input 
+                  type="file" 
+                  className="hidden" 
+                  ref={docInputRef} 
+                  onChange={handleDocUpload}
+                  accept=".pdf,.jpg,.jpeg,.png"
+                />
+                
+                {/* ─── SLOT 1: CIN (Pièce d'Identité) ─── */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 px-1">
+                    <Fingerprint className="h-4 w-4 text-primary" />
+                    <span className="text-xs font-bold text-foreground uppercase tracking-wider">
+                      {isFr ? "Pièce d'Identité (CIN)" : "Identity Card (CIN)"}
+                    </span>
                   </div>
-                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                    <FileText className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-sm text-foreground">{lang === "fr" ? "Pièce d'Identité.pdf" : "ID_Document.pdf"}</h4>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">Ajouté le 15 Mars 2026 • 2.4 Mo</p>
-                  </div>
+                  
+                  {(() => {
+                    const doc = documents.find(d => d.type === 'id')
+                    return doc ? (
+                      <div className="group relative">
+                        <div 
+                          className="p-4 border border-border/50 rounded-xl bg-card hover:border-primary/50 transition-all relative overflow-hidden flex flex-col items-center justify-center text-center gap-3 h-44 cursor-pointer group/card"
+                          onClick={() => doc.previewUrl && openPreview(doc)}
+                        >
+                          {/* Status Badge */}
+                          {doc.status && doc.status !== 'none' && (
+                            <Badge className={cn(
+                              "absolute top-3 right-3 font-black text-[9px] px-2 py-0.5 rounded-sm border shadow-sm",
+                              doc.status === 'pending' ? "bg-orange-100 text-orange-600 border-orange-200" :
+                              doc.status === 'verified' ? "bg-emerald-100 text-emerald-600 border-emerald-200" :
+                              "bg-red-100 text-red-600 border-red-200"
+                            )}>
+                              {doc.status === 'pending' ? (isFr ? "EN ATTENTE" : "PENDING") :
+                               doc.status === 'verified' ? (isFr ? "VÉRIFIÉ" : "VERIFIED") :
+                               (isFr ? "REJETÉ" : "REJECTED")}
+                            </Badge>
+                          )}
+                          
+                          {/* Hover Actions */}
+                          {doc.previewUrl && (
+                            <div className="absolute bottom-3 right-3 flex gap-2 opacity-0 group-hover/card:opacity-100 transition-opacity">
+                               <Button 
+                                size="sm" 
+                                variant="secondary" 
+                                className="h-8 px-3 rounded-lg shadow-sm font-bold text-[10px] gap-1.5"
+                                onClick={(e) => { e.stopPropagation(); triggerUpload('id'); }}
+                              >
+                                <RefreshCw className="h-3 w-3" />
+                                {isFr ? "REMPLACER" : "REPLACE"}
+                              </Button>
+                            </div>
+                          )}
+  
+                          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-105 transition-transform">
+                            <FileText className="h-6 w-6" />
+                          </div>
+                          <div className="px-2 w-full">
+                            <h4 className="font-bold text-sm text-foreground truncate">{doc.name}</h4>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                              {isFr ? "Ajouté le" : "Added on"} {doc.date}
+                            </p>
+                          </div>
+                        </div>
+                        {/* Deletion disabled to maintain permanent slots as per request */}
+                      </div>
+                    ) : (
+                      <div 
+                        onClick={() => triggerUpload('id')}
+                        className="p-4 border border-dashed border-border rounded-xl bg-muted/20 hover:bg-muted/50 transition-colors cursor-pointer flex flex-col items-center justify-center text-center gap-3 h-44 group"
+                      >
+                        <div className="h-12 w-12 rounded-full bg-background border shadow-sm flex items-center justify-center text-muted-foreground group-hover:text-primary transition-colors">
+                          <Upload className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-sm text-foreground">{isFr ? "Importer CIN" : "Upload CIN"}</h4>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">{isFr ? "PDF, JPG ou PNG" : "PDF, JPG or PNG"}</p>
+                        </div>
+                      </div>
+                    )
+                  })()}
                 </div>
 
-                {/* Property Proof / RIB */}
-                <div className="p-4 border border-dashed border-border rounded-xl bg-muted/20 hover:bg-muted/50 transition-colors cursor-pointer flex flex-col items-center justify-center text-center gap-3 h-40">
-                  <div className="h-12 w-12 rounded-full bg-background border shadow-sm flex items-center justify-center text-muted-foreground">
-                    <Upload className="h-5 w-5" />
+                {/* ─── SLOT 2: RIB (Bancaire) ─── */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 px-1">
+                    <Landmark className="h-4 w-4 text-primary" />
+                    <span className="text-xs font-bold text-foreground uppercase tracking-wider">
+                      {isFr ? "Relevé Bancaire (RIB)" : "Bank Details (RIB)"}
+                    </span>
                   </div>
-                  <div>
-                    <h4 className="font-semibold text-sm text-foreground">{lang === "fr" ? "Ajouter un RIB" : "Add Bank Details (RIB)"}</h4>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">Format PDF uniquement</p>
-                  </div>
-                </div>
+                  
+                  {(() => {
+                    const doc = documents.find(d => d.type === 'rib')
+                    return doc ? (
+                      <div className="group relative">
+                        <div 
+                          className="p-4 border border-border/50 rounded-xl bg-card hover:border-primary/50 transition-all relative overflow-hidden flex flex-col items-center justify-center text-center gap-3 h-44 cursor-pointer group/card"
+                          onClick={() => doc.previewUrl && openPreview(doc)}
+                        >
+                          {/* Status Badge */}
+                          {doc.status && doc.status !== 'none' && (
+                            <Badge className={cn(
+                              "absolute top-3 right-3 font-black text-[9px] px-2 py-0.5 rounded-sm border shadow-sm",
+                              doc.status === 'pending' ? "bg-orange-100 text-orange-600 border-orange-200" :
+                              doc.status === 'verified' ? "bg-emerald-100 text-emerald-600 border-emerald-200" :
+                              "bg-red-100 text-red-600 border-red-200"
+                            )}>
+                              {doc.status === 'pending' ? (isFr ? "EN ATTENTE" : "PENDING") :
+                               doc.status === 'verified' ? (isFr ? "VÉRIFIÉ" : "VERIFIED") :
+                               (isFr ? "REJETÉ" : "REJECTED")}
+                            </Badge>
+                          )}
+                          
+                          {/* Hover Actions */}
+                          {doc.previewUrl && (
+                            <div className="absolute bottom-3 right-3 flex gap-2 opacity-0 group-hover/card:opacity-100 transition-opacity">
+                               <Button 
+                                size="sm" 
+                                variant="secondary" 
+                                className="h-8 px-3 rounded-lg shadow-sm font-bold text-[10px] gap-1.5"
+                                onClick={(e) => { e.stopPropagation(); triggerUpload('rib'); }}
+                              >
+                                <RefreshCw className="h-3 w-3" />
+                                {isFr ? "REMPLACER" : "REPLACE"}
+                              </Button>
+                            </div>
+                          )}
+  
+                          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-105 transition-transform">
+                            <FileText className="h-6 w-6" />
+                          </div>
+                          <div className="px-2 w-full">
+                            <h4 className="font-bold text-sm text-foreground truncate">{doc.name}</h4>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                              {isFr ? "Ajouté le" : "Added on"} {doc.date}
+                            </p>
+                          </div>
+                        </div>
+                        {/* Deletion disabled to maintain permanent slots as per request */}
+                      </div>
+                    ) : (
+                      <div 
+                        onClick={() => triggerUpload('rib')}
+                        className="p-4 border border-dashed border-border rounded-xl bg-muted/20 hover:bg-muted/50 transition-colors cursor-pointer flex flex-col items-center justify-center text-center gap-3 h-44 group"
+                      >
+                        <div className="h-12 w-12 rounded-full bg-background border shadow-sm flex items-center justify-center text-muted-foreground group-hover:text-primary transition-colors">
+                          <Upload className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-sm text-foreground">{isFr ? "Importer un RIB" : "Import Bank Details (RIB)"}</h4>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">{isFr ? "PDF, JPG ou PNG" : "PDF, JPG or PNG"}</p>
+                        </div>
+                      </div>
+                    )
+                  })()}
               </div>
-
             </CardContent>
           </Card>
         </TabsContent>
-
       </Tabs>
+
+      {/* Preview Dialog */}
+      <Dialog open={!!viewingDoc} onOpenChange={(open) => !open && setViewingDoc(null)}>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-transparent border-none shadow-none flex items-center justify-center">
+          <div className="relative w-full max-h-[85vh] flex flex-col items-center gap-4">
+            <div className="bg-card w-full p-4 rounded-t-xl border-b border-border flex justify-between items-center">
+              <DialogTitle className="text-sm font-bold truncate pr-8">{viewingDoc?.name}</DialogTitle>
+            </div>
+            <div className="bg-white p-2 rounded-xl shadow-2xl overflow-auto max-w-full">
+              {viewingDoc?.url && (
+                <img 
+                  src={viewingDoc.url} 
+                  alt={viewingDoc.name} 
+                  className="max-w-full h-auto rounded-lg"
+                />
+              )}
+            </div>
+            <p className="text-white/70 text-xs font-medium">ImmoSmart Document Viewer</p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

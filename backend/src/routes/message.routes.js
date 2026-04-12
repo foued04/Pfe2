@@ -19,4 +19,8 @@ router
   .route('/context/:contextId')
   .get(messageController.getConversationByContext);
 
+router
+  .route('/unread-count')
+  .get(messageController.getUnreadCount);
+
 module.exports = router;

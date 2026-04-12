@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Home,
   Sofa,
+  Bell,
 } from "lucide-react"
 import { useState } from "react"
 
@@ -21,7 +22,7 @@ const navItems = [
   { key: "nav.myProperties", icon: Building2, href: "#" },
   { key: "nav.addProperty", icon: Plus, href: "#" },
   { key: "nav.requests", icon: FileText, href: "#", badge: 5 },
-  { key: "nav.messages", icon: MessageSquare, href: "#", badge: 3 },
+  { key: "nav.notifications", icon: Bell, href: "#", badge: 3 },
   { key: "nav.furniture", icon: Sofa, href: "#" },
   { key: "nav.profile", icon: User, href: "#" },
 ]

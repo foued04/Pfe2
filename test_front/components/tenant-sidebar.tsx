@@ -15,26 +15,28 @@ import {
   LogOut,
   Sofa,
   BarChart3,
+  Bell,
 } from "lucide-react"
 
 const navItems = [
-  { key: "search", icon: Search, label: "nav.search" },
-  { key: "map", icon: Map, label: "nav.map" },
-  { key: "favorites", icon: Heart, label: "nav.favorites" },
-  { key: "myRequests", icon: FileText, label: "nav.myRequests" },
-  { key: "furniture", icon: Sofa, label: "nav.furniture" },
-  { key: "maintenance", icon: ClipboardList, label: "nav.maintenance" },
-  { key: "housingNeeds", icon: ClipboardList, label: "nav.housingNeeds" },
-  { key: "messages", icon: MessageSquare, label: "nav.messages" },
-  { key: "profile", icon: User, label: "nav.profile" },
+  { key: "search", icon: Search, label: "search" },
+  { key: "map", icon: Map, label: "map" },
+  { key: "favorites", icon: Heart, label: "favorites" },
+  { key: "myRequests", icon: FileText, label: "myRequests" },
+  { key: "furniture", icon: Sofa, label: "furniture" },
+  { key: "maintenance", icon: ClipboardList, label: "maintenance" },
+  { key: "housingNeeds", icon: ClipboardList, label: "housingNeeds" },
+  { key: "notifications", icon: Bell, label: "notifications" },
+  { key: "profile", icon: User, label: "profile" },
 ]
 
 interface TenantSidebarProps {
   activeSection: string
   onSectionChange: (section: string) => void
+  unreadMessageCount?: number
 }
 
-export function TenantSidebar({ activeSection, onSectionChange }: TenantSidebarProps) {
+export function TenantSidebar({ activeSection, onSectionChange, unreadMessageCount = 0 }: TenantSidebarProps) {
   const { t, lang } = useI18n()
   const { user, logout } = useAuth()
 
@@ -71,6 +73,11 @@ export function TenantSidebar({ activeSection, onSectionChange }: TenantSidebarP
               >
                 <Icon className="h-5 w-5" />
                 <span>{label}</span>
+                {item.key === "notifications" && unreadMessageCount > 0 && (
+                  <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-bold text-white shadow-sm">
+                    {unreadMessageCount}
+                  </span>
+                )}
               </button>
             )
           })}

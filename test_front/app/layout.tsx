@@ -3,6 +3,7 @@ import "./globals.css"
 import { I18nProvider } from "@/lib/i18n"
 import { AuthProvider } from "@/lib/auth-context"
 import { GoogleOAuthProvider } from "@react-oauth/google"
+import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
   title: "ImmoSmart",
@@ -23,6 +24,7 @@ export default function RootLayout({
           <AuthProvider>
             <I18nProvider>
               {children}
+              <Toaster />
             </I18nProvider>
           </AuthProvider>
         </GoogleOAuthProvider>

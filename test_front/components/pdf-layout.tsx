@@ -30,16 +30,34 @@ export function PdfLayout({
     <div 
       id={id}
       className={cn(
-        "bg-white shadow-2xl mx-auto overflow-hidden text-foreground print:shadow-none print:m-0",
+        "bg-white shadow-2xl mx-auto overflow-hidden text-foreground print:shadow-none print:m-0 relative transition-all duration-500",
         // A4 Dimensions: 210mm x 297mm
         "w-[210mm] min-h-[297mm] p-[15mm] md:p-[20mm]",
         className
       )}
       style={{ 
         fontFamily: "'Outfit', 'Inter', system-ui, sans-serif",
-        boxSizing: "border-box"
+        boxSizing: "border-box",
+        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+        backgroundBlendMode: "overlay",
+        backgroundColor: "rgba(255, 255, 255, 0.98)"
       }}
     >
+      {/* Official Watermark */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] select-none rotate-[-45deg] z-0">
+        <p className="text-[120px] font-black tracking-tighter uppercase whitespace-nowrap">
+          ImmoSmart Secure
+        </p>
+      </div>
+
+      <div className="absolute top-[10mm] right-[10mm] pointer-events-none opacity-[0.05] z-0">
+        <div className="w-[40mm] h-[40mm] border-[2px] border-primary rounded-full flex items-center justify-center flex-col p-4 text-center">
+            <p className="text-[10px] font-black uppercase tracking-tight">Document</p>
+            <p className="text-[14px] font-black uppercase text-primary">Officiel</p>
+            <div className="h-0.5 w-full bg-primary my-1" />
+            <p className="text-[8px] font-bold">Numérisé</p>
+        </div>
+      </div>
       {/* Header */}
       <header className="flex justify-between items-start mb-[15mm] border-b-[3px] border-primary pb-[10mm]">
         <div className="space-y-4">

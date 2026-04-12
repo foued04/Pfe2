@@ -35,8 +35,11 @@ import {
   PlusCircle,
   Image as ImageIcon,
   Smile,
-  ThumbsUp
+  ThumbsUp,
+  ExternalLink
 } from "lucide-react"
+import { ContractView } from "./contract-view"
+import { Contract } from "@/lib/rental-request-data"
 
 export function MessagesModule() {
   const { lang } = useI18n()
@@ -51,6 +54,7 @@ export function MessagesModule() {
   const [newMessage, setNewMessage] = useState("")
   const [sendViaEmail, setSendViaEmail] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [contractToView, setContractToView] = useState<Contract | null>(null)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
@@ -63,7 +67,8 @@ export function MessagesModule() {
       })
       if (response.ok) {
         const data = await response.json()
-        setConversations(data.map((c: any) => ({
+        const dataArray = Array.isArray(data) ? data : []
+        setConversations(dataArray.map((c: any) => ({
           id: c._id,
           category: c.category,
           contextId: c.contextId,
@@ -97,11 +102,73 @@ export function MessagesModule() {
           content: m.content,
           timestamp: m.createdAt,
           isRead: m.isRead,
-          source: m.source
+          source: m.source,
+          metadata: m.metadata
         })))
       }
     } catch (err) {
       console.error("Fetch messages error:", err)
+    }
+  }
+
+  const handleViewContract = async (contractId: string) => {
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/contracts/${contractId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.ok) {
+        const data = await response.json()
+        const contract: Contract = {
+          id: data._id,
+          requestId: data.request?._id || data.request,
+          propertyId: data.property?._id || data.property,
+          propertyTitle: data.property?.title || "...",
+          ownerName: data.owner?.fullName || "...",
+          ownerEmail: data.owner?.email || "...",
+          ownerPhone: data.owner?.phone || "...",
+          tenantName: data.tenant?.fullName || "...",
+          tenantEmail: data.tenant?.email || "...",
+          tenantPhone: data.tenant?.phone || "...",
+          propertyRent: data.rentAmount,
+          propertyDeposit: data.depositAmount,
+          propertySurface: data.property?.surface || 0,
+          propertyAddress: data.property?.address || "...",
+          propertyType: data.property?.type || "Appartement",
+          startDate: data.startDate || "",
+          endDate: data.endDate || "",
+          duration: data.request?.duration || "12 mois",
+          status: data.status,
+          ownerSignature: data.ownerSignature,
+          tenantSignature: data.tenantSignature,
+          createdAt: data.createdAt
+        }
+        setContractToView(contract)
+      }
+    } catch (err) {
+      console.error("View contract error:", err)
+    }
+  }
+
+  const handleTenantSign = async (signature: string) => {
+    if (!contractToView) return
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/contracts/${contractToView.id}/sign`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify({ signature })
+      })
+      if (response.ok) {
+        const updated = await response.json()
+        setContractToView(prev => prev ? { ...prev, tenantSignature: signature, status: updated.status } : null)
+        alert(lang === "fr" ? "Contrat signé avec succès !" : "Contract signed successfully!")
+      }
+    } catch (err) {
+      console.error("Sign contract error:", err)
     }
   }
 
@@ -198,7 +265,22 @@ export function MessagesModule() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-140px)] bg-white rounded-3xl border border-border/10 overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-500">
+    <>
+      {contractToView && (
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 md:p-8 animate-in fade-in duration-300">
+           <div className="bg-white w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-3xl shadow-2xl relative">
+              <ContractView 
+                contract={contractToView}
+                onBack={() => setContractToView(null)}
+                onOwnerSign={() => {}} // Owner signatures are handled in RentalRequestsModule
+                onTenantSign={handleTenantSign}
+                onSendToTenant={() => {}}
+                userRole={user?.role as any}
+              />
+           </div>
+        </div>
+      )}
+      <div className="flex h-[calc(100vh-140px)] bg-white rounded-3xl border border-border/10 overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-500">
       {/* Sidebar - Messenger Style */}
       <div className="w-80 lg:w-96 border-r border-border/10 flex flex-col bg-white">
         <div className="p-6 space-y-4">
@@ -280,7 +362,7 @@ export function MessagesModule() {
                         <h4 className={cn("font-bold truncate text-[15px] tracking-tight", unread > 0 ? "text-[#050505] font-black" : "text-[#050505]/80")}>
                           {other?.name}
                         </h4>
-                        <span className="text-[11px] text-muted-foreground">
+                        <span className="text-[11px] text-muted-foreground" suppressHydrationWarning>
                           {new Date(conv.lastUpdatedAt).toLocaleDateString([], { day: 'numeric', month: 'short' })}
                         </span>
                       </div>
@@ -342,13 +424,14 @@ export function MessagesModule() {
                   const isFirstInGroup = !prevMsg || prevMsg.senderId !== msg.senderId
                   const isLastInGroup = !nextMsg || nextMsg.senderId !== msg.senderId
                   
+                  const contractId = (msg as any).metadata?.contractId
+                  
                   return (
                     <div 
                       key={msg.id} 
                       className={cn(
-                        "flex w-full",
-                        isMe ? "justify-end pr-4" : "justify-start pl-4",
-                        isFirstInGroup ? "mt-4" : "mt-0.5"
+                        "flex w-full mb-4",
+                        isMe ? "justify-end pr-4" : "justify-start pl-4"
                       )}
                     >
                       <div className={cn(
@@ -385,6 +468,34 @@ export function MessagesModule() {
                                  "rounded-[18px] rounded-tl-[4px] rounded-bl-[4px]")
                           )}>
                             <p className="leading-snug break-words whitespace-pre-wrap">{msg.content}</p>
+                            
+                            {/* Contract Action Button */}
+                            {contractId && (
+                                <div className="mt-4 pt-3 border-t border-white/20">
+                                    <Button 
+                                        onClick={() => handleViewContract(contractId)}
+                                        variant="outline" 
+                                        size="sm"
+                                        className={cn(
+                                            "w-full gap-2 font-bold shadow-md",
+                                            isMe 
+                                                ? "bg-white/10 border-white/20 text-white hover:bg-white/20" 
+                                                : "bg-[#0084FF] border-transparent text-white hover:bg-[#0073e6]"
+                                        )}
+                                    >
+                                        <FileSignature className="w-4 h-4" />
+                                        {lang === "fr" ? "Consulter le Contrat" : "View Contract"}
+                                        <ExternalLink className="w-3 h-3 ml-auto opacity-50" />
+                                    </Button>
+                                    <p className={cn(
+                                        "text-[10px] mt-2 font-medium opacity-70",
+                                        isMe ? "text-white/80" : "text-slate-500"
+                                    )}>
+                                        {lang === "fr" ? "Cliquez pour signer ou imprimer" : "Click to sign or print"}
+                                    </p>
+                                </div>
+                            )}
+
                             <div className={cn(
                               "absolute top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/80 text-white text-[9px] font-bold px-2 py-1 rounded shadow-lg z-50 pointer-events-none whitespace-nowrap",
                               isMe ? "-left-16" : "-right-16"
@@ -433,5 +544,6 @@ export function MessagesModule() {
         )}
       </div>
     </div>
+    </>
   )
 }

@@ -35,49 +35,49 @@ export function TenantNotificationsModule() {
   const handleViewContract = async (contractId: string) => {
     try {
       const token = localStorage.getItem("accessToken")
-      const response = await fetch(`${API_URL}/contracts/request/${contractId}`, {
+      const response = await fetch(`${API_URL}/contracts/${contractId}`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (response.ok) {
         const data = await response.json()
-        // Map backend contract to frontend format
-        const contract: Contract = {
-          id: data._id,
-          requestId: data.request,
-          propertyId: data.property._id,
-          propertyTitle: data.property.title,
-          propertyAddress: data.property.address,
-          propertyType: data.property.type,
-          propertySurface: data.property.surface,
-          propertyRent: data.rentAmount,
-          propertyDeposit: data.depositAmount,
-          ownerName: data.owner.fullName,
-          ownerEmail: data.owner.email,
-          ownerPhone: data.owner.phone,
-          tenantName: data.tenant.fullName,
-          tenantEmail: data.tenant.email,
-          tenantPhone: data.tenant.phone,
-          startDate: data.startDate || '',
-          endDate: data.endDate || '',
-          duration: data.duration || '',
-          status: data.status,
-          ownerSignature: data.ownerSignature,
-          tenantSignature: data.tenantSignature,
-          tenantMessage: data.tenantMessage,
-          createdAt: data.createdAt
-        }
-        setContractToView(contract)
+        setContractToView(mapBackendContract(data))
       }
     } catch (err) {
       console.error("Fetch contract error:", err)
     }
   }
 
+  const mapBackendContract = (data: any): Contract => ({
+    id: data._id,
+    requestId: data.request?._id || data.request,
+    propertyId: data.property?._id || data.property,
+    propertyTitle: data.property?.title || "...",
+    propertyAddress: data.property?.address || "...",
+    propertyType: data.property?.type || "...",
+    propertySurface: data.property?.surface || 0,
+    propertyRent: data.rentAmount,
+    propertyDeposit: data.depositAmount,
+    ownerName: data.owner?._id ? data.owner.fullName : "...",
+    ownerEmail: data.owner?.email || "...",
+    ownerPhone: data.owner?.phone || "...",
+    tenantName: data.tenant?._id ? data.tenant.fullName : "...",
+    tenantEmail: data.tenant?.email || "...",
+    tenantPhone: data.tenant?.phone || "...",
+    startDate: data.startDate || '',
+    endDate: data.endDate || '',
+    duration: data.duration || '',
+    status: data.status,
+    ownerSignature: data.ownerSignature,
+    tenantSignature: data.tenantSignature,
+    tenantMessage: data.tenantMessage,
+    createdAt: data.createdAt
+  })
+
   const handleTenantSign = async (signature: string) => {
     if (!contractToView) return
     try {
       const token = localStorage.getItem("accessToken")
-      const response = await fetch(`${API_URL}/contracts/${contractToView._id}/sign`, {
+      const response = await fetch(`${API_URL}/contracts/${contractToView.id}/sign`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -86,15 +86,16 @@ export function TenantNotificationsModule() {
         body: JSON.stringify({ signature })
       })
       if (response.ok) {
-        const updatedContract = await response.json()
-        setContractToView(updatedContract)
+        const updatedContractData = await response.json()
+        setContractToView(mapBackendContract(updatedContractData))
         // Refresh notifications
         const notifResponse = await fetch(`${API_URL}/notifications`, {
           headers: { Authorization: `Bearer ${token}` }
         })
         if (notifResponse.ok) {
           const data = await notifResponse.json()
-          const mapped = data.map((n: any) => ({
+          const dataArray = Array.isArray(data) ? data : []
+          const mapped = dataArray.map((n: any) => ({
             id: n._id,
             type: n.type as NotificationType,
             title: n.title,
@@ -113,6 +114,27 @@ export function TenantNotificationsModule() {
     }
   }
 
+  const handleSendToOwner = async (message: string) => {
+    if (!contractToView) return
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/contracts/${contractToView.id}/send-back`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify({ message })
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setContractToView(mapBackendContract(data))
+      }
+    } catch (err) {
+      console.error("Send back to owner error:", err)
+    }
+  }
+
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
@@ -122,8 +144,9 @@ export function TenantNotificationsModule() {
         })
         if (response.ok) {
           const data = await response.json()
+          const dataArray = Array.isArray(data) ? data : []
           // Map backend notifications to frontend format
-          const mapped = data.map((n: any) => ({
+          const mapped = dataArray.map((n: any) => ({
             id: n._id,
             type: n.type as NotificationType,
             title: n.title,
@@ -187,7 +210,7 @@ export function TenantNotificationsModule() {
           onBack={() => setContractToView(null)}
           onOwnerSign={() => {}}
           onTenantSign={handleTenantSign}
-          onSendToTenant={() => {}}
+          onSendToTenant={handleSendToOwner}
           userRole="tenant"
         />
       )}
@@ -239,8 +262,11 @@ export function TenantNotificationsModule() {
                         : "bg-transparent border-transparent hover:bg-white hover:border-border/50"
                     )}
                   >
-                    <div className="flex justify-between items-start mb-2">
-                      <Badge className={cn("px-2 py-0.5 text-[10px] uppercase font-black border-transparent", config.color)}>
+                    <div className="absolute inset-x-3 top-3 flex justify-between items-start pointer-events-none">
+                      <Badge className={cn(
+                        "border shadow-sm backdrop-blur-md px-3 py-1",
+                        config.color
+                      )}>
                         {n.type}
                       </Badge>
                       <span className="text-[10px] font-bold text-muted-foreground uppercase">

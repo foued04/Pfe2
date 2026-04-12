@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useI18n } from "@/lib/i18n"
+import { cn } from "@/lib/utils"
 import { 
   Building2, 
   MapPin, 
@@ -74,7 +75,10 @@ function OwnerPropertyCard({ property, onManageFurniture, onEdit, onDelete }: Ow
           )}
           
           <div className="absolute inset-x-3 top-3 flex justify-between items-start pointer-events-none">
-            <Badge className={(statusStyles[property.status] || "bg-gray-100 text-gray-700") + " border shadow-sm backdrop-blur-md px-3 py-1"}>
+            <Badge className={cn(
+              "border shadow-sm backdrop-blur-md px-3 py-1",
+              statusStyles[property.status] || "bg-gray-100 text-gray-700 hover:bg-gray-100"
+            )}>
               {statusLabels[property.status] || property.status || "Disponible"}
             </Badge>
             
@@ -196,9 +200,9 @@ export function OwnerPropertiesGrid({ properties, onManageFurniture, onEdit, onD
 
   return (
     <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-      {properties.map((property) => (
+      {properties.map((property, idx) => (
         <OwnerPropertyCard 
-          key={property.id || property._id || Math.random().toString()} 
+          key={property.id || property._id || `prop-${idx}`} 
           property={property} 
           onManageFurniture={onManageFurniture}
           onEdit={onEdit}

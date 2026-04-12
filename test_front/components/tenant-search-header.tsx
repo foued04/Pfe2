@@ -3,14 +3,13 @@
 import { useI18n } from "@/lib/i18n"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Search, SlidersHorizontal, Heart, Bot } from "lucide-react"
+import { Search, SlidersHorizontal, Heart } from "lucide-react"
 
 interface TenantSearchHeaderProps {
   searchQuery: string
   onSearchChange: (query: string) => void
   onFiltersClick: () => void
   onFavoritesClick: () => void
-  onChatbotClick: () => void
   favoritesCount: number
 }
 
@@ -19,7 +18,6 @@ export function TenantSearchHeader({
   onSearchChange,
   onFiltersClick,
   onFavoritesClick,
-  onChatbotClick,
   favoritesCount,
 }: TenantSearchHeaderProps) {
   const { t } = useI18n()
@@ -66,14 +64,6 @@ export function TenantSearchHeader({
                 {favoritesCount}
               </span>
             )}
-          </Button>
-
-          <Button
-            onClick={onChatbotClick}
-            className="h-12 gap-2 rounded-xl bg-blue-600 px-5 text-white hover:bg-blue-700"
-          >
-            <Bot className="h-5 w-5" />
-            <span className="hidden sm:inline">AI</span>
           </Button>
         </div>
 

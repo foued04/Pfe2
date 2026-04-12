@@ -73,11 +73,18 @@
   --sidebar: #111827;
   --sidebar-foreground: #FDFEFE;
   --sidebar-primary: #F27D72;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #374151;
-  --sidebar-accent-foreground: #63D8DA;
-  --sidebar-border: #4B5563;
-  --sidebar-ring: #F27D72;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 210 40% 96.1%;
+  --sidebar-accent-foreground: 222.2 47.4% 11.2%;
+  --sidebar-border: 214.3 31.8% 91.4%;
+  --sidebar-ring: 217.2 91.2% 59.8%;
+}
+
+/* Hide Next.js Development Overlay */
+#__next-build-watcher, 
+[data-nextjs-dialog-overlay], 
+[data-nextjs-toast] {
+  display: none !important;
 }
 
 @theme inline {

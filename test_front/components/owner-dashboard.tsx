@@ -8,7 +8,6 @@ import { SummaryCards } from "./summary-cards"
 import { OwnerPropertiesGrid } from "./owner-properties-grid"
 import { OwnerPropertyForm } from "./owner-property-form"
 import { PropertyMap } from "./property-map"
-import { AIChatbot } from "./ai-chatbot"
 import { Button } from "./ui/button"
 import { cn } from "@/lib/utils"
 import {
@@ -21,27 +20,28 @@ import {
   User,
   Home,
   Globe,
-  Bot,
   LogOut,
   Map,
   MapPin,
   ShoppingCart,
+  Bell,
 } from "lucide-react"
 
 import { FurnitureOrderModule } from "./furniture-order-module"
 import { RentalRequestsModule } from "./rental-requests-module"
 import { MessagesModule } from "./messages-module"
 import { OwnerProfile } from "./owner-profile"
+import { NotificationsModule } from "./notifications-module"
 
 const navItems = [
-  { key: "overview", icon: LayoutDashboard, label: "nav.overview" },
-  { key: "properties", icon: Building2, label: "nav.myProperties" },
-  { key: "addProperty", icon: Plus, label: "nav.addProperty" },
-  { key: "map", icon: Map, label: "nav.map" },
-  { key: "requests", icon: FileText, label: "nav.requests", badge: 5 },
-  { key: "messages", icon: MessageSquare, label: "nav.messages", badge: 3 },
-  { key: "furniture", icon: ShoppingCart, label: "nav.furniture" },
-  { key: "profile", icon: User, label: "nav.profile" },
+  { key: "overview", icon: LayoutDashboard, label: "overview" },
+  { key: "properties", icon: Building2, label: "myProperties" },
+  { key: "addProperty", icon: Plus, label: "addProperty" },
+  { key: "map", icon: Map, label: "map" },
+  { key: "requests", icon: FileText, label: "requests" },
+  { key: "notifications", icon: Bell, label: "notifications" },
+  { key: "furniture", icon: ShoppingCart, label: "furniture" },
+  { key: "profile", icon: User, label: "profile" },
 ]
 
 export function OwnerDashboard() {
@@ -50,13 +50,14 @@ export function OwnerDashboard() {
   
   const [activeSection, setActiveSection] = useState("overview")
   const [preSelectedPropertyId, setPreSelectedPropertyId] = useState<string | null>(null)
-  const [isChatbotOpen, setIsChatbotOpen] = useState(false)
   const [properties, setProperties] = useState<any[]>([])
   const [editingProperty, setEditingProperty] = useState<any | null>(null)
   const [newPropertyFormKey, setNewPropertyFormKey] = useState(0)
   const [isFetching, setIsFetching] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [requestCount, setRequestCount] = useState(0)
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0)
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0)
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
 
@@ -117,7 +118,8 @@ export function OwnerDashboard() {
       })
       if (response.ok) {
         const data = await response.json()
-        const pendingCount = data.filter((r: any) => r.status === "En attente").length
+        const dataArray = Array.isArray(data) ? data : []
+        const pendingCount = dataArray.filter((r: any) => r.status === "En attente").length
         setRequestCount(pendingCount)
       }
     } catch (err) {
@@ -125,9 +127,56 @@ export function OwnerDashboard() {
     }
   }
 
+  const fetchUnreadMessageCount = async () => {
+    try {
+      const token = localStorage.getItem("accessToken")
+      if (!token) return
+      const response = await fetch(`${API_URL}/messages/unread-count`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setUnreadMessageCount(data.count || 0)
+      }
+    } catch (err) {
+      console.error("Fetch unread messages count error:", err)
+    }
+  }
+
+  const fetchUnreadNotificationCount = async () => {
+    try {
+      const token = localStorage.getItem("accessToken")
+      if (!token) return
+      const response = await fetch(`${API_URL}/notifications/unread-count`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setUnreadNotificationCount(data.count || 0)
+      }
+    } catch (err) {
+      console.error("Fetch unread notifications count error:", err)
+    }
+  }
+
   useEffect(() => {
     fetchProperties()
     fetchRequestsCount()
+    fetchUnreadMessageCount()
+    fetchUnreadNotificationCount()
+    
+    // Refresh counts every 30 seconds
+    const interval = setInterval(() => {
+      fetchRequestsCount()
+      fetchUnreadMessageCount()
+      fetchUnreadNotificationCount()
+    }, 30000)
+    
+    return () => clearInterval(interval)
   }, [user])
 
   const openNewPropertyForm = () => {
@@ -199,10 +248,10 @@ export function OwnerDashboard() {
         return <FurnitureOrderModule initialPropertyId={preSelectedPropertyId} />
       case "requests":
         return <RentalRequestsModule />
-      case "messages":
-        return <MessagesModule />
+      case "notifications":
+        return <NotificationsModule />
       case "profile":
-        return <OwnerProfile />
+        return <OwnerProfile properties={properties} requestCount={requestCount} />
       case "map":
         return (
           <div className="p-6">
@@ -367,7 +416,12 @@ export function OwnerDashboard() {
                       {requestCount}
                     </span>
                   )}
-                  {item.key !== "requests" && item.badge && !["requests", "messages"].includes(item.key) && (
+                  {item.key === "notifications" && (unreadMessageCount + unreadNotificationCount) > 0 && (
+                    <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-bold text-white shadow-sm">
+                      {unreadMessageCount + unreadNotificationCount}
+                    </span>
+                  )}
+                  {item.key !== "requests" && item.key !== "messages" && item.badge && (
                     <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-white/20 px-1.5 text-xs font-medium">
                       {item.badge}
                     </span>
@@ -420,15 +474,6 @@ export function OwnerDashboard() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setIsChatbotOpen(true)}
-              className="gap-2"
-            >
-              <Bot className="h-4 w-4" />
-              AI
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
               onClick={() => setLang(lang === "fr" ? "en" : "fr")}
               className="gap-2"
             >
@@ -441,12 +486,6 @@ export function OwnerDashboard() {
         {renderContent()}
       </div>
 
-      {/* AI Chatbot */}
-      <AIChatbot
-        isOpen={isChatbotOpen}
-        onClose={() => setIsChatbotOpen(false)}
-        userRole="owner"
-      />
     </div>
   )
 }

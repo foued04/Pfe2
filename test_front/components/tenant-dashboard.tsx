@@ -14,7 +14,6 @@ import { MaintenanceForm } from "./maintenance-form"
 import { TenantRequestsModule } from "./tenant-requests-module"
 import { TenantNotificationsModule } from "./tenant-notifications-module"
 import { TenantProfileSettings } from "./tenant-profile-settings"
-import { AIChatbot } from "./ai-chatbot"
 import { PropertyMap } from "./property-map"
 import { FurnitureOrderPage } from "./furniture-order-page"
 import { useI18n } from "@/lib/i18n"
@@ -46,12 +45,12 @@ export function TenantDashboard() {
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [isContactOpen, setIsContactOpen] = useState(false)
-  const [isChatbotOpen, setIsChatbotOpen] = useState(false)
   const [mapSelectedProperty, setMapSelectedProperty] = useState<Property | null>(null)
 
   const [properties, setProperties] = useState<Property[]>([])
   const [isFetching, setIsFetching] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0)
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
 
@@ -81,6 +80,30 @@ export function TenantDashboard() {
     }
 
     fetchProperties()
+  }, [user])
+
+  const fetchUnreadMessageCount = async () => {
+    try {
+      const token = localStorage.getItem("accessToken")
+      if (!token) return
+      const response = await fetch(`${API_URL}/messages/unread-count`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setUnreadMessageCount(data.count || 0)
+      }
+    } catch (err) {
+      console.error("Fetch unread messages count error:", err)
+    }
+  }
+
+  useEffect(() => {
+    fetchUnreadMessageCount()
+    const interval = setInterval(fetchUnreadMessageCount, 30000)
+    return () => clearInterval(interval)
   }, [user])
 
   // Find tenant contract — use first available contract as fallback for demo/testing
@@ -154,7 +177,7 @@ export function TenantDashboard() {
         return <MaintenanceForm />
       case "myRequests":
         return <TenantRequestsModule />
-      case "messages":
+      case "notifications":
         return <TenantNotificationsModule />
       case "profile":
         return <TenantProfileSettings />
@@ -179,7 +202,6 @@ export function TenantDashboard() {
               onSearchChange={setSearchQuery}
               onFiltersClick={() => setIsFiltersOpen(true)}
               onFavoritesClick={() => setActiveSection("favorites")}
-              onChatbotClick={() => setIsChatbotOpen(true)}
               favoritesCount={favorites.length}
             />
             {isFetching ? (
@@ -209,6 +231,7 @@ export function TenantDashboard() {
       <TenantSidebar 
         activeSection={activeSection} 
         onSectionChange={setActiveSection}
+        unreadMessageCount={unreadMessageCount}
       />
 
       {/* Main Content */}
@@ -264,11 +287,6 @@ export function TenantDashboard() {
         onSuccess={handleRequestSent}
       />
 
-      <AIChatbot
-        isOpen={isChatbotOpen}
-        onClose={() => setIsChatbotOpen(false)}
-        userRole="tenant"
-      />
     </div>
   )
 }

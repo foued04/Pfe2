@@ -34,3 +34,11 @@ exports.createNotification = asyncHandler(async (req, res) => {
   await notification.save();
   res.status(201).json(notification);
 });
+
+exports.getUnreadCount = asyncHandler(async (req, res) => {
+  const count = await Notification.countDocuments({ 
+    recipient: req.user.id,
+    isRead: false 
+  });
+  res.json({ count });
+});

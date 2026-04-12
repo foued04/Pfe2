@@ -57,7 +57,8 @@ export function RentalRequestsModule() {
       })
       if (response.ok) {
         const data = await response.json()
-        const mapped = data.map((r: any) => ({
+        const dataArray = Array.isArray(data) ? data : []
+        const mapped = dataArray.map((r: any) => ({
           id: r._id,
           propertyId: r.property?._id,
           propertyTitle: r.property?.title || "Propriété inconnue",

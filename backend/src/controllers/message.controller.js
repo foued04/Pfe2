@@ -26,6 +26,12 @@ const getMessages = asyncHandler(async (req, res) => {
     .populate('sender', 'fullName role')
     .sort({ createdAt: 1 });
     
+  // Mark messages as read
+  await Message.updateMany(
+    { conversation: conversationId, sender: { $ne: req.user._id }, isRead: false },
+    { isRead: true }
+  );
+    
   res.send(messages);
 });
 
@@ -74,19 +80,42 @@ const getConversationByContext = asyncHandler(async (req, res) => {
   }).populate('participants', 'fullName role');
   
   if (!conversation) {
-    return res.status(200).send(null);
+    return res.send({ conversation: null, messages: [] });
   }
   
   const messages = await Message.find({ conversation: conversation._id })
     .populate('sender', 'fullName role')
     .sort({ createdAt: 1 });
     
+  // Mark messages as read
+  await Message.updateMany(
+    { conversation: conversation._id, sender: { $ne: req.user._id }, isRead: false },
+    { isRead: true }
+  );
+    
   res.send({ conversation, messages });
+});
+
+const getUnreadCount = asyncHandler(async (req, res) => {
+  const conversations = await Conversation.find({
+    participants: req.user._id
+  });
+  
+  const conversationIds = conversations.map(c => c._id);
+  
+  const count = await Message.countDocuments({
+    conversation: { $in: conversationIds },
+    sender: { $ne: req.user._id },
+    isRead: false
+  });
+  
+  res.send({ count });
 });
 
 module.exports = {
   getConversations,
   getMessages,
   sendMessage,
-  getConversationByContext
+  getConversationByContext,
+  getUnreadCount
 };

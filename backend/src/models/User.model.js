@@ -23,6 +23,20 @@ const userSchema = new mongoose.Schema({
   },
   resetPasswordCode: { type: String },
   resetPasswordExpires: { type: Date },
+  documents: {
+    cin: {
+      url: { type: String, default: '' },
+      status: { type: String, enum: ['pending', 'verified', 'rejected', 'none'], default: 'none' },
+      comment: { type: String, default: '' },
+      uploadedAt: { type: Date }
+    },
+    rib: {
+      url: { type: String, default: '' },
+      status: { type: String, enum: ['pending', 'verified', 'rejected', 'none'], default: 'none' },
+      comment: { type: String, default: '' },
+      uploadedAt: { type: Date }
+    }
+  }
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

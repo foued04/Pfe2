@@ -20,6 +20,10 @@ interface User {
     ownerMessages: boolean
     rentReminders: boolean
   }
+  documents?: {
+    cin?: { url: string; status: string; comment: string; uploadedAt?: string }
+    rib?: { url: string; status: string; comment: string; uploadedAt?: string }
+  }
 }
 
 interface AuthContextType {
@@ -70,7 +74,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         acceptedRequests: true,
         ownerMessages: true,
         rentReminders: true
-      }
+      },
+      documents: backendUser.documents
     }
   }
 

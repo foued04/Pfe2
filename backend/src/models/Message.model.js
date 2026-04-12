@@ -24,6 +24,10 @@ const messageSchema = new mongoose.Schema({
     type: String,
     enum: ['platform', 'email'],
     default: 'platform'
+  },
+  metadata: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
   }
 }, {
   timestamps: true
