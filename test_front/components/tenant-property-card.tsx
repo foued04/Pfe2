@@ -45,9 +45,9 @@ export function TenantPropertyCard({
   const { t } = useI18n()
 
   const statusColors = {
-    available: "bg-green-500/10 text-green-700 border-green-200",
-    rented: "bg-amber-500/10 text-amber-700 border-amber-200",
-    maintenance: "bg-red-500/10 text-red-700 border-red-200",
+    available: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    rented: "bg-slate-100 text-slate-700 border-slate-200",
+    maintenance: "bg-amber-50 text-amber-700 border-amber-100",
   }
 
   const handleCardActivate = () => {
@@ -81,11 +81,11 @@ export function TenantPropertyCard({
         
         {/* Top Badges */}
         <div className="absolute left-3 top-3 flex gap-2">
-          <Badge variant="aqua" className="font-semibold px-3 py-1">
+          <Badge variant="blue" className="font-semibold px-3 py-1">
             {typeLabels[property.type]}
           </Badge>
           {property.type === "villa" && (
-            <Badge variant="coral" className="font-semibold px-2 py-1">
+            <Badge className="bg-amber-100 text-amber-700 border-amber-200 font-semibold px-2 py-1">
               <Star className="h-3 w-3 mr-1" />
               Premium
             </Badge>
@@ -101,7 +101,7 @@ export function TenantPropertyCard({
           className={cn(
             "absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full transition-all duration-200",
             isFavorite
-              ? "bg-orange-500 text-white shadow-lg shadow-orange-900/40"
+              ? "bg-blue-600 text-white shadow-lg shadow-blue-900/40"
               : "bg-card/80 text-foreground hover:bg-card"
           )}
         >
@@ -186,7 +186,6 @@ export function TenantPropertyCard({
               e.stopPropagation()
               onContact(property)
             }}
-            variant="coral"
             className="flex-1 gap-2"
           >
             <MessageSquare className="h-4 w-4" />

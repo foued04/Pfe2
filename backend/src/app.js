@@ -13,6 +13,7 @@ const furnitureRoutes = require('./routes/furniture.routes');
 const userRoutes = require('./routes/user.routes');
 const messageRoutes = require('./routes/message.routes');
 const verificationRoutes = require('./routes/verification.routes');
+const chatbotRoutes = require('./routes/chatbot.routes');
 const { errorHandler } = require('./middlewares/error.middleware');
 
 const app = express();
@@ -42,6 +43,8 @@ app.use('/api/furniture', furnitureRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/verifications', verificationRoutes);
+app.use('/api/chatbot', chatbotRoutes);
+
 
 // Error Handler
 app.use(errorHandler);

@@ -59,12 +59,38 @@ const googleLogin = asyncHandler(async (req, res) => {
   }
 
   try {
-    const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
-    
-    const payload = ticket.getPayload();
+    let payload;
+    const isLikelyIdToken = token.split('.').length === 3;
+
+    if (isLikelyIdToken) {
+      const ticket = await client.verifyIdToken({
+        idToken: token,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      payload = ticket.getPayload();
+    } else {
+      // Frontend can send OAuth access_token with @react-oauth/google useGoogleLogin.
+      // Validate audience, then fetch user identity.
+      const tokenInfoRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(token)}`);
+      if (!tokenInfoRes.ok) {
+        throw new Error('Invalid Google access token');
+      }
+
+      const tokenInfo = await tokenInfoRes.json();
+      if (tokenInfo.aud !== process.env.GOOGLE_CLIENT_ID) {
+        throw new Error('Google token audience mismatch');
+      }
+
+      const profileRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!profileRes.ok) {
+        throw new Error('Failed to fetch Google user profile');
+      }
+
+      payload = await profileRes.json();
+    }
+
     const { email, name, picture, sub: googleId } = payload;
 
     let user = await User.findOne({ email });

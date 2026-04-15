@@ -368,18 +368,18 @@ export function OwnerDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#e9eef7]">
+    <div className="min-h-screen bg-slate-50/50">
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-gradient-to-b from-[#1e3a8a] to-[#1d4ed8] text-white">
+      <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-gradient-to-b from-[#1e3a8a] to-[#1d4ed8] text-white shadow-xl">
         <div className="flex h-full flex-col">
           {/* Logo */}
           <div className="flex h-16 items-center gap-3 border-b border-white/20 px-6">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/20">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 border border-white/20">
               <Home className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-bold">ImmoSmart</h1>
-              <p className="text-xs text-white/80">{t("role.owner")}</p>
+              <h1 className="text-xl font-black tracking-tight text-white">ImmoSmart</h1>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-white/80">{t("role.owner")}</p>
             </div>
           </div>
 
@@ -403,10 +403,10 @@ export function OwnerDashboard() {
                     setActiveSection(item.key)
                   }}
                   className={cn(
-                    "flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all duration-200",
+                    "group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-300",
                     isActive
-                      ? "bg-[#3b82f6] text-white shadow-md"
-                      : "text-white/85 hover:bg-white/15 hover:text-white"
+                      ? "bg-white text-blue-700 shadow-lg shadow-black/10 scale-105"
+                      : "text-white/80 hover:bg-white/10 hover:text-white"
                   )}
                 >
                   <Icon className="h-5 w-5" />
@@ -460,9 +460,9 @@ export function OwnerDashboard() {
       </aside>
 
       {/* Main Content */}
-      <div className="ml-64 transition-all duration-300">
+      <div className="ml-64 bg-slate-50/50 transition-all duration-300">
         {/* Top Bar */}
-        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-blue-100 bg-white/90 px-6 py-3 backdrop-blur">
+        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-slate-200/60 bg-white/80 px-8 py-4 backdrop-blur-xl">
           <div className="flex items-center gap-2">
             <MapPin className="w-4 h-4 text-slate-500" />
             <span className="text-sm text-slate-500">Monastir, Tunisie</span>

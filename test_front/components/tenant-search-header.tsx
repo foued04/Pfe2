@@ -23,7 +23,7 @@ export function TenantSearchHeader({
   const { t } = useI18n()
 
   return (
-    <div className="sticky top-0 z-30 border-b border-blue-100 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+    <div className="sticky top-0 z-30 border-b border-slate-200/60 bg-white/80 backdrop-blur-xl">
       <div className="px-6 py-4">
         {/* Title */}
         <div className="mb-4">
@@ -40,7 +40,7 @@ export function TenantSearchHeader({
               placeholder={t("tenant.searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="h-12 pl-12 pr-4 text-base bg-card border-border rounded-xl focus:ring-2 focus:ring-primary/20"
+              className="h-12 pl-12 pr-4 text-base bg-blue-50/50 border-none rounded-xl focus:ring-2 focus:ring-primary/20 transition-all hover:bg-blue-50"
             />
           </div>
 

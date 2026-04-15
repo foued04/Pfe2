@@ -38,9 +38,9 @@ function OwnerPropertyCard({ property, onManageFurniture, onEdit, onDelete }: Ow
   const [isDeleting, setIsDeleting] = useState(false)
   
   const statusStyles: any = {
-    available: "bg-emerald-100 text-emerald-700 border-emerald-200", // Turquoise Soft
-    rented: "bg-orange-100 text-orange-700 border-orange-200", // Corail Soft
-    maintenance: "bg-orange-600/10 text-orange-800 border-orange-300", // Corail Darker
+    available: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    rented: "bg-slate-100 text-slate-700 border-slate-200",
+    maintenance: "bg-amber-50 text-amber-700 border-amber-100",
   }
 
   const statusLabels: any = {

@@ -227,7 +227,7 @@ export function TenantDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#e9eef7]">
+    <div className="min-h-screen bg-slate-50/50">
       <TenantSidebar 
         activeSection={activeSection} 
         onSectionChange={setActiveSection}
@@ -235,9 +235,9 @@ export function TenantDashboard() {
       />
 
       {/* Main Content */}
-      <div className="ml-64 transition-all duration-300">
+      <div className="ml-64 bg-slate-50/50 transition-all duration-300">
         {/* Top Bar */}
-        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-blue-100 bg-white/90 px-6 py-3 backdrop-blur">
+        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-slate-200/60 bg-white/80 px-8 py-4 backdrop-blur-xl">
           <div className="flex items-center gap-2 text-sm text-slate-500">
             <MapPin className="w-4 h-4" />
             <span>Monastir, Tunisie</span>

@@ -36,7 +36,7 @@ export function FurnitureCart({
 
   if (items.length === 0) {
     return (
-      <Card className="border-none shadow-2xl shadow-emerald-900/10 bg-white rounded-3xl overflow-hidden">
+      <Card className="border-none shadow-2xl shadow-blue-900/10 bg-white rounded-3xl overflow-hidden">
         <CardHeader className="bg-primary text-white p-6">
           <CardTitle className="text-xl font-black flex items-center gap-3">
             <ShoppingCart className="w-6 h-6 text-secondary" />
@@ -55,7 +55,7 @@ export function FurnitureCart({
   }
 
   return (
-    <Card className="border-none shadow-2xl shadow-emerald-900/10 bg-white rounded-3xl overflow-hidden sticky top-24">
+    <Card className="border-none shadow-2xl shadow-blue-900/10 bg-white rounded-3xl overflow-hidden sticky top-24">
       <CardHeader className="bg-primary text-white p-6">
         <div className="flex items-center justify-between">
           <CardTitle className="text-xl font-black flex items-center gap-3">
@@ -167,7 +167,7 @@ export function FurnitureCart({
 
       <CardFooter className="p-6 bg-background border-t border-border/30">
         <Button 
-          className="w-full h-14 bg-primary hover:opacity-80 text-white text-lg font-black rounded-2xl shadow-lg shadow-emerald-950/20 gap-3 group transition-all" 
+          className="w-full h-14 bg-primary hover:opacity-80 text-white text-lg font-black rounded-2xl shadow-lg shadow-blue-900/20 gap-3 group transition-all" 
           onClick={onCheckout}
         >
           {t("furn.checkout")}

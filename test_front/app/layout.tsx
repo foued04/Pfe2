@@ -4,6 +4,7 @@ import { I18nProvider } from "@/lib/i18n"
 import { AuthProvider } from "@/lib/auth-context"
 import { GoogleOAuthProvider } from "@react-oauth/google"
 import { Toaster } from "@/components/ui/toaster"
+import { ChatbotTrigger } from "@/components/ai-chatbot"
 
 export const metadata: Metadata = {
   title: "ImmoSmart",
@@ -25,6 +26,7 @@ export default function RootLayout({
             <I18nProvider>
               {children}
               <Toaster />
+              <ChatbotTrigger />
             </I18nProvider>
           </AuthProvider>
         </GoogleOAuthProvider>

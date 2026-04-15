@@ -9,7 +9,16 @@ const furnitureSchema = new mongoose.Schema({
   },
   price: { type: Number, required: true },
   image: { type: String, required: true },
-  description: { type: String }
+  description: { type: String },
+  status: { 
+    type: String, 
+    enum: ['pending', 'approved'], 
+    default: 'approved' // Default to approved for seeded/admin items
+  },
+  addedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Furniture', furnitureSchema);

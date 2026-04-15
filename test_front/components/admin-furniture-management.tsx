@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent } from "./ui/card"
 import { Button } from "./ui/button"
 import { Badge } from "./ui/badge"
@@ -11,10 +11,25 @@ import {
   Check, 
   X, 
   Eye, 
-  DollarSign
+  DollarSign,
+  Plus,
+  Trash2,
+  Image as ImageIcon,
+  Loader2
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { furnitureCatalog, FurnitureItem, FurnitureCategory } from "@/lib/furniture-data"
+import { fetchFurniture, FurnitureItem, FurnitureCategory, addFurnitureItem, deleteFurnitureItem, updateFurnitureStatus as apiUpdateStatus } from "@/lib/furniture-data"
+import { Input } from "./ui/input"
+import { Label } from "./ui/label"
+import { Textarea } from "./ui/textarea"
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger,
+  DialogFooter
+} from "./ui/dialog"
 
 type FurnitureStatus = "pending" | "approved" | "rejected" | "requested"
 
@@ -29,18 +44,36 @@ interface ManagedFurniture extends FurnitureItem {
 const categories: FurnitureCategory[] = ["Salon", "Chambre", "Salle à manger", "Cuisine", "Décoration", "Bureau"]
 
 export function AdminFurnitureManagement() {
-  const [items, setItems] = useState<ManagedFurniture[]>(
-    furnitureCatalog.map((item, i) => ({
-      ...item,
-      status: i < 4 ? "pending" : (i % 3 === 0 ? "approved" : "requested"),
-      requesterType: i % 2 === 0 ? "owner" : "tenant",
-      requesterName: i % 2 === 0 ? "Mohamed Ben Ali" : "Sarra Bouaziz",
-      quantity: Math.floor(Math.random() * 5) + 1,
-      price: item.price
-    }))
-  )
+  const [items, setItems] = useState<FurnitureItem[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [filter, setFilter] = useState({ search: "", category: "all", status: "all" })
-  const [selectedItem, setSelectedItem] = useState<ManagedFurniture | null>(null)
+  const [selectedItem, setSelectedItem] = useState<FurnitureItem | null>(null)
+  
+  // New Item State
+  const [isAdding, setIsAdding] = useState(false)
+  const [newItem, setNewItem] = useState({
+    name: "",
+    category: "Salon" as FurnitureCategory,
+    price: 0,
+    image: "",
+    description: ""
+  })
+
+  const loadItems = async () => {
+    setIsLoading(true)
+    try {
+      const data = await fetchFurniture()
+      setItems(data)
+    } catch (error) {
+      console.error("Error loading furniture:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadItems()
+  }, [])
 
   const filteredItems = items.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(filter.search.toLowerCase()) || 
@@ -50,21 +83,52 @@ export function AdminFurnitureManagement() {
     return matchesSearch && matchesCategory && matchesStatus
   })
 
-  const handleApprove = (id: string) => {
-    setItems(prev => prev.map(item => 
-      item.id === id ? { ...item, status: "approved" } : item
-    ))
-    if (selectedItem?.id === id) {
-      setSelectedItem(prev => prev ? { ...prev, status: "approved" } : null)
+  const handleApprove = async (id: string) => {
+    try {
+      await apiUpdateStatus(id, "approved")
+      await loadItems()
+      if (selectedItem?.id === id) setSelectedItem(prev => prev ? { ...prev, status: "approved" } : null)
+    } catch (error) {
+      alert("Error approving item")
     }
   }
 
-  const handleReject = (id: string) => {
-    setItems(prev => prev.map(item => 
-      item.id === id ? { ...item, status: "rejected" } : item
-    ))
-    if (selectedItem?.id === id) {
-      setSelectedItem(prev => prev ? { ...prev, status: "rejected" } : null)
+  const handleReject = async (id: string) => {
+    try {
+      // In this context, reject might mean delete or just change status. 
+      // We'll just set it to 'pending' or keep as is, but the backend only has 'pending'/'approved'.
+      // For now, let's just delete it if rejected or status change if we add 'rejected' to model.
+      // Since model only has pending/approved, we'll just keep it pending for now or add 'rejected'.
+      // Actually, let's just update to 'pending' if it was approved and we want to 'reject' it.
+      await apiUpdateStatus(id, "pending")
+      await loadItems()
+      if (selectedItem?.id === id) setSelectedItem(prev => prev ? { ...prev, status: "pending" } : null)
+    } catch (error) {
+      alert("Error updating status")
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure?")) return
+    try {
+      await deleteFurnitureItem(id)
+      await loadItems()
+      setSelectedItem(null)
+    } catch (error) {
+      alert("Error deleting item")
+    }
+  }
+
+  const handleAddItem = async () => {
+    setIsAdding(true)
+    try {
+      await addFurnitureItem(newItem)
+      await loadItems()
+      setNewItem({ name: "", category: "Salon", price: 0, image: "", description: "" })
+    } catch (error) {
+      alert("Error adding furniture")
+    } finally {
+      setIsAdding(false)
     }
   }
 
@@ -89,11 +153,82 @@ export function AdminFurnitureManagement() {
           <h1 className="text-3xl font-black text-foreground tracking-tight">Gestion du Mobilier</h1>
           <p className="text-muted-foreground font-medium">Administrez les équipements et les demandes d&apos;ameublement</p>
         </div>
-        <div className="flex gap-2">
-           <Badge variant="outline" className="px-4 py-1.5 rounded-full bg-blue-50 text-blue-600 border-blue-100 font-bold">
-             {items.filter(i => i.status === "requested").length} Demandes
-           </Badge>
-           <Badge variant="outline" className="px-4 py-1.5 rounded-full bg-orange-50 text-orange-600 border-orange-100 font-bold">
+        <div className="flex gap-4">
+           {/* Add Furniture Dialog */}
+           <Dialog>
+             <DialogTrigger asChild>
+               <Button className="bg-primary hover:opacity-90 text-white rounded-xl gap-2 font-bold px-6">
+                 <Plus className="w-5 h-5" /> Ajouter un meuble
+               </Button>
+             </DialogTrigger>
+             <DialogContent className="sm:max-w-[500px] rounded-[2rem] p-8">
+               <DialogHeader>
+                 <DialogTitle className="text-2xl font-black text-primary uppercase">Nouveau Mobilier</DialogTitle>
+               </DialogHeader>
+               <div className="space-y-6 py-4">
+                 <div className="space-y-2">
+                   <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Nom du meuble</Label>
+                   <Input 
+                     value={newItem.name} 
+                     onChange={e => setNewItem({...newItem, name: e.target.value})}
+                     className="rounded-xl border-muted bg-muted/30 h-12"
+                   />
+                 </div>
+                 <div className="grid grid-cols-2 gap-4">
+                   <div className="space-y-2">
+                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Catégorie</Label>
+                     <select 
+                       value={newItem.category}
+                       onChange={e => setNewItem({...newItem, category: e.target.value as FurnitureCategory})}
+                       className="w-full flex h-12 rounded-xl border border-muted bg-muted/30 px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 outline-none font-bold"
+                     >
+                       {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                     </select>
+                   </div>
+                   <div className="space-y-2">
+                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Prix (DT)</Label>
+                     <Input 
+                       type="number"
+                       value={newItem.price} 
+                       onChange={e => setNewItem({...newItem, price: Number(e.target.value)})}
+                       className="rounded-xl border-muted bg-muted/30 h-12"
+                     />
+                   </div>
+                 </div>
+                 <div className="space-y-2">
+                   <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">URL de l&apos;image</Label>
+                   <div className="relative">
+                     <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                     <Input 
+                       value={newItem.image} 
+                       onChange={e => setNewItem({...newItem, image: e.target.value})}
+                       className="rounded-xl border-muted bg-muted/30 h-12 pl-10"
+                       placeholder="https://..."
+                     />
+                   </div>
+                 </div>
+                 <div className="space-y-2">
+                   <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Description</Label>
+                   <Textarea 
+                     value={newItem.description} 
+                     onChange={e => setNewItem({...newItem, description: e.target.value})}
+                     className="rounded-xl border-muted bg-muted/30 min-h-[100px]"
+                   />
+                 </div>
+               </div>
+               <DialogFooter>
+                 <Button 
+                   onClick={handleAddItem} 
+                   disabled={isAdding}
+                   className="w-full h-12 bg-primary text-white rounded-xl font-black uppercase tracking-widest"
+                 >
+                   {isAdding ? <Loader2 className="w-5 h-5 animate-spin" /> : "Enregistrer l'article"}
+                 </Button>
+               </DialogFooter>
+             </DialogContent>
+           </Dialog>
+
+           <Badge variant="outline" className="px-4 py-1.5 rounded-full bg-orange-50 text-orange-600 border-orange-100 font-bold items-center flex">
              {items.filter(i => i.status === "pending").length} À valider
            </Badge>
         </div>
@@ -167,68 +302,62 @@ export function AdminFurnitureManagement() {
 
       {/* Furniture Grid */}
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-        {filteredItems.map((item) => (
-          <Card key={item.id} className="border-none shadow-xl bg-card overflow-hidden group hover:-translate-y-1 transition-all duration-300">
-            <div className="relative h-48">
-              <img src={item.image} alt={item.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-              <div className="absolute top-4 left-4">
-                {getStatusBadge(item.status)}
+        {isLoading ? (
+          [1, 2, 3].map(i => (
+            <div key={i} className="h-64 bg-muted animate-pulse rounded-3xl" />
+          ))
+        ) : (
+          filteredItems.map((item) => (
+            <Card key={item.id} className="border-none shadow-xl bg-card overflow-hidden group hover:-translate-y-1 transition-all duration-300">
+              <div className="relative h-48">
+                <img src={item.image} alt={item.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                <div className="absolute top-4 left-4">
+                  {getStatusBadge(item.status as FurnitureStatus)}
+                </div>
+                <div className="absolute top-4 right-4">
+                  <Badge className="bg-black/40 backdrop-blur-md text-white border-none font-bold text-xs">
+                    {item.category}
+                  </Badge>
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
+                   <h3 className="text-white font-black text-lg tracking-tight">{item.name}</h3>
+                </div>
               </div>
-              <div className="absolute top-4 right-4">
-                <Badge className="bg-black/40 backdrop-blur-md text-white border-none font-bold text-xs">
-                  {item.category}
-                </Badge>
-              </div>
-              <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
-                 <h3 className="text-white font-black text-lg tracking-tight">{item.name}</h3>
-              </div>
-            </div>
-            
-            <CardContent className="p-6">
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground font-medium line-clamp-2">
-                  {item.description || "Aucune description fournie pour cet article."}
-                </p>
-
-                <div className="flex items-center justify-between py-3 border-y border-border/50">
-                  <div className="flex flex-col">
-                    <span className="text-[9px] font-black uppercase text-muted-foreground mb-1">Prix Unitaire</span>
-                    <span className="text-lg font-black text-primary tracking-tighter">{item.price} DT</span>
+              
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground font-medium line-clamp-2">
+                    {item.description || "Aucune description fournie pour cet article."}
+                  </p>
+  
+                  <div className="flex items-center justify-between py-3 border-y border-border/50">
+                    <div className="flex flex-col">
+                      <span className="text-[9px] font-black uppercase text-muted-foreground mb-1">Prix Unitaire</span>
+                      <span className="text-lg font-black text-primary tracking-tighter">{item.price} DT</span>
+                    </div>
                   </div>
-                  <div className="flex flex-col items-end">
-                    <span className="text-[9px] font-black uppercase text-muted-foreground mb-1">Quantité</span>
-                    <span className="text-lg font-black text-foreground tracking-tighter">{item.quantity}</span>
+  
+                  <div className="flex gap-2 pt-2">
+                    <Button 
+                      onClick={() => setSelectedItem(item)}
+                      variant="outline" 
+                      className="flex-1 rounded-2xl font-black uppercase text-[10px] tracking-widest h-10 border-2"
+                    >
+                      <Eye className="w-4 h-4 mr-2" /> Détails
+                    </Button>
+                    <Button 
+                      onClick={() => item.id && handleDelete(item.id)}
+                      variant="outline" 
+                      className="w-10 h-10 rounded-2xl border-red-100 text-red-500 hover:bg-red-50 p-0 border-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-3">
-                   <div className={cn(
-                     "w-10 h-10 rounded-full flex items-center justify-center font-black text-sm",
-                     item.requesterType === 'owner' ? "bg-orange-100 text-orange-600" : "bg-primary/10 text-primary"
-                   )}>
-                     {item.requesterName[0]}
-                   </div>
-                   <div className="flex-1 truncate">
-                     <p className="text-xs font-black text-foreground truncate">{item.requesterName}</p>
-                     <p className="text-[10px] font-bold text-muted-foreground opacity-60 uppercase tracking-tighter">
-                       {item.requesterType === 'owner' ? "Propriétaire (Proposé)" : "Locataire (Demandé)"}
-                     </p>
-                   </div>
-                </div>
-
-                <div className="flex gap-2 pt-2">
-                  <Button 
-                    onClick={() => setSelectedItem(item)}
-                    variant="outline" 
-                    className="w-full rounded-2xl font-black uppercase text-[10px] tracking-widest h-10 border-2"
-                  >
-                    <Eye className="w-3 h-3 mr-2" /> Détails de l&apos;article
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          ))
+        )}
 
         {filteredItems.length === 0 && (
           <div className="col-span-full py-20 text-center">

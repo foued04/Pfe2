@@ -5,14 +5,15 @@ const furnitureOrderSchema = new mongoose.Schema({
   contract: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'Contract', 
-    required: true 
+    required: false 
   },
   tenant: { 
     type: String, 
-    required: true 
+    required: false 
   },
   property: { 
-    type: String, 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'Property',
     required: true 
   },
   owner: { 
@@ -26,6 +27,7 @@ const furnitureOrderSchema = new mongoose.Schema({
     price: { type: Number }
   }],
   total: { type: Number, required: true },
+  paymentMethod: { type: String, default: 'cash' },
   status: { 
     type: String, 
     enum: ['Brouillon', 'Confirmé'], 

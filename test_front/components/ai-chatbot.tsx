@@ -5,11 +5,12 @@ import { useI18n } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
-import { Bot, X, Send, Sparkles, Home, Search, ClipboardList, User } from "lucide-react"
+import { Bot, X, Send, Sparkles, Home, Search, ClipboardList, User, MessageSquare } from "lucide-react"
+import { useAuth } from "@/lib/auth-context"
 
 interface Message {
   id: string
-  role: "user" | "assistant"
+  role: "user" | "model"
   content: string
   timestamp: Date
 }
@@ -17,7 +18,6 @@ interface Message {
 interface AIChatbotProps {
   isOpen: boolean
   onClose: () => void
-  userRole: "admin" | "owner" | "tenant"
 }
 
 const suggestions = {
@@ -36,22 +36,22 @@ const suggestions = {
     { icon: Home, text: "Propriétés en attente" },
     { icon: ClipboardList, text: "Rapports mensuels" },
   ],
+  none: [
+    { icon: Home, text: "C'est quoi ImmoSmart ?" },
+    { icon: Search, text: "Quels types de biens proposez-vous ?" },
+    { icon: User, text: "Comment créer un compte ?" },
+  ]
 }
 
-const mockResponses: Record<string, string> = {
-  "trouver": "J'ai trouvé plusieurs S+2 disponibles à Tunis. Voici les meilleures options:\n\n1. **Appartement Moderne S+2 Centre-Ville** - 1200 TND/mois\n2. **S+2 Lac 2** - 1500 TND/mois\n\nVoulez-vous que je vous montre plus de détails sur l'un d'eux?",
-  "parking": "Voici les propriétés avec parking disponibles:\n\n- **Villa Luxueuse Gammarth** - 4500 TND/mois (garage privé)\n- **S+4 Standing Lac 2** - 2800 TND/mois (2 places)\n- **S+3 Familial Sousse** - 1500 TND/mois (1 place)\n\nJe peux filtrer par budget si vous le souhaitez.",
-  "demande": "Pour envoyer une demande de location:\n\n1. Cliquez sur **'Voir Détails'** sur la propriété\n2. Cliquez sur **'Envoyer Demande'**\n3. Remplissez le formulaire avec vos coordonnées\n4. Le propriétaire recevra votre demande par email\n\nBesoin d'aide pour autre chose?",
-  "ajouter": "Pour ajouter une nouvelle propriété:\n\n1. Allez dans **'Ajouter'** dans le menu\n2. Remplissez tous les champs obligatoires\n3. Uploadez vos photos (minimum 6 images)\n4. Placez le marqueur sur la carte\n5. Cliquez sur **'Soumettre'**\n\nVotre propriété sera publiée après validation.",
-  "default": "Je suis l'assistant ImmoSmart. Je peux vous aider à:\n\n- Trouver des propriétés selon vos critères\n- Expliquer le processus de location\n- Répondre à vos questions sur la plateforme\n\nQue puis-je faire pour vous?",
-}
-
-export function AIChatbot({ isOpen, onClose, userRole }: AIChatbotProps) {
+export function AIChatbot({ isOpen, onClose }: AIChatbotProps) {
   const { t } = useI18n()
+  const { user, token } = useAuth()
+  const userRole = user?.role || "none"
+  
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
-      role: "assistant",
+      role: "model",
       content: t("chatbot.welcome"),
       timestamp: new Date(),
     },
@@ -65,7 +65,7 @@ export function AIChatbot({ isOpen, onClose, userRole }: AIChatbotProps) {
   }, [messages])
 
   const handleSend = async (text: string = input) => {
-    if (!text.trim()) return
+    if (!text.trim() || isTyping) return
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -78,28 +78,55 @@ export function AIChatbot({ isOpen, onClose, userRole }: AIChatbotProps) {
     setInput("")
     setIsTyping(true)
 
-    // Simulate AI response
-    await new Promise((resolve) => setTimeout(resolve, 1000 + Math.random() * 1000))
+    try {
+      // Prepare history for API
+      const history = messages
+        .filter(m => m.id !== "welcome")
+        .map(m => ({
+          role: m.role,
+          parts: [{ text: m.content }]
+        }))
 
-    const lowerText = text.toLowerCase()
-    let response = mockResponses.default
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+      const apiUrl = baseUrl.endsWith('/api') ? `${baseUrl}/chatbot/ask` : `${baseUrl}/api/chatbot/ask`
 
-    for (const key of Object.keys(mockResponses)) {
-      if (lowerText.includes(key)) {
-        response = mockResponses[key]
-        break
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          message: text,
+          history: history
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) throw new Error(data.error || data.message || "Erreur serveur")
+
+      const assistantMessage: Message = {
+        id: Date.now().toString(),
+        role: "model",
+        content: data.response,
+        timestamp: new Date(),
       }
-    }
 
-    const assistantMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      role: "assistant",
-      content: response,
-      timestamp: new Date(),
-    }
+      setMessages((prev) => [...prev, assistantMessage])
+    } catch (error: any) {
+      console.error("Chatbot Error:", error)
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        role: "model",
+        content: `❌ Erreur : ${error.message}`,
+        timestamp: new Date(),
+      }
+      setMessages((prev) => [...prev, errorMessage])
+    } finally {
 
-    setMessages((prev) => [...prev, assistantMessage])
-    setIsTyping(false)
+      setIsTyping(false)
+    }
   }
 
   const handleSuggestionClick = (text: string) => {
@@ -109,64 +136,76 @@ export function AIChatbot({ isOpen, onClose, userRole }: AIChatbotProps) {
   if (!isOpen) return null
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col w-[400px] h-[600px] rounded-2xl border border-border bg-card shadow-2xl overflow-hidden">
+    <div className="fixed bottom-24 right-6 z-50 flex flex-col w-[380px] h-[580px] rounded-2xl border border-white/20 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
       {/* Header */}
-      <div className="flex items-center justify-between bg-primary p-4">
+      <div className="flex items-center justify-between bg-gradient-to-r from-teal-500 to-blue-600 p-4 shadow-lg">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-foreground/20">
-            <Bot className="h-6 w-6 text-primary-foreground" />
+          <div className="relative">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-md">
+              <Bot className="h-6 w-6 text-white" />
+            </div>
+            <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-green-400" />
           </div>
           <div>
-            <h3 className="font-semibold text-primary-foreground">{t("chatbot.title")}</h3>
-            <p className="text-xs text-primary-foreground/70">En ligne</p>
+            <h3 className="font-bold text-white tracking-tight">{t("chatbot.title")}</h3>
+            <div className="flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
+              <p className="text-[10px] uppercase font-bold text-white/80 tracking-widest text-xs">AI EXPERT</p>
+            </div>
           </div>
         </div>
         <button
           onClick={onClose}
-          className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-primary-foreground/20 transition-colors"
+          className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-white/20 transition-all active:scale-95"
         >
-          <X className="h-5 w-5 text-primary-foreground" />
+          <X className="h-5 w-5 text-white" />
         </button>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-slate-700">
         {messages.map((message) => (
           <div
             key={message.id}
             className={cn(
-              "flex gap-3",
+              "flex gap-3 animate-in fade-in slide-in-from-left-2 duration-300",
               message.role === "user" ? "flex-row-reverse" : "flex-row"
             )}
           >
-            {message.role === "assistant" && (
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                <Bot className="h-4 w-4 text-primary" />
+            {message.role === "model" && (
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal-100 dark:bg-teal-900/30">
+                <Bot className="h-4 w-4 text-teal-600 dark:text-teal-400" />
               </div>
             )}
             <div
               className={cn(
-                "max-w-[80%] rounded-2xl px-4 py-3 text-sm",
+                "max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm",
                 message.role === "user"
-                  ? "bg-primary text-primary-foreground rounded-br-md"
-                  : "bg-muted text-foreground rounded-bl-md"
+                  ? "bg-gradient-to-br from-blue-500 to-teal-500 text-white rounded-tr-none"
+                  : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-tl-none border border-slate-100 dark:border-slate-700"
               )}
             >
-              <p className="whitespace-pre-wrap">{message.content}</p>
+              <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
+              <p className={cn(
+                "text-[9px] mt-1 opacity-60",
+                message.role === "user" ? "text-right" : "text-left"
+              )}>
+                {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </p>
             </div>
           </div>
         ))}
 
         {isTyping && (
-          <div className="flex gap-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
-              <Bot className="h-4 w-4 text-primary" />
+          <div className="flex gap-3 animate-in fade-in duration-300">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-teal-100 dark:bg-teal-900/30">
+              <Bot className="h-4 w-4 text-teal-600 dark:text-teal-400" />
             </div>
-            <div className="rounded-2xl rounded-bl-md bg-muted px-4 py-3">
-              <div className="flex gap-1">
-                <span className="h-2 w-2 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "0ms" }} />
-                <span className="h-2 w-2 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "150ms" }} />
-                <span className="h-2 w-2 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "300ms" }} />
+            <div className="rounded-2xl rounded-tl-none bg-white dark:bg-slate-800 px-4 py-3 border border-slate-100 dark:border-slate-700 shadow-sm">
+              <div className="flex gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-teal-500 animate-bounce" style={{ animationDelay: "0ms" }} />
+                <span className="h-1.5 w-1.5 rounded-full bg-teal-500 animate-bounce" style={{ animationDelay: "150ms" }} />
+                <span className="h-1.5 w-1.5 rounded-full bg-teal-500 animate-bounce" style={{ animationDelay: "300ms" }} />
               </div>
             </div>
           </div>
@@ -176,22 +215,22 @@ export function AIChatbot({ isOpen, onClose, userRole }: AIChatbotProps) {
       </div>
 
       {/* Suggestions */}
-      {messages.length < 3 && (
-        <div className="border-t border-border p-3">
-          <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
-            <Sparkles className="h-3 w-3" />
+      {messages.length < 5 && !isTyping && (
+        <div className="p-4 pt-0">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+            <Sparkles className="h-3 w-3 text-amber-400" />
             {t("chatbot.suggestions")}
           </p>
           <div className="flex flex-wrap gap-2">
-            {suggestions[userRole].map((suggestion, index) => {
+            {(suggestions[userRole as keyof typeof suggestions] || suggestions.none).map((suggestion, index) => {
               const Icon = suggestion.icon
               return (
                 <button
                   key={index}
                   onClick={() => handleSuggestionClick(suggestion.text)}
-                  className="flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs text-foreground hover:bg-muted transition-colors"
+                  className="flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 hover:bg-teal-50 dark:hover:bg-teal-900/20 hover:border-teal-200 dark:hover:border-teal-800 px-3 py-2 text-xs text-slate-600 dark:text-slate-300 transition-all hover:scale-105 active:scale-95 shadow-sm"
                 >
-                  <Icon className="h-3 w-3" />
+                  <Icon className="h-3.5 w-3.5 text-teal-500" />
                   {suggestion.text}
                 </button>
               )
@@ -201,30 +240,65 @@ export function AIChatbot({ isOpen, onClose, userRole }: AIChatbotProps) {
       )}
 
       {/* Input */}
-      <div className="border-t border-border p-3">
+      <div className="p-4 pt-2 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border-t border-slate-100 dark:border-slate-800">
         <form
           onSubmit={(e) => {
             e.preventDefault()
             handleSend()
           }}
-          className="flex gap-2"
+          className="flex gap-2 items-center bg-white dark:bg-slate-800 rounded-2xl p-1 shadow-inner border border-slate-100 dark:border-slate-700"
         >
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={t("chatbot.placeholder")}
-            className="flex-1 rounded-full border-border bg-muted"
+            className="flex-1 border-none bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-sm h-10"
             disabled={isTyping}
           />
           <Button
             type="submit"
             disabled={!input.trim() || isTyping}
-            className="h-10 w-10 rounded-full bg-primary p-0 text-primary-foreground hover:bg-primary/90"
+            className="h-9 w-9 rounded-xl bg-gradient-to-r from-teal-500 to-blue-600 p-0 text-white shadow-md hover:shadow-lg transition-all hover:rotate-3 active:scale-90 flex items-center justify-center shrink-0"
           >
             <Send className="h-4 w-4" />
           </Button>
         </form>
+        <p className="text-[10px] text-center text-slate-400 mt-2 italic">
+          Propulsé par Gemini AI • Expert Cloud ImmoSmart
+        </p>
       </div>
     </div>
   )
 }
+
+export function ChatbotTrigger() {
+  const [isOpen, setIsOpen] = useState(false)
+
+  return (
+    <>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={cn(
+          "fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-2xl transition-all duration-500 hover:scale-110 active:scale-90 group",
+          isOpen 
+            ? "bg-slate-800 rotate-90" 
+            : "bg-gradient-to-br from-teal-400 to-blue-600 hover:rotate-12"
+        )}
+      >
+        {isOpen ? (
+          <X className="h-6 w-6 text-white" />
+        ) : (
+          <div className="relative">
+            <MessageSquare className="h-6 w-6 text-white" />
+            <span className="absolute -top-1 -right-1 flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-200 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-teal-300"></span>
+            </span>
+          </div>
+        )}
+      </button>
+      <AIChatbot isOpen={isOpen} onClose={() => setIsOpen(false)} />
+    </>
+  )
+}
+

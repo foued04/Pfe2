@@ -4,80 +4,70 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* ImmoSmart palette: Turquoise / Corail Balanced */
-  --background: #EAF7F6;
-  --foreground: #1F2937;
-  --card: #FDFEFE;
-  --card-foreground: #1F2937;
-  --popover: #FDFEFE;
-  --popover-foreground: #1F2937;
-  --primary: #2EC4C7;
+  /* ImmoSmart Professional Palette: Navy & Indigo */
+  --background: #F8FAFC;
+  --foreground: #0F172A;
+  --card: #FFFFFF;
+  --card-foreground: #0F172A;
+  --popover: #FFFFFF;
+  --popover-foreground: #0F172A;
+  --primary: #2563EB;
   --primary-foreground: #FFFFFF;
-  --secondary: #DDEEEE;
-  --secondary-foreground: #1F2937;
-  --muted: #EAF7F6;
-  --muted-foreground: #6B7280;
-  --accent: #F27D72;
-  /* Corail accent principal */
-  --accent-foreground: #FFFFFF;
-  --destructive: #F27D72;
+  --secondary: #F8FAFC;
+  --secondary-foreground: #0F172A;
+  --muted: #F1F5F9;
+  --muted-foreground: #64748B;
+  --accent: #DBEAFE;
+  --accent-foreground: #1E40AF;
+  --destructive: #EF4444;
   --destructive-foreground: #FFFFFF;
-  --border: #DDEEEE;
-  --input: #DDEEEE;
-  --ring: #2EC4C7;
-  --chart-1: #2EC4C7;
-  --chart-2: #F27D72;
-  /* Corail as secondary chart color */
-  --chart-3: #158C96;
-  --chart-4: #63D8DA;
-  --chart-5: #FFA08F;
+  --border: #E2E8F0;
+  --input: #E2E8F0;
+  --ring: #2563EB;
+  --chart-1: #2563EB;
+  --chart-2: #10B981;
+  --chart-3: #F59E0B;
+  --chart-4: #60A5FA;
+  --chart-5: #3B82F6;
   --radius: 0.75rem;
-  --sidebar: #158C96;
-  /* Sidebar plus profonde pour le contraste */
-  --sidebar-foreground: #FDFEFE;
-  --sidebar-primary: #F27D72;
-  /* Active element background: Corail pour le "popout" */
+  --sidebar: #1E3A8A;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: #3B82F6;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #2EC4C7;
-  /* Hover background: Turquoise */
+  --sidebar-accent: #1D4ED8;
   --sidebar-accent-foreground: #FFFFFF;
-  --sidebar-border: #DDEEEE;
-  --sidebar-ring: #F27D72;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: #3B82F6;
 }
 
 .dark {
-  --background: #111827;
-  --foreground: #FDFEFE;
-  --card: #1F2937;
-  --card-foreground: #FDFEFE;
-  --popover: #1F2937;
-  --popover-foreground: #FDFEFE;
-  --primary: #2EC4C7;
+  --background: #020617;
+  --foreground: #F8FAFC;
+  --card: #0F172A;
+  --card-foreground: #F8FAFC;
+  --popover: #0F172A;
+  --popover-foreground: #F8FAFC;
+  --primary: #6366F1;
   --primary-foreground: #FFFFFF;
-  --secondary: #374151;
-  --secondary-foreground: #FDFEFE;
-  --muted: #374151;
-  --muted-foreground: #9CA3AF;
-  --accent: #F27D72;
-  --accent-foreground: #FFFFFF;
-  --destructive: #F27D72;
+  --secondary: #1E293B;
+  --secondary-foreground: #F8FAFC;
+  --muted: #1E293B;
+  --muted-foreground: #94A3B8;
+  --accent: #1E293B;
+  --accent-foreground: #F8FAFC;
+  --destructive: #EF4444;
   --destructive-foreground: #FFFFFF;
-  --border: #4B5563;
-  --input: #4B5563;
-  --ring: #2EC4C7;
-  --chart-1: #2EC4C7;
-  --chart-2: #F27D72;
-  --chart-3: #1F2937;
-  --chart-4: #63D8DA;
-  --chart-5: #9CA3AF;
-  --sidebar: #111827;
-  --sidebar-foreground: #FDFEFE;
-  --sidebar-primary: #F27D72;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 210 40% 96.1%;
-  --sidebar-accent-foreground: 222.2 47.4% 11.2%;
-  --sidebar-border: 214.3 31.8% 91.4%;
-  --sidebar-ring: 217.2 91.2% 59.8%;
+  --border: #1E293B;
+  --input: #1E293B;
+  --ring: #6366F1;
+  --sidebar: #020617;
+  --sidebar-foreground: #F8FAFC;
+  --sidebar-primary: #6366F1;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #1E293B;
+  --sidebar-accent-foreground: #F8FAFC;
+  --sidebar-border: #1E293B;
+  --sidebar-ring: #6366F1;
 }
 
 /* Hide Next.js Development Overlay */
@@ -126,164 +116,6 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-
-  /* === TURQUOISE PALETTE === */
-  --color-emerald-50: #EAF7F6;
-  --color-emerald-100: #DDEEEE;
-  --color-emerald-200: #BBE1E2;
-  --color-emerald-300: #99D4D6;
-  --color-emerald-400: #63D8DA;
-  /* Aqua clair */
-  --color-emerald-500: #2EC4C7;
-  /* Turquoise Principal */
-  --color-emerald-600: #158C96;
-  /* Turquoise Foncé */
-  --color-emerald-700: #0E6269;
-  --color-emerald-800: #083D42;
-  --color-emerald-900: #031D1F;
-
-  --color-green-50: #EAF7F6;
-  --color-green-100: #DDEEEE;
-  --color-green-200: #BBE1E2;
-  --color-green-300: #99D4D6;
-  --color-green-400: #63D8DA;
-  --color-green-500: #2EC4C7;
-  --color-green-600: #158C96;
-  --color-green-700: #0E6269;
-  --color-green-800: #083D42;
-  --color-green-900: #031D1F;
-
-  /* === CORAIL PALETTE (Nouveau/Renforcé) === */
-  --color-orange-50: #FFF5F2;
-  --color-orange-100: #FFEAE4;
-  --color-orange-200: #FFD4C9;
-  --color-orange-300: #FFA08F;
-  /* Corail doux */
-  --color-orange-400: #FF8574;
-  --color-orange-500: #F27D72;
-  /* Corail Principal */
-  --color-orange-600: #D9655B;
-  --color-orange-700: #B34F47;
-  --color-orange-800: #8C3A34;
-  --color-orange-900: #662622;
-
-  /* === MINT / OFF-WHITE BACKGROUNDS PALETTE === */
-  --color-amber-50: #FDFEFE;
-  --color-amber-100: #EAF7F6;
-  --color-amber-200: #DDEEEE;
-  --color-amber-300: #C2DFDF;
-  --color-amber-400: #A8D1D1;
-  --color-amber-500: #88BDBD;
-  --color-amber-600: #6B7280;
-  --color-amber-700: #4B5563;
-  --color-amber-800: #374151;
-  --color-amber-900: #1F2937;
-
-  /* Reuse mint/white for blue/indigo buckets to ensure consistency */
-  --color-blue-50: #FDFEFE;
-  --color-blue-100: #EAF7F6;
-  --color-blue-200: #DDEEEE;
-  --color-blue-300: #C2DFDF;
-  --color-blue-400: #A8D1D1;
-  --color-blue-500: #88BDBD;
-  --color-blue-600: #6B7280;
-  --color-blue-700: #4B5563;
-  --color-blue-800: #374151;
-  --color-blue-900: #1F2937;
-
-  --color-indigo-50: #FDFEFE;
-  --color-indigo-100: #EAF7F6;
-  --color-indigo-200: #DDEEEE;
-  --color-indigo-300: #C2DFDF;
-  --color-indigo-400: #A8D1D1;
-  --color-indigo-500: #88BDBD;
-  --color-indigo-600: #6B7280;
-  --color-indigo-700: #4B5563;
-  --color-indigo-800: #374151;
-  --color-indigo-900: #1F2937;
-
-  --color-violet-50: #FDFEFE;
-  --color-violet-100: #EAF7F6;
-  --color-violet-200: #DDEEEE;
-  --color-violet-300: #C2DFDF;
-  --color-violet-400: #A8D1D1;
-  --color-violet-500: #88BDBD;
-  --color-violet-600: #6B7280;
-  --color-violet-700: #4B5563;
-  --color-violet-800: #374151;
-  --color-violet-900: #1F2937;
-
-  --color-purple-50: #FDFEFE;
-  --color-purple-100: #EAF7F6;
-  --color-purple-200: #DDEEEE;
-  --color-purple-300: #C2DFDF;
-  --color-purple-400: #A8D1D1;
-  --color-purple-500: #88BDBD;
-  --color-purple-600: #6B7280;
-  --color-purple-700: #4B5563;
-  --color-purple-800: #374151;
-  --color-purple-900: #1F2937;
-
-  /* === TEXTS / GRAYS PALETTE === */
-  --color-gray-50: #FDFEFE;
-  /* Blanc cassé */
-  --color-gray-100: #EAF7F6;
-  /* Menthe claire */
-  --color-gray-200: #DDEEEE;
-  /* Bordure légère */
-  --color-gray-300: #C2DFDF;
-  --color-gray-400: #A8D1D1;
-  --color-gray-500: #88BDBD;
-  --color-gray-600: #6B7280;
-  /* Texte secondaire */
-  --color-gray-700: #4B5563;
-  --color-gray-800: #374151;
-  --color-gray-900: #1F2937;
-  /* Texte principal */
-
-  --color-slate-50: #FDFEFE;
-  --color-slate-100: #EAF7F6;
-  --color-slate-200: #DDEEEE;
-  --color-slate-300: #C2DFDF;
-  --color-slate-400: #A8D1D1;
-  --color-slate-500: #88BDBD;
-  --color-slate-600: #6B7280;
-  --color-slate-700: #4B5563;
-  --color-slate-800: #374151;
-  --color-slate-900: #1F2937;
-
-  --color-zinc-50: #FDFEFE;
-  --color-zinc-100: #EAF7F6;
-  --color-zinc-200: #DDEEEE;
-  --color-zinc-300: #C2DFDF;
-  --color-zinc-400: #A8D1D1;
-  --color-zinc-500: #88BDBD;
-  --color-zinc-600: #6B7280;
-  --color-zinc-700: #4B5563;
-  --color-zinc-800: #374151;
-  --color-zinc-900: #1F2937;
-
-  --color-neutral-50: #FDFEFE;
-  --color-neutral-100: #EAF7F6;
-  --color-neutral-200: #DDEEEE;
-  --color-neutral-300: #C2DFDF;
-  --color-neutral-400: #A8D1D1;
-  --color-neutral-500: #88BDBD;
-  --color-neutral-600: #6B7280;
-  --color-neutral-700: #4B5563;
-  --color-neutral-800: #374151;
-  --color-neutral-900: #1F2937;
-
-  --color-stone-50: #FDFEFE;
-  --color-stone-100: #EAF7F6;
-  --color-stone-200: #DDEEEE;
-  --color-stone-300: #C2DFDF;
-  --color-stone-400: #A8D1D1;
-  --color-stone-500: #88BDBD;
-  --color-stone-600: #6B7280;
-  --color-stone-700: #4B5563;
-  --color-stone-800: #374151;
-  --color-stone-900: #1F2937;
 }
 
 @layer base {
@@ -303,14 +135,15 @@
 }
 
 .leaflet-popup-content-wrapper {
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
+  background-color: var(--card);
+  color: var(--foreground);
   border-radius: var(--radius);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border);
 }
 
 .leaflet-popup-tip {
-  background-color: hsl(var(--background));
+  background-color: var(--card);
 }
 
 .leaflet-popup-content {
@@ -333,20 +166,24 @@
 
 /* Marker styling */
 .marker-icon {
-  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.3));
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.2));
+  transition: all 0.2s ease;
 }
 
 .marker-icon:hover {
-  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.4));
+  transform: scale(1.1);
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.3));
 }
 
 /* Attribution control styling */
 .leaflet-attribution {
-  padding: 8px;
-  font-size: 11px;
-  background-color: rgba(255, 255, 255, 0.8);
+  padding: 4px 12px;
+  font-size: 10px;
+  background-color: rgba(255, 255, 255, 0.8) !important;
+  border-top-left-radius: 8px;
 }
 
 .dark .leaflet-attribution {
-  background-color: rgba(45, 58, 46, 0.8);
+  background-color: rgba(15, 23, 42, 0.8) !important;
+  color: #94A3B8;
 }

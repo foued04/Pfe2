@@ -41,16 +41,16 @@ export function TenantSidebar({ activeSection, onSectionChange, unreadMessageCou
   const { user, logout } = useAuth()
 
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-gradient-to-b from-[#1e3a8a] to-[#1d4ed8] text-white">
+    <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-gradient-to-b from-[#1e3a8a] to-[#1d4ed8] text-white shadow-xl">
       <div className="flex h-full flex-col">
         {/* Logo */}
         <div className="flex h-16 items-center gap-3 border-b border-white/20 px-6">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/20">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 border border-white/20">
             <Home className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-bold">ImmoSmart</h1>
-            <p className="text-xs text-white/80">{t("role.tenant")}</p>
+            <h1 className="text-xl font-black tracking-tight text-white">ImmoSmart</h1>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/80">{t("role.tenant")}</p>
           </div>
         </div>
 
@@ -65,10 +65,10 @@ export function TenantSidebar({ activeSection, onSectionChange, unreadMessageCou
                 key={item.key}
                 onClick={() => onSectionChange(item.key)}
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all duration-200",
+                  "group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-300",
                   isActive
-                    ? "bg-[#3b82f6] text-white shadow-md"
-                    : "text-white/85 hover:bg-white/15 hover:text-white"
+                    ? "bg-white text-blue-700 shadow-lg shadow-black/10 scale-105"
+                    : "text-white/80 hover:bg-white/10 hover:text-white"
                 )}
               >
                 <Icon className="h-5 w-5" />

@@ -7,6 +7,11 @@ const { auth } = require('../middlewares/auth.middleware');
 router.get('/', furnitureController.getFurniture);
 
 // Protected routes
+router.post('/', auth, furnitureController.addFurniture);
+router.put('/:id', auth, furnitureController.updateFurniture);
+router.delete('/:id', auth, furnitureController.deleteFurniture);
+router.patch('/:id/status', auth, furnitureController.updateFurnitureStatus); // Admin usually
+
 router.post('/order', auth, furnitureController.saveFurnitureOrder);
 router.get('/order/:contractId', auth, furnitureController.getFurnitureOrderByContract);
 router.get('/owner-orders', auth, furnitureController.getFurnitureOrdersForOwner);

@@ -33,8 +33,10 @@ import FavoritesPage from "./pages/FavoritesPage"
 import FurniturePage from "./pages/FurniturePage"
 import MaintenancePage from "./pages/MaintenancePage"
 import HousingNeedsPage from "./pages/HousingNeedsPage"
+import MobileChatbot from "./components/MobileChatbot"
 
 import "@ionic/react/css/core.css"
+
 import "@ionic/react/css/normalize.css"
 import "@ionic/react/css/structure.css"
 import "@ionic/react/css/typography.css"
@@ -143,7 +145,9 @@ const App: React.FC = () => (
       <IonReactRouter>
         <AppTabs />
       </IonReactRouter>
+      <MobileChatbot />
     </AuthProvider>
+
   </IonApp>
 )
 
