@@ -9,7 +9,12 @@ const furnitureChangeRequestSchema = new mongoose.Schema({
   contractId: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'Contract',
-    required: true 
+    required: false 
+  },
+  propertyId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Property',
+    required: false
   },
   tenantId: { 
     type: String, // Tenant email or ID

@@ -193,6 +193,9 @@ export type BackendFurniture = {
 export type BackendFurnitureOrder = {
   _id: string
   contract?: string
+  property?: string
+  owner?: string
+  tenant?: string
   items: Array<{
     furniture: string | BackendFurniture
     quantity: number
@@ -205,11 +208,14 @@ export type BackendFurnitureOrder = {
 
 export type BackendFurnitureChangeRequest = {
   _id: string
-  contract: string
-  requestedItems: Array<{
-    name: string
-    reason: string
-  }>
+  furnitureId: string | BackendFurniture
+  contractId?: string
+  propertyId?: string
+  tenantId: string
+  type: string
+  reason: string
+  description?: string
+  photo?: string
   status: string
   createdAt?: string
 }

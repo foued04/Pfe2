@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState, type ReactNode } from "react"
+import { useRouter } from "next/navigation"
 import { useAuth, type UserRole } from "@/lib/auth-context"
 import { ArrowRight, BadgeCheck, Building2, Eye, EyeOff, Home, KeyRound, ShieldCheck, Sparkles, X } from "lucide-react"
 import { useGoogleLogin } from "@react-oauth/google"
@@ -108,6 +109,7 @@ function GoogleButton({ view, onClick }: { view: View; onClick: () => void }) {
 
 export function AuthForms({ initialView = "login", onClose }: { initialView?: View; onClose?: () => void }) {
   const { login, register, loginWithGoogle } = useAuth()
+  const router = useRouter()
   const [view, setView] = useState<View>(initialView)
   const [role, setRole] = useState<UserRole>("tenant")
   const [isAdminLogin, setIsAdminLogin] = useState(false)
@@ -137,6 +139,13 @@ export function AuthForms({ initialView = "login", onClose }: { initialView?: Vi
     if (error) setError("");
   };
 
+  const getDashboardPath = (userRole?: UserRole) => {
+    if (userRole === "owner") return "/dashboard/owner"
+    if (userRole === "tenant") return "/dashboard/tenant"
+    if (userRole === "admin") return "/dashboard/admin"
+    return "/dashboard"
+  }
+
   const resetFields = () => {
     setName("")
     setEmail("")
@@ -165,8 +174,14 @@ export function AuthForms({ initialView = "login", onClose }: { initialView?: Vi
       setIsLoading(true)
       setError("")
       try {
-        const { success, message } = await loginWithGoogle(tokenResponse.access_token)
-        if (!success) setError(message || "Echec de la connexion Google")
+        const googleMode = view === "register" ? "register" : "login"
+        const result = await loginWithGoogle(
+          tokenResponse.access_token,
+          googleMode,
+          googleMode === "register" ? role : undefined
+        )
+        if (!result.success) setError(result.message || "Echec de la connexion Google")
+        else router.replace(getDashboardPath(result.role))
       } catch {
         setError("Erreur lors de la connexion Google")
       } finally {
@@ -175,6 +190,11 @@ export function AuthForms({ initialView = "login", onClose }: { initialView?: Vi
     },
     onError: () => setError("Erreur Google OAuth"),
   })
+
+  const handleGoogleAuthClick = () => {
+    setError("")
+    googleLogin()
+  }
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -185,6 +205,7 @@ export function AuthForms({ initialView = "login", onClose }: { initialView?: Vi
       if (view === "login") {
         const r = await login(email, password, isAdminLogin ? "admin" : undefined)
         if (!r.success) setError(r.message || "Email ou mot de passe incorrect")
+        else router.replace(getDashboardPath(r.role))
       } else if (view === "register") {
         if (password.length < 6) {
           setError("Le mot de passe doit contenir au moins 6 caracteres.")
@@ -336,7 +357,7 @@ export function AuthForms({ initialView = "login", onClose }: { initialView?: Vi
               </button>
               {(view === "login" || view === "register") && !isAdminLogin && <>
                 <div className={styles.divider}><span>ou</span></div>
-                <GoogleButton view={view} onClick={() => googleLogin()} />
+                <GoogleButton view={view} onClick={handleGoogleAuthClick} />
               </>}
               <div className={styles.footer}>
                 {view === "login" && !isAdminLogin && <p>Pas encore inscrit ? <button type="button" className={styles.linkAccent} onClick={() => { setView("register"); setError("") }}>Creer un compte</button></p>}

@@ -40,8 +40,24 @@ const NotificationSchema = new mongoose.Schema({
       technician: String
     }
   },
+  // Keep backward compatibility with old clients (string URLs) and new clients (object metadata)
+  attachments: [{
+    type: mongoose.Schema.Types.Mixed
+  }],
+  claimMeta: {
+    claimId: String,
+    tenantId: String,
+    ownerId: String,
+    propertyId: String,
+    propertyTitle: String,
+    category: String,
+    priority: String,
+    source: String,
+    photos: [String]
+  },
   contractData: {
     contractId: String,
+    requestId: String,
     propertyTitle: String,
     propertyAddress: String,
     propertyImage: String,

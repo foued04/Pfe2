@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect, useRef } from "react"
+import Link from "next/link"
 import { useI18n } from "@/lib/i18n"
 import { useAuth } from "@/lib/auth-context"
 import {
@@ -40,10 +41,11 @@ import {
 } from "lucide-react"
 import { ContractView } from "./contract-view"
 import { Contract } from "@/lib/rental-request-data"
+import { Card, CardContent } from "./ui/card"
 
 export function MessagesModule() {
   const { lang } = useI18n()
-  const { user } = useAuth()
+  const { logout, user } = useAuth()
   const currentUserId = String(user?.id || "")
   
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -55,9 +57,18 @@ export function MessagesModule() {
   const [sendViaEmail, setSendViaEmail] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [contractToView, setContractToView] = useState<Contract | null>(null)
+  const [sessionExpired, setSessionExpired] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+
+  const handleUnauthorized = () => {
+    setSessionExpired(true)
+    setConversations([])
+    setMessages([])
+    setActiveConversationId(null)
+    logout()
+  }
 
   const fetchConversations = async () => {
     try {
@@ -65,6 +76,10 @@ export function MessagesModule() {
       const response = await fetch(`${API_URL}/messages`, {
         headers: { Authorization: `Bearer ${token}` }
       })
+      if (response.status === 401) {
+        handleUnauthorized()
+        return
+      }
       if (response.ok) {
         const data = await response.json()
         const dataArray = Array.isArray(data) ? data : []
@@ -92,6 +107,10 @@ export function MessagesModule() {
       const response = await fetch(`${API_URL}/messages/${convId}/messages`, {
         headers: { Authorization: `Bearer ${token}` }
       })
+      if (response.status === 401) {
+        handleUnauthorized()
+        return
+      }
       if (response.ok) {
         const data = await response.json()
         setMessages(data.map((m: any) => ({
@@ -117,12 +136,17 @@ export function MessagesModule() {
       const response = await fetch(`${API_URL}/contracts/${contractId}`, {
         headers: { Authorization: `Bearer ${token}` }
       })
+      if (response.status === 401) {
+        handleUnauthorized()
+        return
+      }
       if (response.ok) {
         const data = await response.json()
         const contract: Contract = {
           id: data._id,
           requestId: data.request?._id || data.request,
           propertyId: data.property?._id || data.property,
+          propertyImage: data.property?.images?.cover || "",
           propertyTitle: data.property?.title || "...",
           ownerName: data.owner?.fullName || "...",
           ownerEmail: data.owner?.email || "...",
@@ -162,6 +186,10 @@ export function MessagesModule() {
         },
         body: JSON.stringify({ signature })
       })
+      if (response.status === 401) {
+        handleUnauthorized()
+        return
+      }
       if (response.ok) {
         const updated = await response.json()
         setContractToView(prev => prev ? { ...prev, tenantSignature: signature, status: updated.status } : null)
@@ -172,19 +200,48 @@ export function MessagesModule() {
     }
   }
 
+  const handleTenantSendBack = async (message: string) => {
+    if (!contractToView) return
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/contracts/${contractToView.id}/send-back`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ message })
+      })
+      if (response.status === 401) {
+        handleUnauthorized()
+        return
+      }
+
+      if (response.ok) {
+        const updated = await response.json()
+        setContractToView(prev => prev ? { ...prev, status: updated.status || "SignedByTenant" } : null)
+        alert(lang === "fr" ? "Contrat renvoyé au propriétaire." : "Contract sent back to owner.")
+      }
+    } catch (err) {
+      console.error("Send back contract error:", err)
+    }
+  }
+
   useEffect(() => {
+    if (sessionExpired) return
     fetchConversations()
     const interval = setInterval(fetchConversations, 10000)
     return () => clearInterval(interval)
-  }, [])
+  }, [sessionExpired])
 
   useEffect(() => {
+    if (sessionExpired) return
     if (activeConversationId) {
       fetchMessages(activeConversationId)
       const interval = setInterval(() => fetchMessages(activeConversationId), 5000)
       return () => clearInterval(interval)
     }
-  }, [activeConversationId])
+  }, [activeConversationId, sessionExpired])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -211,7 +268,7 @@ export function MessagesModule() {
   }, [messages, activeConversationId])
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !activeConversationId || isLoading) return
+    if (!newMessage.trim() || !activeConversationId || isLoading || sessionExpired) return
     setIsLoading(true)
     try {
       const token = localStorage.getItem("accessToken")
@@ -226,6 +283,10 @@ export function MessagesModule() {
           content: newMessage.trim()
         })
       })
+      if (response.status === 401) {
+        handleUnauthorized()
+        return
+      }
       if (response.ok) {
         setNewMessage("")
         fetchMessages(activeConversationId)
@@ -264,6 +325,33 @@ export function MessagesModule() {
     return Icon
   }
 
+  if (sessionExpired) {
+    return (
+      <Card className="rounded-3xl border border-orange-200 bg-orange-50/60 shadow-sm">
+        <CardContent className="flex min-h-[360px] flex-col items-center justify-center gap-4 p-10 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-orange-500 shadow-sm">
+            <MessageSquare className="h-8 w-8" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-2xl font-bold text-slate-900">
+              {lang === "fr" ? "Session expiree" : "Session expired"}
+            </h3>
+            <p className="max-w-md text-sm text-slate-600">
+              {lang === "fr"
+                ? "Votre session a expire. Veuillez vous reconnecter pour acceder a vos messages."
+                : "Your session expired. Please sign in again to access your messages."}
+            </p>
+          </div>
+          <Button asChild>
+            <Link href="/login">
+              {lang === "fr" ? "Se reconnecter" : "Sign in again"}
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <>
       {contractToView && (
@@ -274,7 +362,7 @@ export function MessagesModule() {
                 onBack={() => setContractToView(null)}
                 onOwnerSign={() => {}} // Owner signatures are handled in RentalRequestsModule
                 onTenantSign={handleTenantSign}
-                onSendToTenant={() => {}}
+                onSendToTenant={handleTenantSendBack}
                 userRole={user?.role as any}
               />
            </div>

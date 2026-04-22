@@ -26,11 +26,7 @@ import {
   Lock, 
   Camera, 
   Save, 
-  FileText, 
-  Settings,
-  Bell,
-  Globe,
-  Upload,
+  FileText,  Bell,  Upload,
   Trash2,
   Activity,
   AlertCircle,
@@ -43,17 +39,15 @@ import {
   TrendingUp,
   Wrench,
   ShieldCheck,
-  Eye,
   RefreshCw,
   ExternalLink, Landmark, Fingerprint
 } from "lucide-react"
 import { Progress } from "./ui/progress"
 
 export function OwnerProfile({ properties = [], requestCount = 0 }: { properties?: any[], requestCount?: number }) {
-  const { lang, setLang } = useI18n()
+  const { lang } = useI18n()
   const { user, updateProfile, updatePassword } = useAuth()
   const { toast } = useToast()
-
   const isFr = lang === "fr"
 
   const [isLoading, setIsLoading] = useState(false)
@@ -409,10 +403,6 @@ export function OwnerProfile({ properties = [], requestCount = 0 }: { properties
             <Lock className="h-4 w-4" />
             <span className="font-semibold">{lang === "fr" ? "Sécurité" : "Security"}</span>
           </TabsTrigger>
-          <TabsTrigger value="settings" className="flex-1 min-w-[120px] gap-2 rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary h-10">
-            <Settings className="h-4 w-4" />
-            <span className="font-semibold">{lang === "fr" ? "Paramètres" : "Settings"}</span>
-          </TabsTrigger>
           <TabsTrigger value="diagnostic" className="flex-1 min-w-[120px] gap-2 rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary h-10">
             <Activity className="h-4 w-4" />
             <span className="font-semibold">{lang === "fr" ? "Diagnostic" : "Diagnostic"}</span>
@@ -603,67 +593,6 @@ export function OwnerProfile({ properties = [], requestCount = 0 }: { properties
           </Card>
         </TabsContent>
 
-        {/* ─── SETTINGS ─────────────────────────────────────────────────── */}
-        <TabsContent value="settings">
-          <Card className="max-w-2xl shadow-sm border-border/50">
-            <CardHeader>
-              <CardTitle className="text-lg">{lang === "fr" ? "Paramètres du compte" : "Account Settings"}</CardTitle>
-              <CardDescription>
-                {lang === "fr" ? "Configurez vos préférences système et notifications." : "Configure your system preferences and notifications."}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              
-              {/* Language Settings */}
-              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl border border-border/50">
-                <div className="flex items-start gap-4">
-                  <div className="p-2 bg-background rounded-lg shadow-sm border border-border/50">
-                    <Globe className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-foreground text-sm">{lang === "fr" ? "Langue de l'interface" : "Interface Language"}</h4>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {lang === "fr" ? "Choisissez votre langue préférée." : "Choose your preferred language."}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex bg-background border border-border rounded-lg overflow-hidden shadow-sm">
-                  <button 
-                    onClick={() => setLang("fr")}
-                    className={`px-3 py-1.5 text-xs font-bold transition-colors ${lang === "fr" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
-                  >
-                    Français
-                  </button>
-                  <button 
-                    onClick={() => setLang("en")}
-                    className={`px-3 py-1.5 text-xs font-bold transition-colors ${lang === "en" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
-                  >
-                    English
-                  </button>
-                </div>
-              </div>
-
-              {/* Notification Settings */}
-              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl border border-border/50 opacity-70">
-                <div className="flex items-start gap-4">
-                  <div className="p-2 bg-background rounded-lg shadow-sm border border-border/50">
-                    <Bell className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-foreground text-sm">{lang === "fr" ? "Notifications Email" : "Email Notifications"}</h4>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {lang === "fr" ? "M'alerter lors d'une nouvelle demande (Bientôt disponible)." : "Alert me on new requests (Coming soon)."}
-                    </p>
-                  </div>
-                </div>
-                <Button variant="outline" size="sm" disabled>
-                  {lang === "fr" ? "Activé" : "Enabled"}
-                </Button>
-              </div>
-
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         {/* ─── DIAGNOSTIC / ANALYTIQUE ───────────────────────────────────── */}
         <TabsContent value="diagnostic">
@@ -1036,3 +965,5 @@ export function OwnerProfile({ properties = [], requestCount = 0 }: { properties
     </div>
   )
 }
+
+

@@ -1,6 +1,8 @@
 const asyncHandler = require('../utils/asyncHandler');
 const rentalRequestService = require('../services/rentalRequest.service');
 const ApiError = require('../utils/ApiError');
+const Conversation = require('../models/Conversation.model');
+const Message = require('../models/Message.model');
 
 const createRequest = asyncHandler(async (req, res) => {
   const requestBody = {
@@ -42,6 +44,43 @@ const updateRequestStatus = asyncHandler(async (req, res) => {
   }
 
   const updatedRequest = await rentalRequestService.updateRentalRequestStatus(requestId, status);
+
+  // Mirror owner decision in discussion thread for this request.
+  const conversation = await Conversation.findOne({
+    contextId: String(requestId),
+    participants: req.user._id,
+  }).sort({ updatedAt: -1 });
+
+  if (conversation) {
+    const normalizedStatus = String(status || '').toLowerCase();
+    let ownerMessage = null;
+    if (normalizedStatus.includes('accept')) {
+      ownerMessage = "Votre demande a ete acceptee.";
+    } else if (normalizedStatus.includes('refus')) {
+      ownerMessage = "Votre demande a ete refusee.";
+    } else if (normalizedStatus.includes('gen') || normalizedStatus.includes('gener')) {
+      ownerMessage = "Le contrat a ete genere et est pret a etre consulte.";
+    } else if (normalizedStatus.includes('actif') || normalizedStatus.includes('active')) {
+      ownerMessage = "Le contrat est desormais actif.";
+    }
+
+    if (ownerMessage) {
+      const decisionMessage = await Message.create({
+        conversation: conversation._id,
+        sender: req.user._id,
+        content: ownerMessage,
+        source: 'platform',
+        metadata: {
+          requestId: updatedRequest._id,
+          type: 'rental_request_status_update',
+          status,
+        },
+      });
+
+      conversation.lastMessage = decisionMessage._id;
+      await conversation.save();
+    }
+  }
   
   // If status is "Contrat actif", update property status to "rented"
   if (status === "Contrat actif") {

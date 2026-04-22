@@ -18,7 +18,12 @@ import { RentalRequestDetailsModal } from "./rental-request-details-modal"
 import { ContractView } from "./contract-view"
 import { Contract } from "@/lib/rental-request-data"
 
-export function TenantRequestsModule() {
+interface TenantRequestsModuleProps {
+  autoOpenRequestId?: string | null
+  onAutoOpenHandled?: () => void
+}
+
+export function TenantRequestsModule({ autoOpenRequestId, onAutoOpenHandled }: TenantRequestsModuleProps) {
   const { lang } = useI18n()
   const { user } = useAuth()
   const [requests, setRequests] = useState<RentalRequest[]>([])
@@ -93,6 +98,16 @@ export function TenantRequestsModule() {
     fetchRequests()
   }, [user])
 
+  useEffect(() => {
+    if (!autoOpenRequestId || requests.length === 0) return
+    const requestToOpen = requests.find((r) => r.id === autoOpenRequestId)
+    if (!requestToOpen) return
+
+    setSelectedRequest(requestToOpen)
+    setIsDetailsOpen(true)
+    if (onAutoOpenHandled) onAutoOpenHandled()
+  }, [autoOpenRequestId, requests, onAutoOpenHandled])
+
   const stats = {
     total: requests.length,
     pending: requests.filter((r) => r.status === "pending").length,
@@ -155,6 +170,7 @@ export function TenantRequestsModule() {
           id: fullData._id,
           requestId: fullData.request?._id || fullData.request,
           propertyId: fullData.property?._id || fullData.property,
+          propertyImage: fullData.property?.images?.cover || "",
           propertyTitle: fullData.property?.title || "...",
           ownerName: fullData.owner?.fullName || "...",
           ownerEmail: fullData.owner?.email || "...",
@@ -206,7 +222,8 @@ export function TenantRequestsModule() {
               })
 
               if (response.ok) {
-                setViewingContract(prev => prev ? { ...prev, tenantSignature: signature, status: "SignedByBoth" } : null)
+                const signedData = await response.json()
+                setViewingContract(prev => prev ? { ...prev, tenantSignature: signature, status: signedData.status || "SignedByTenant" } : null)
                 alert(lang === "fr" ? "Contrat signé avec succès !" : "Contract signed successfully!")
                 // Refresh requests to update status to 'Contrat actif'
                 fetchRequests()
@@ -215,7 +232,28 @@ export function TenantRequestsModule() {
               console.error("Tenant sign error:", err)
             }
           }}
-          onSendToTenant={() => {}} // Handled by owner
+          onSendToTenant={async (message) => {
+            if (!viewingContract) return
+            try {
+              const token = localStorage.getItem("accessToken")
+              const response = await fetch(`${API_URL}/contracts/${viewingContract.id}/send-back`, {
+                method: "PUT",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({ message })
+              })
+
+              if (response.ok) {
+                const updated = await response.json()
+                setViewingContract(prev => prev ? { ...prev, status: updated.status || "SignedByTenant" } : null)
+                alert(lang === "fr" ? "Contrat renvoyé au propriétaire." : "Contract sent back to owner.")
+              }
+            } catch (err) {
+              console.error("Send back contract error:", err)
+            }
+          }}
           userRole="tenant"
         />
       </div>

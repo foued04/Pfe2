@@ -18,6 +18,7 @@ interface FurnitureCartProps {
   onPropertyChange: (id: string) => void
   paymentMethod: string
   onPaymentMethodChange: (method: string) => void
+  properties?: any[]
 }
 
 export function FurnitureCart({
@@ -28,7 +29,8 @@ export function FurnitureCart({
   propertyId,
   onPropertyChange,
   paymentMethod,
-  onPaymentMethodChange
+  onPaymentMethodChange,
+  properties = []
 }: FurnitureCartProps) {
   const { t, lang } = useI18n()
 
@@ -122,9 +124,15 @@ export function FurnitureCart({
                   <SelectValue placeholder={t("furn.property")} />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-none shadow-xl">
-                  {mockProperties.map(p => (
-                    <SelectItem key={p.id} value={p.id} className="rounded-lg">{p.title}</SelectItem>
-                  ))}
+                  {properties.length > 0 ? (
+                    properties.map(p => (
+                      <SelectItem key={p.id || p._id} value={p.id || p._id} className="rounded-lg">{p.title}</SelectItem>
+                    ))
+                  ) : (
+                    mockProperties.map(p => (
+                      <SelectItem key={p.id} value={p.id} className="rounded-lg">{p.title}</SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>

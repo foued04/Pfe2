@@ -41,6 +41,19 @@ export interface Property {
   lng: number
   createdAt: string
   moderationStatus?: "pending" | "approved" | "rejected"
+  furnishing?: {
+    type: string
+    level: string
+    estimatedTotalValue: number
+    items: Array<{
+      name: string
+      category: string
+      condition: string
+      quantity: number
+      estimatedPrice: number
+      description: string
+    }>
+  }
 }
 
 export function mapBackendProperty(p: any): Property {
@@ -79,7 +92,20 @@ export function mapBackendProperty(p: any): Property {
     lat: p.lat || 35.777,
     lng: p.lng || 10.826,
     createdAt: p.createdAt || new Date().toISOString().slice(0, 10),
-    moderationStatus: p.moderationStatus
+    moderationStatus: p.moderationStatus,
+    furnishing: p.furnishing ? {
+      type: p.furnishing.type || "Non meublé",
+      level: p.furnishing.level || "Standard",
+      estimatedTotalValue: p.furnishing.estimatedTotalValue || 0,
+      items: (p.furnishing.items || []).map((item: any) => ({
+        name: item.name || "",
+        category: item.category || "",
+        condition: item.condition || "Bon état",
+        quantity: item.quantity || 1,
+        estimatedPrice: item.estimatedPrice || 0,
+        description: item.description || ""
+      }))
+    } : undefined
   }
 }
 
@@ -189,6 +215,21 @@ export const mockProperties: Property[] = [
     lat: 35.8320,
     lng: 10.8480,
     createdAt: "2024-01-05",
+    furnishing: {
+      type: "Meublé",
+      level: "Premium",
+      estimatedTotalValue: 15000,
+      items: [
+        {
+          name: "Table de jardin",
+          category: "Extérieur",
+          condition: "Neuf",
+          quantity: 1,
+          estimatedPrice: 600,
+          description: "Table en rotin avec 4 chaises"
+        }
+      ]
+    }
   },
   {
     id: "4",

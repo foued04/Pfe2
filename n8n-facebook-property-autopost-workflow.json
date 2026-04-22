@@ -1,0 +1,292 @@
+{
+  "name": "Facebook Auto Post - New Approved Property",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "*/5 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-every-5-min",
+      "name": "Every 5 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1080,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "aggregate",
+        "collection": "properties",
+        "query": "[\n  {\n    \"$match\": {\n      \"moderationStatus\": \"approved\",\n      \"$or\": [\n        { \"facebookPostPublished\": { \"$exists\": false } },\n        { \"facebookPostPublished\": false }\n      ]\n    }\n  },\n  {\n    \"$lookup\": {\n      \"from\": \"users\",\n      \"localField\": \"owner\",\n      \"foreignField\": \"_id\",\n      \"as\": \"ownerData\"\n    }\n  },\n  {\n    \"$unwind\": {\n      \"path\": \"$ownerData\",\n      \"preserveNullAndEmptyArrays\": true\n    }\n  },\n  {\n    \"$project\": {\n      \"_id\": { \"$toString\": \"$_id\" },\n      \"title\": 1,\n      \"description\": 1,\n      \"city\": 1,\n      \"address\": 1,\n      \"rent\": 1,\n      \"deposit\": 1,\n      \"type\": 1,\n      \"surface\": 1,\n      \"bedrooms\": 1,\n      \"bathrooms\": 1,\n      \"availability\": 1,\n      \"status\": 1,\n      \"coverImage\": \"$images.cover\",\n      \"gallery\": \"$images.gallery\",\n      \"ownerName\": \"$ownerData.fullName\",\n      \"createdAt\": 1\n    }\n  },\n  {\n    \"$sort\": {\n      \"createdAt\": -1\n    }\n  }\n]\n"
+      },
+      "id": "find-approved-unposted-properties",
+      "name": "Find Approved Unposted Properties",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1,
+      "position": [
+        -820,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(({ json }) => {\n  const typeMap = {\n    s0: 'Studio S0',\n    s1: 'Appartement S1',\n    s2: 'Appartement S2',\n    s3: 'Appartement S3',\n    s4: 'Appartement S4',\n    villa: 'Villa',\n  };\n\n  const clean = (value) => (value ?? '').toString().trim();\n  const truncate = (value, max) => {\n    const text = clean(value);\n    return text.length > max ? `${text.slice(0, max - 3)}...` : text;\n  };\n\n  const propertyType = typeMap[json.type] || clean(json.type) || 'Bien immobilier';\n  const title = clean(json.title) || 'Nouvelle propriete disponible';\n  const city = clean(json.city);\n  const address = clean(json.address);\n  const ownerName = clean(json.ownerName);\n  const price = Number(json.rent || 0);\n  const deposit = Number(json.deposit || 0);\n  const bedrooms = Number(json.bedrooms || 0);\n  const bathrooms = Number(json.bathrooms || 0);\n  const surface = Number(json.surface || 0);\n  const availability = clean(json.availability);\n  const coverImage = clean(json.coverImage);\n  const publicBaseUrl = clean($env.PUBLIC_PROPERTY_BASE_URL);\n  const pageId = clean($env.FACEBOOK_PAGE_ID);\n  const pageAccessToken = clean($env.FACEBOOK_PAGE_ACCESS_TOKEN);\n  const propertyUrl = publicBaseUrl ? `${publicBaseUrl.replace(/\\/$/, '')}/${json._id}` : '';\n\n  const lines = [\n    `Nouveau bien disponible a ${city || 'Tunisie'}!`,\n    '',\n    `${propertyType}: ${title}`,\n    address ? `Adresse: ${address}` : '',\n    price ? `Loyer: ${price} TND / mois` : '',\n    deposit ? `Caution: ${deposit} TND` : '',\n    bedrooms ? `Chambres: ${bedrooms}` : '',\n    bathrooms ? `Salles de bain: ${bathrooms}` : '',\n    surface ? `Surface: ${surface} m2` : '',\n    availability ? `Disponible a partir du: ${availability}` : '',\n    ownerName ? `Proprietaire: ${ownerName}` : '',\n    '',\n    truncate(json.description, 220),\n    '',\n    propertyUrl ? `Voir le bien: ${propertyUrl}` : 'Contactez-nous en message prive pour plus de details.',\n    '',\n    '#immobilier #location #tunisie #appartement #villa'\n  ].filter(Boolean);\n\n  const message = lines.join('\\n');\n  const graphBase = pageId ? `https://graph.facebook.com/v23.0/${pageId}` : '';\n\n  return {\n    json: {\n      ...json,\n      pageId,\n      pageAccessToken,\n      propertyUrl,\n      postMessage: message,\n      photoEndpoint: graphBase ? `${graphBase}/photos` : '',\n      feedEndpoint: graphBase ? `${graphBase}/feed` : '',\n      hasCoverImage: Boolean(coverImage),\n    },\n  };\n});"
+      },
+      "id": "build-facebook-post",
+      "name": "Build Facebook Post",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -560,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ !!$json.pageId && !!$json.pageAccessToken }}"
+            }
+          ]
+        }
+      },
+      "id": "facebook-config-present",
+      "name": "Facebook Config Present?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -300,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.hasCoverImage }}"
+            }
+          ]
+        }
+      },
+      "id": "has-cover-image",
+      "name": "Has Cover Image?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.photoEndpoint }}",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "={{ $json.coverImage }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $json.postMessage }}"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $json.pageAccessToken }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "post-photo-to-facebook",
+      "name": "Post Photo to Facebook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.feedEndpoint }}",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "message",
+              "value": "={{ $json.postMessage }}"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $json.pageAccessToken }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "post-text-to-facebook",
+      "name": "Post Text to Facebook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item) => {\n  const facebookPostId = item.json.post_id || item.json.id || '';\n  return {\n    json: {\n      propertyId: $('Build Facebook Post').item.json._id,\n      facebookPostId,\n      postedAt: new Date().toISOString(),\n    },\n  };\n});"
+      },
+      "id": "prepare-mongo-update",
+      "name": "Prepare Mongo Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "collection": "properties",
+        "updateKey": "_id",
+        "fields": "={{ $json.propertyId }}",
+        "updateData": "={\n  \"$set\": {\n    \"facebookPostPublished\": true,\n    \"facebookPostId\": \"{{$json.facebookPostId}}\",\n    \"facebookPostedAt\": \"{{$json.postedAt}}\"\n  }\n}"
+      },
+      "id": "mark-property-as-posted",
+      "name": "Mark Property as Posted",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1,
+      "position": [
+        760,
+        200
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Every 5 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Find Approved Unposted Properties",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Approved Unposted Properties": {
+      "main": [
+        [
+          {
+            "node": "Build Facebook Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Facebook Post": {
+      "main": [
+        [
+          {
+            "node": "Facebook Config Present?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Facebook Config Present?": {
+      "main": [
+        [
+          {
+            "node": "Has Cover Image?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Has Cover Image?": {
+      "main": [
+        [
+          {
+            "node": "Post Photo to Facebook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Post Text to Facebook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post Photo to Facebook": {
+      "main": [
+        [
+          {
+            "node": "Prepare Mongo Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post Text to Facebook": {
+      "main": [
+        [
+          {
+            "node": "Prepare Mongo Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Mongo Update": {
+      "main": [
+        [
+          {
+            "node": "Mark Property as Posted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "00000000-0000-0000-0000-000000000002",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "id": "facebook-auto-post-approved-property",
+  "tags": []
+}

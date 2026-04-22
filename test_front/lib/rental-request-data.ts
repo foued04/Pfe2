@@ -35,6 +35,7 @@ export interface Contract {
   id: string
   requestId: string
   propertyId: string
+  propertyImage?: string
   propertyTitle: string
   propertyAddress: string
   propertyType: string

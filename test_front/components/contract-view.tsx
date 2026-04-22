@@ -222,6 +222,15 @@ export function ContractView({ contract, onBack, onOwnerSign, onTenantSign, onSe
                 {lang === "fr" ? "Désignation du Bien" : "Property Description"}
               </p>
             </div>
+            {contract.propertyImage ? (
+              <div className="overflow-hidden rounded-2xl border border-secondary/10">
+                <img
+                  src={contract.propertyImage}
+                  alt={contract.propertyTitle}
+                  className="h-44 w-full object-cover"
+                />
+              </div>
+            ) : null}
             <div className="bg-background rounded-2xl p-6 border border-secondary/10">
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-3">

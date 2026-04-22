@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { toast } from "@/hooks/use-toast"
 import {
   Dialog,
   DialogContent,
@@ -21,20 +22,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { X, Send, Home, MapPin, Calendar } from "lucide-react"
+import { X, Send, MapPin, Calendar } from "lucide-react"
 import Image from "next/image"
 
 interface ContactOwnerFormProps {
   property: Property | null
   isOpen: boolean
   onClose: () => void
-  onSuccess?: () => void
+  onSuccess?: (requestId?: string) => void
 }
 
 export function ContactOwnerForm({ property, isOpen, onClose, onSuccess }: ContactOwnerFormProps) {
   const { t, lang } = useI18n()
   const { user } = useAuth()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+
   const [formData, setFormData] = useState({
     name: user?.name || "",
     email: user?.email || "",
@@ -50,12 +53,21 @@ export function ContactOwnerForm({ property, isOpen, onClose, onSuccess }: Conta
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setSubmitError(null)
+
     if (!user) {
-      alert(t("auth.loginRequired") || "Vous devez être connecté pour envoyer une demande.")
+      const message = t("auth.loginRequired") || "Vous devez etre connecte pour envoyer une demande."
+      setSubmitError(message)
+      toast({
+        title: lang === "fr" ? "Connexion requise" : "Login required",
+        description: message,
+        variant: "destructive",
+      })
       return
     }
+
     setIsSubmitting(true)
-    
+
     try {
       const token = localStorage.getItem("accessToken")
       const response = await fetch(`${API_URL}/rental-requests`, {
@@ -67,24 +79,45 @@ export function ContactOwnerForm({ property, isOpen, onClose, onSuccess }: Conta
         body: JSON.stringify({
           property: (property as any)._id || property.id,
           duration: formData.duration,
-          message: `${formData.message}${formData.visitDate ? ` (Date de visite souhaitée: ${formData.visitDate})` : ""}`,
+          message: `${formData.message}${formData.visitDate ? ` (Date de visite souhaitee: ${formData.visitDate})` : ""}`,
         }),
       })
 
       if (response.ok) {
+        const createdRequest = await response.json()
+        const createdRequestId = createdRequest?._id
+
         setIsSubmitting(false)
         onClose()
-        // Reset form
-        setFormData(prev => ({ ...prev, message: "", visitDate: "" }))
-        alert(lang === "fr" ? "Demande envoyée avec succès !" : "Request sent successfully!")
-        if (onSuccess) onSuccess()
+        setFormData((prev) => ({ ...prev, message: "", visitDate: "" }))
+        toast({
+          title: lang === "fr" ? "Demande envoyee" : "Request sent",
+          description:
+            lang === "fr"
+              ? "Votre demande a ete envoyee avec succes."
+              : "Your request was sent successfully.",
+        })
+
+        if (onSuccess) onSuccess(createdRequestId)
       } else {
         const err = await response.json()
-        alert(err.message || "Erreur lors de l'envoi de la demande.")
+        const message = err.message || "Erreur lors de l'envoi de la demande."
+        setSubmitError(message)
+        toast({
+          title: lang === "fr" ? "Echec de l'envoi" : "Send failed",
+          description: message,
+          variant: "destructive",
+        })
       }
     } catch (err) {
       console.error("Submit rental request error:", err)
-      alert("Erreur de connexion au serveur.")
+      const message = "Erreur de connexion au serveur."
+      setSubmitError(message)
+      toast({
+        title: lang === "fr" ? "Erreur serveur" : "Server error",
+        description: lang === "fr" ? message : "Server connection error.",
+        variant: "destructive",
+      })
     } finally {
       setIsSubmitting(false)
     }
@@ -111,7 +144,6 @@ export function ContactOwnerForm({ property, isOpen, onClose, onSuccess }: Conta
           </div>
         </DialogHeader>
 
-        {/* Property Preview */}
         <div className="mx-6 mb-4 flex gap-4 rounded-lg border border-border p-3 bg-secondary/30">
           <div className="relative h-20 w-28 shrink-0 overflow-hidden rounded-lg">
             <Image
@@ -185,13 +217,13 @@ export function ContactOwnerForm({ property, isOpen, onClose, onSuccess }: Conta
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="contact-duration">{lang === "fr" ? "Durée" : "Duration"}</Label>
+              <Label htmlFor="contact-duration">{lang === "fr" ? "Duree" : "Duration"}</Label>
               <Select
                 value={formData.duration}
                 onValueChange={(val) => updateField("duration", val)}
               >
                 <SelectTrigger id="contact-duration">
-                  <SelectValue placeholder="Sélectionner" />
+                  <SelectValue placeholder="Selectionner" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="1 mois">1 mois</SelectItem>
@@ -210,7 +242,7 @@ export function ContactOwnerForm({ property, isOpen, onClose, onSuccess }: Conta
               id="contact-message"
               value={formData.message}
               onChange={(e) => updateField("message", e.target.value)}
-              placeholder="Bonjour, je suis interessé(e) par ce bien..."
+              placeholder="Bonjour, je suis interesse(e) par ce bien..."
               rows={4}
               required
             />
@@ -230,6 +262,10 @@ export function ContactOwnerForm({ property, isOpen, onClose, onSuccess }: Conta
               </>
             )}
           </Button>
+
+          {submitError && (
+            <p className="text-sm font-medium text-destructive">{submitError}</p>
+          )}
         </form>
       </DialogContent>
     </Dialog>

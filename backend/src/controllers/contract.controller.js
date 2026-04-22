@@ -95,11 +95,12 @@ const signContract = asyncHandler(async (req, res) => {
             content: `Le locataire a signé le contrat pour le bien ${contract.property?.title || 'votre bien'}. Vous pouvez maintenant l'activer.`,
             contractData: {
               contractId: contractId,
+              requestId: contract.request?._id || contract.request,
               propertyTitle: contract.property?.title || 'Votre bien',
               propertyAddress: contract.property?.address || '',
-              propertyImage: contract.property?.image || '',
-              startDate: '',
-              endDate: '',
+              propertyImage: contract.property?.images?.cover || '',
+              startDate: contract.startDate || '',
+              endDate: contract.endDate || '',
               rent: contract.rentAmount || 0
             }
         });
@@ -193,11 +194,12 @@ const sendToTenant = asyncHandler(async (req, res) => {
       content: `Le propriétaire a signé et envoyé le contrat de location. Veuillez le consulter et le signer.`,
       contractData: {
         contractId: contractId,
+        requestId: contract.request?._id || contract.request,
         propertyTitle: contract.property?.title || 'Votre bien',
         propertyAddress: contract.property?.address || '',
-        propertyImage: contract.property?.image || '',
-        startDate: '',
-        endDate: '',
+        propertyImage: contract.property?.images?.cover || '',
+        startDate: contract.startDate || '',
+        endDate: contract.endDate || '',
         rent: contract.rentAmount || 0
       }
     });
@@ -258,9 +260,12 @@ const sendBackToOwner = asyncHandler(async (req, res) => {
       content: message || `Le locataire a signé le contrat pour le bien "${contract.property?.title}". Vous pouvez maintenant l'activer.`,
       contractData: {
         contractId: contractId,
+        requestId: contract.request?._id || contract.request,
         propertyTitle: contract.property?.title || 'Votre bien',
         propertyAddress: contract.property?.address || '',
-        propertyImage: contract.property?.image || '',
+        propertyImage: contract.property?.images?.cover || '',
+        startDate: contract.startDate || '',
+        endDate: contract.endDate || '',
         rent: contract.rentAmount || 0
       }
     });

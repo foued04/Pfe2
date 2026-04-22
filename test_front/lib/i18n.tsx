@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, type ReactNode } from "react"
 
-type Language = "en" | "fr"
+type Language = "en" | "fr" | "ar"
 
 interface I18nContextType {
   lang: Language
@@ -10,7 +10,7 @@ interface I18nContextType {
   t: (key: string) => string
 }
 
-const translations = {
+const translations: Record<Language, Record<string, string>> = {
   en: {
     // Roles
     "role.admin": "Admin",
@@ -571,6 +571,17 @@ const translations = {
     "furn.cat.decoration": "Décoration",
     "furn.cat.bureau": "Bureau",
   },
+  ar: {
+    "general.language": "اللغة",
+    "general.save": "حفظ",
+    "general.back": "رجوع",
+    "profile": "الملف الشخصي",
+    "settings": "الاعدادات",
+    "overview": "نظرة عامة",
+    "requests": "الطلبات",
+    "notifications": "الاشعارات",
+    "messages": "الرسائل",
+  },
 }
 
 const I18nContext = createContext<I18nContextType | undefined>(undefined)
@@ -579,7 +590,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const [lang, setLang] = useState<Language>("fr")
 
   const t = (key: string): string => {
-    return translations[lang][key as keyof typeof translations.en] || key
+    return translations[lang][key] || translations.fr[key] || translations.en[key] || key
   }
 
   return (

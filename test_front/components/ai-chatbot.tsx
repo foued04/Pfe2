@@ -48,17 +48,22 @@ export function AIChatbot({ isOpen, onClose }: AIChatbotProps) {
   const { user, token } = useAuth()
   const userRole = user?.role || "none"
   
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "welcome",
-      role: "model",
-      content: t("chatbot.welcome"),
-      timestamp: new Date(),
-    },
-  ])
+  const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // Initialize welcome message only on client to avoid hydration mismatch
+  useEffect(() => {
+    setMessages([
+      {
+        id: "welcome",
+        role: "model",
+        content: t("chatbot.welcome"),
+        timestamp: new Date(),
+      },
+    ])
+  }, [t])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -273,11 +278,19 @@ export function AIChatbot({ isOpen, onClose }: AIChatbotProps) {
 
 export function ChatbotTrigger() {
   const [isOpen, setIsOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) return null
 
   return (
     <>
       <button
         onClick={() => setIsOpen(!isOpen)}
+        suppressHydrationWarning
         className={cn(
           "fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-2xl transition-all duration-500 hover:scale-110 active:scale-90 group",
           isOpen 

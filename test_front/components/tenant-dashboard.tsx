@@ -15,7 +15,7 @@ import { TenantRequestsModule } from "./tenant-requests-module"
 import { TenantNotificationsModule } from "./tenant-notifications-module"
 import { TenantProfileSettings } from "./tenant-profile-settings"
 import { PropertyMap } from "./property-map"
-import { FurnitureOrderPage } from "./furniture-order-page"
+import { FurnitureOrderModule } from "./furniture-order-module"
 import { useI18n } from "@/lib/i18n"
 import { useAuth } from "@/lib/auth-context"
 import { Button } from "./ui/button"
@@ -34,10 +34,10 @@ const defaultFilters: FilterValues = {
   minSurface: "",
 }
 
-export function TenantDashboard() {
+export function TenantDashboard({ initialSection = "search" }: { initialSection?: string }) {
   const { lang, setLang } = useI18n()
   const { user } = useAuth()
-  const [activeSection, setActiveSection] = useState("search")
+  const [activeSection, setActiveSection] = useState(initialSection)
   const [searchQuery, setSearchQuery] = useState("")
   const [filters, setFilters] = useState<FilterValues>(defaultFilters)
   const [isFiltersOpen, setIsFiltersOpen] = useState(false)
@@ -46,6 +46,11 @@ export function TenantDashboard() {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [isContactOpen, setIsContactOpen] = useState(false)
   const [mapSelectedProperty, setMapSelectedProperty] = useState<Property | null>(null)
+  const [autoOpenRequestId, setAutoOpenRequestId] = useState<string | null>(null)
+
+  useEffect(() => {
+    setActiveSection(initialSection)
+  }, [initialSection])
 
   const [properties, setProperties] = useState<Property[]>([])
   const [isFetching, setIsFetching] = useState(false)
@@ -141,7 +146,10 @@ export function TenantDashboard() {
     setIsDetailsOpen(true)
   }
 
-  const handleRequestSent = () => {
+  const handleRequestSent = (requestId?: string) => {
+    if (requestId) {
+      setAutoOpenRequestId(requestId)
+    }
     setActiveSection("myRequests")
   }
 
@@ -170,13 +178,18 @@ export function TenantDashboard() {
           </div>
         )
       case "furniture":
-        return <FurnitureOrderPage contract={tenantContract} />
+        return <FurnitureOrderModule />
       case "housingNeeds":
         return <HousingNeedsForm />
       case "maintenance":
         return <MaintenanceForm />
       case "myRequests":
-        return <TenantRequestsModule />
+        return (
+          <TenantRequestsModule
+            autoOpenRequestId={autoOpenRequestId}
+            onAutoOpenHandled={() => setAutoOpenRequestId(null)}
+          />
+        )
       case "notifications":
         return <TenantNotificationsModule />
       case "profile":

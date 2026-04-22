@@ -11,16 +11,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
 import { Separator } from "./ui/separator"
 import { Badge } from "./ui/badge"
 import { useToast } from "./ui/use-toast"
-import { Switch } from "./ui/switch"
 import { 
   User, 
   Lock, 
   Camera, 
   Save, 
-  FileText, 
-  Settings,
-  Bell,
-  Globe,
+  FileText,
   ShieldAlert,
   Clock,
   Users,
@@ -32,13 +28,11 @@ import {
   ShieldCheck,
   Building,
   Activity,
-  AlertCircle,
-  LayoutDashboard
-} from "lucide-react"
+  AlertCircle,} from "lucide-react"
 import { Progress } from "./ui/progress"
 
 export function AdminProfile() {
-  const { lang, setLang } = useI18n()
+  const { lang } = useI18n()
   const { user, updateProfile, updatePassword } = useAuth()
   const { toast } = useToast()
 
@@ -152,10 +146,6 @@ export function AdminProfile() {
           <TabsTrigger value="security" className="flex-1 min-w-[120px] gap-2 rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary h-10">
             <Lock className="h-4 w-4" />
             <span className="font-semibold">Sécurité</span>
-          </TabsTrigger>
-          <TabsTrigger value="settings" className="flex-1 min-w-[120px] gap-2 rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary h-10">
-            <Settings className="h-4 w-4" />
-            <span className="font-semibold">Paramètres</span>
           </TabsTrigger>
           <TabsTrigger value="diagnostic" className="flex-1 min-w-[120px] gap-2 rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary h-10">
             <Activity className="h-4 w-4" />
@@ -273,39 +263,6 @@ export function AdminProfile() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="settings" className="space-y-6">
-          <Card className="max-w-2xl border-border/50">
-            <CardHeader>
-              <CardTitle>Préférences Système</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-6 bg-white border border-border shadow-sm rounded-3xl">
-                <div className="flex items-center gap-4">
-                  <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center">
-                    <Bell className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold">Alertes Critiques</h4>
-                    <p className="text-xs text-muted-foreground leading-relaxed">Notifier immédiatement en cas d'erreur serveur majeure.</p>
-                  </div>
-                </div>
-                <Switch defaultChecked />
-              </div>
-              <div className="flex items-center justify-between p-6 bg-white border border-border shadow-sm rounded-3xl">
-                <div className="flex items-center gap-4">
-                  <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center">
-                    <LayoutDashboard className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold">Mode Analytique par défaut</h4>
-                    <p className="text-xs text-muted-foreground leading-relaxed">Ouvrir les graphiques haute résolution au démarrage.</p>
-                  </div>
-                </div>
-                <Switch defaultChecked />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         <TabsContent value="diagnostic" className="space-y-6">
           <div className="space-y-6">
@@ -461,3 +418,4 @@ export function AdminProfile() {
     </div>
   )
 }
+

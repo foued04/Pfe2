@@ -29,21 +29,41 @@ export function TenantNotificationsModule() {
   const [activeNotifId, setActiveNotifId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [contractToView, setContractToView] = useState<Contract | null>(null)
+  const [viewContractError, setViewContractError] = useState<string | null>(null)
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
 
-  const handleViewContract = async (contractId: string) => {
+  const handleViewContract = async (contractId?: string, requestId?: string) => {
+    setViewContractError(null)
     try {
       const token = localStorage.getItem("accessToken")
-      const response = await fetch(`${API_URL}/contracts/${contractId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (response.ok) {
+      let response: Response | null = null
+
+      if (contractId) {
+        response = await fetch(`${API_URL}/contracts/${contractId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      }
+
+      if ((!response || !response.ok) && requestId) {
+        response = await fetch(`${API_URL}/contracts/request/${requestId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      }
+
+      if (response && response.ok) {
         const data = await response.json()
         setContractToView(mapBackendContract(data))
+      } else {
+        setViewContractError(
+          lang === "fr"
+            ? "Impossible d'ouvrir le contrat pour le moment."
+            : "Unable to open the contract right now."
+        )
       }
     } catch (err) {
       console.error("Fetch contract error:", err)
+      setViewContractError(lang === "fr" ? "Erreur de connexion." : "Connection error.")
     }
   }
 
@@ -51,6 +71,7 @@ export function TenantNotificationsModule() {
     id: data._id,
     requestId: data.request?._id || data.request,
     propertyId: data.property?._id || data.property,
+    propertyImage: data.property?.images?.cover || "",
     propertyTitle: data.property?.title || "...",
     propertyAddress: data.property?.address || "...",
     propertyType: data.property?.type || "...",
@@ -104,6 +125,9 @@ export function TenantNotificationsModule() {
             content: n.content,
             status: n.status || "En attente" as const,
             isRead: n.isRead || false,
+            claimResponse: n.claimResponse,
+            attachments: n.attachments,
+            claimMeta: n.claimMeta,
             contractData: n.contractData
           }))
           setNotifications(prev => [...mapped, ...prev.filter(p => !mapped.some(m => m.id === p.id))])
@@ -155,6 +179,9 @@ export function TenantNotificationsModule() {
             content: n.content,
             status: n.status || "En attente" as const,
             isRead: n.isRead || false,
+            claimResponse: n.claimResponse,
+            attachments: n.attachments,
+            claimMeta: n.claimMeta,
             contractData: n.contractData
           }))
           setNotifications(prev => [...mapped, ...prev.filter(p => !mapped.some(m => m.id === p.id))])
@@ -202,9 +229,9 @@ export function TenantNotificationsModule() {
     })
   }
 
-  return (
-    <>
-      {contractToView && (
+  if (contractToView) {
+    return (
+      <div className="p-6">
         <ContractView
           contract={contractToView}
           onBack={() => setContractToView(null)}
@@ -213,7 +240,11 @@ export function TenantNotificationsModule() {
           onSendToTenant={handleSendToOwner}
           userRole="tenant"
         />
-      )}
+      </div>
+    )
+  }
+
+  return (
       <div className="h-[calc(100vh-4rem)] flex overflow-hidden bg-background">
       {/* Colonne Gauche - Liste */}
       <div className="w-full md:w-[400px] flex-shrink-0 border-r border-border/50 flex flex-col bg-muted/5">
@@ -405,7 +436,7 @@ export function TenantNotificationsModule() {
               <div className="bg-white border border-emerald-200 rounded-3xl overflow-hidden shadow-xl shadow-emerald-100">
                 <div className="relative h-48">
                   <img 
-                    src={activeNotif.contractData.propertyImage} 
+                    src={activeNotif.contractData.propertyImage || "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&q=80"} 
                     alt="Propriété" 
                     className="w-full h-full object-cover"
                   />
@@ -433,11 +464,17 @@ export function TenantNotificationsModule() {
                   </div>
                   <Button 
                     className="w-full h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-lg font-black shadow-lg shadow-emerald-200"
-                    onClick={() => activeNotif.contractData?.contractId && handleViewContract(activeNotif.contractData.contractId)}
+                    onClick={() => handleViewContract(
+                      activeNotif.contractData?.contractId,
+                      (activeNotif.contractData as any)?.requestId
+                    )}
                   >
                     <FileSignature className="w-5 h-5 mr-3" />
                     Consulter le Contrat
                   </Button>
+                  {viewContractError && (
+                    <p className="mt-3 text-sm font-semibold text-destructive">{viewContractError}</p>
+                  )}
                 </div>
               </div>
             )}
@@ -457,6 +494,5 @@ export function TenantNotificationsModule() {
         )}
       </div>
     </div>
-    </>
   )
 }

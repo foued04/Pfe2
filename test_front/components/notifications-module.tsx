@@ -6,6 +6,8 @@ import { Badge } from "./ui/badge"
 import { Button } from "./ui/button"
 import { ScrollArea } from "./ui/scroll-area"
 import { cn } from "@/lib/utils"
+import { ContractView } from "./contract-view"
+import { Contract } from "@/lib/rental-request-data"
 import { 
   Bell, 
   Search, 
@@ -30,6 +32,28 @@ export interface Notification {
   status: string;
   isRead: boolean;
   createdAt: string;
+  attachments?: Array<
+    | string
+    | {
+        name?: string;
+        type?: string;
+        size?: number;
+        dataUrl?: string;
+      }
+  >;
+  claimMeta?: {
+    photos?: string[];
+  };
+  contractData?: {
+    contractId?: string;
+    requestId?: string;
+    propertyTitle?: string;
+    propertyAddress?: string;
+    propertyImage?: string;
+    startDate?: string;
+    endDate?: string;
+    rent?: number;
+  };
 }
 
 export function NotificationsModule() {
@@ -39,6 +63,8 @@ export function NotificationsModule() {
   const [activeNotifId, setActiveNotifId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [contractToView, setContractToView] = useState<Contract | null>(null)
+  const [viewContractError, setViewContractError] = useState<string | null>(null)
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
 
@@ -56,6 +82,111 @@ export function NotificationsModule() {
       console.error("Fetch notifications error:", err)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const mapBackendContract = (data: any): Contract => ({
+    id: data._id,
+    requestId: data.request?._id || data.request,
+    propertyId: data.property?._id || data.property,
+    propertyImage: data.property?.images?.cover || "",
+    propertyTitle: data.property?.title || "...",
+    propertyAddress: data.property?.address || "...",
+    propertyType: data.property?.type || "...",
+    propertySurface: data.property?.surface || 0,
+    propertyRent: data.rentAmount || 0,
+    propertyDeposit: data.depositAmount || 0,
+    ownerName: data.owner?.fullName || "...",
+    ownerEmail: data.owner?.email || "...",
+    ownerPhone: data.owner?.phone || "...",
+    tenantName: data.tenant?.fullName || "...",
+    tenantEmail: data.tenant?.email || "...",
+    tenantPhone: data.tenant?.phone || "...",
+    startDate: data.startDate || "",
+    endDate: data.endDate || "",
+    duration: data.request?.duration || "",
+    status: data.status,
+    ownerSignature: data.ownerSignature,
+    tenantSignature: data.tenantSignature,
+    tenantMessage: data.tenantMessage,
+    createdAt: data.createdAt
+  })
+
+  const handleViewContract = async (contractId?: string, requestId?: string) => {
+    setViewContractError(null)
+    try {
+      const token = localStorage.getItem("accessToken")
+      let response: Response | null = null
+
+      if (contractId) {
+        response = await fetch(`${API_URL}/contracts/${contractId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      }
+
+      if ((!response || !response.ok) && requestId) {
+        response = await fetch(`${API_URL}/contracts/request/${requestId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      }
+
+      if (response && response.ok) {
+        const data = await response.json()
+        setContractToView(mapBackendContract(data))
+      } else {
+        setViewContractError(
+          isFr
+            ? "Impossible d'ouvrir le contrat pour le moment."
+            : "Unable to open the contract right now."
+        )
+      }
+    } catch (err) {
+      console.error("Fetch contract error:", err)
+      setViewContractError(isFr ? "Erreur de connexion." : "Connection error.")
+    }
+  }
+
+  const handleOwnerSign = async (signature: string) => {
+    if (!contractToView) return
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/contracts/${contractToView.id}/sign`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ signature }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setContractToView(mapBackendContract(data))
+      }
+    } catch (err) {
+      console.error("Owner sign from notifications error:", err)
+    }
+  }
+
+  const handleSendToTenant = async (message: string) => {
+    if (!contractToView) return
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/contracts/${contractToView.id}/send`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ message }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setContractToView(mapBackendContract(data))
+      }
+    } catch (err) {
+      console.error("Send contract from notifications error:", err)
     }
   }
 
@@ -99,6 +230,15 @@ export function NotificationsModule() {
   }, [notifications, activeType, searchQuery])
 
   const activeNotif = notifications.find(n => n._id === activeNotifId)
+  const activeNotifPhotos = useMemo(() => {
+    if (!activeNotif) return []
+    const fromAttachments =
+      activeNotif.attachments
+        ?.map((item) => (typeof item === "string" ? item : item?.dataUrl))
+        .filter((url): url is string => Boolean(url)) || []
+    if (fromAttachments.length > 0) return fromAttachments
+    return activeNotif.claimMeta?.photos?.filter(Boolean) || []
+  }, [activeNotif])
 
   const getTypeConfig = (type: string) => {
     switch (type) {
@@ -122,6 +262,21 @@ export function NotificationsModule() {
       hour: "2-digit",
       minute: "2-digit"
     })
+  }
+
+  if (contractToView) {
+    return (
+      <div className="p-6">
+        <ContractView
+          contract={contractToView}
+          onBack={() => setContractToView(null)}
+          onOwnerSign={handleOwnerSign}
+          onTenantSign={() => {}}
+          onSendToTenant={handleSendToTenant}
+          userRole="owner"
+        />
+      </div>
+    )
   }
 
   return (
@@ -149,7 +304,7 @@ export function NotificationsModule() {
           </div>
 
           <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-            {["Tous", "Vérification", "Contrat", "Système"].map((type) => (
+            {["Tous", "Réclamation", "Vérification", "Contrat", "Système"].map((type) => (
               <button
                 key={type}
                 onClick={() => setActiveType(type)}
@@ -261,6 +416,61 @@ export function NotificationsModule() {
                 </p>
               </div>
             </div>
+
+            {activeNotif.type.toLowerCase().includes("clamation") && activeNotifPhotos.length > 0 && (
+              <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm">
+                <h4 className="text-sm font-black uppercase tracking-wider text-slate-700 mb-4">
+                  {isFr ? "Photos de la Réclamation" : "Reclamation Photos"}
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {activeNotifPhotos.map((url, idx) => (
+                    <a
+                      key={`${activeNotif._id}-photo-${idx}`}
+                      href={url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block overflow-hidden rounded-xl border border-slate-200 bg-slate-50"
+                    >
+                      <img
+                        src={url}
+                        alt={`reclamation-${idx + 1}`}
+                        className="h-32 w-full object-cover transition-transform duration-200 hover:scale-105"
+                      />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeNotif.type === "Contrat" && activeNotif.contractData && (
+              <div className="bg-white border border-blue-200 rounded-3xl overflow-hidden shadow-xl shadow-blue-100">
+                <div className="relative h-44">
+                  <img
+                    src={activeNotif.contractData.propertyImage || "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&q=80"}
+                    alt="Propriete"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-end p-6">
+                    <div className="text-white">
+                      <h4 className="text-2xl font-black mb-1">{activeNotif.contractData.propertyTitle || "Contrat"}</h4>
+                      <p className="text-xs opacity-80 font-medium">{activeNotif.contractData.propertyAddress || "-"}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <Button
+                    className="w-full h-12 rounded-2xl bg-blue-600 hover:bg-blue-700 text-base font-black"
+                    onClick={() => handleViewContract(activeNotif.contractData?.contractId, activeNotif.contractData?.requestId)}
+                  >
+                    <FileSignature className="w-5 h-5 mr-2" />
+                    {isFr ? "Consulter le Contrat" : "View Contract"}
+                  </Button>
+                  {viewContractError && (
+                    <p className="mt-3 text-sm font-semibold text-destructive">{viewContractError}</p>
+                  )}
+                </div>
+              </div>
+            )}
 
             {activeNotif.type === "Vérification" && (
               <div className={cn(

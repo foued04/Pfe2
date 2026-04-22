@@ -2,6 +2,27 @@ const asyncHandler = require('../utils/asyncHandler');
 const ApiError = require('../utils/ApiError');
 const Conversation = require('../models/Conversation.model');
 const Message = require('../models/Message.model');
+const RentalRequest = require('../models/RentalRequest.model');
+
+const asStringId = (value) => (value ? value.toString() : '');
+
+const inferRecipientFromContext = async (contextId, senderId) => {
+  if (!contextId) return null;
+
+  const rentalRequest = await RentalRequest.findById(contextId)
+    .populate('tenant', '_id')
+    .populate('property', 'owner');
+
+  if (!rentalRequest) return null;
+
+  const tenantId = asStringId(rentalRequest.tenant?._id || rentalRequest.tenant);
+  const ownerId = asStringId(rentalRequest.property?.owner);
+  const sender = asStringId(senderId);
+
+  if (sender === tenantId) return ownerId || null;
+  if (sender === ownerId) return tenantId || null;
+  return null;
+};
 
 const getConversations = asyncHandler(async (req, res) => {
   const conversations = await Conversation.find({
@@ -37,20 +58,30 @@ const getMessages = asyncHandler(async (req, res) => {
 
 const sendMessage = asyncHandler(async (req, res) => {
   const { conversationId, content, category, contextId, contextTitle, recipientId } = req.body;
+  const normalizedContextId = contextId ? String(contextId).trim() : null;
   
   let conversation;
   
   if (conversationId) {
     conversation = await Conversation.findById(conversationId);
+    if (conversation && !conversation.participants.some((p) => asStringId(p) === asStringId(req.user._id))) {
+      throw new ApiError(403, 'Forbidden');
+    }
   } else if (contextId) {
-    // Find or create conversation for this context
-    conversation = await Conversation.findOne({ contextId, participants: req.user._id });
+    // Find existing conversation for this context and current user.
+    conversation = await Conversation.findOne({ contextId: normalizedContextId, participants: req.user._id })
+      .sort({ updatedAt: -1 });
     
-    if (!conversation && recipientId) {
+    let finalRecipientId = recipientId;
+    if (!conversation && !finalRecipientId) {
+      finalRecipientId = await inferRecipientFromContext(normalizedContextId, req.user._id);
+    }
+
+    if (!conversation && finalRecipientId) {
       conversation = await Conversation.create({
-        participants: [req.user._id, recipientId],
+        participants: [req.user._id, finalRecipientId],
         category: category || 'Demandes',
-        contextId,
+        contextId: normalizedContextId,
         contextTitle
       });
     }
@@ -74,10 +105,13 @@ const sendMessage = asyncHandler(async (req, res) => {
 
 const getConversationByContext = asyncHandler(async (req, res) => {
   const { contextId } = req.params;
+  const normalizedContextId = String(contextId || '').trim();
   const conversation = await Conversation.findOne({ 
-    contextId, 
+    contextId: normalizedContextId, 
     participants: req.user._id 
-  }).populate('participants', 'fullName role');
+  })
+  .sort({ updatedAt: -1 })
+  .populate('participants', 'fullName role');
   
   if (!conversation) {
     return res.send({ conversation: null, messages: [] });

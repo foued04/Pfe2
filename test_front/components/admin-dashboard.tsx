@@ -131,12 +131,22 @@ const recentActivities = [
 
 const initialPendingProperties = mockProperties.slice(0, 4)
 
-export function AdminDashboard() {
+export function AdminDashboard({
+  initialSection = "dashboard",
+  standaloneLayout = true,
+}: {
+  initialSection?: string
+  standaloneLayout?: boolean
+}) {
   const { t, lang, setLang } = useI18n()
   const { user, logout } = useAuth()
-  const [activeSection, setActiveSection] = useState("dashboard")
+  const [activeSection, setActiveSection] = useState(initialSection)
   const [users, setUsers] = useState<any[]>([])
   const [userFilters, setUserFilters] = useState({ search: "", role: "all", status: "all" })
+
+  useEffect(() => {
+    setActiveSection(initialSection)
+  }, [initialSection])
   const [isUserLoading, setIsUserLoading] = useState(false)
   const [statsData, setStatsData] = useState(initialStatsData)
   const [userGrowthData, setUserGrowthData] = useState(initialUserGrowthData)
@@ -560,7 +570,8 @@ export function AdminDashboard() {
       case "furniture":
         return <AdminFurnitureManagement />
       case "rapports":
-        return <AdminReportsModule />
+      case "reports":
+        return <AdminReports />
       case "verifications":
         return <AdminVerificationModule />
       case "profil":
@@ -573,10 +584,10 @@ export function AdminDashboard() {
         return (
           <main className="p-8 space-y-8 animate-in fade-in duration-700">
             {/* Header / Search */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <h1 className="text-3xl font-black text-foreground tracking-tight">Tableau de bord de performance</h1>
-                <p className="text-muted-foreground font-medium">Vue d&apos;ensemble analytique de la plateforme ImmoSmart</p>
+            <div className="rounded-[2rem] border border-slate-200/70 bg-[linear-gradient(135deg,#ffffff_0%,#f8fbff_100%)] p-7 shadow-sm">
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                <h1 className="text-4xl font-bold tracking-tight text-foreground">Tableau de bord administrateur</h1>
+                <p className="max-w-3xl text-sm leading-7 text-muted-foreground">Suivez les indicateurs essentiels, les activites recentes et les annonces a moderer depuis une vue d&apos;ensemble plus claire.</p>
               </div>
               <div className="flex items-center gap-3">
                  <Badge variant="outline" className="px-4 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border-emerald-100 font-bold">
@@ -705,14 +716,14 @@ export function AdminDashboard() {
 
             <div className="grid gap-8 lg:grid-cols-2">
               {/* Recent Activity Timeline */}
-              <Card className="border-none shadow-xl bg-card p-8">
+              <Card className="rounded-[2rem] border border-slate-200/70 bg-white/95 p-8 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
                 <CardHeader className="px-0 pt-0 mb-8 border-b border-border/50 pb-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle className="text-xl font-black text-primary">Journal d&apos;activité</CardTitle>
                       <p className="text-xs text-muted-foreground font-bold mt-1">Suivi en temps réel des actions système</p>
                     </div>
-                    <Button variant="outline" size="sm" className="rounded-xl font-bold text-[10px] uppercase">Tout voir</Button>
+                    <Button variant="outline" size="sm" className="rounded-full border-slate-200 bg-white px-4 font-semibold text-[10px] uppercase tracking-[0.16em] shadow-sm">Tout voir</Button>
                   </div>
                 </CardHeader>
                 <div className="space-y-8 relative before:absolute before:left-[21px] before:top-2 before:bottom-2 before:w-0.5 before:bg-border/40">
@@ -749,7 +760,7 @@ export function AdminDashboard() {
               </Card>
 
               {/* Pending Properties Table */}
-              <Card className="border-none shadow-xl bg-card p-8">
+              <Card className="rounded-[2rem] border border-slate-200/70 bg-white/95 p-8 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
                 <CardHeader className="px-0 pt-0 mb-8 border-b border-border/50 pb-4">
                   <div className="flex items-center justify-between">
                     <div>
@@ -765,7 +776,7 @@ export function AdminDashboard() {
                   {pendingProperties.map((property) => (
                     <div
                       key={property.id}
-                      className="group flex items-center gap-5 p-4 rounded-3xl border border-border/30 hover:border-primary/30 hover:bg-muted/5 transition-all duration-300"
+                      className="group flex items-center gap-5 rounded-[1.75rem] border border-slate-200/70 bg-slate-50/55 p-4 hover:border-primary/20 hover:bg-white transition-all duration-300"
                     >
                       <div
                         className="h-20 w-28 flex-shrink-0 rounded-2xl bg-cover bg-center shadow-lg group-hover:scale-105 transition-transform duration-500"
@@ -810,7 +821,7 @@ export function AdminDashboard() {
                       </p>
                     </div>
                   )}
-                  <Button variant="ghost" className="w-full h-12 rounded-2xl font-black text-[11px] uppercase tracking-widest text-muted-foreground/60 border-2 border-dashed border-border/40 hover:bg-muted/30">
+                  <Button variant="ghost" className="h-12 w-full rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 font-semibold text-[11px] uppercase tracking-[0.18em] text-slate-500 hover:bg-slate-100">
                     Gérer tout le catalogue
                   </Button>
                 </div>
@@ -825,7 +836,7 @@ export function AdminDashboard() {
                  { label: "Biens loués", value: `${statsData[3]?.change || "0"}`, icon: Activity, color: "text-orange-500" },
                  { label: "Propriétés actives", value: `${statsData[3]?.value || "0"}`, icon: Star, color: "text-orange-400" },
                ].map((item, i) => (
-                 <div key={i} className="bg-card/50 backdrop-blur-sm border border-border/30 rounded-3xl p-5 flex items-center gap-4 transition-all hover:bg-card">
+                 <div key={i} className="rounded-[1.75rem] border border-slate-200/70 bg-white/85 p-5 flex items-center gap-4 shadow-sm transition-all hover:bg-white hover:shadow-md">
                    <div className={cn("p-3 rounded-2xl bg-background shadow-inner", item.color)}>
                      <item.icon className="w-5 h-5" />
                    </div>
@@ -841,24 +852,28 @@ export function AdminDashboard() {
     }
   }
 
+  if (!standaloneLayout) {
+    return <>{renderContent()}</>
+  }
+
   return (
     <div className="min-h-screen bg-slate-50/50">
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-gradient-to-b from-[#1e3a8a] to-[#1d4ed8] text-white shadow-xl">
+      <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-white/10 bg-[linear-gradient(180deg,#1d3f96_0%,#214db7_48%,#1f46a8_100%)] text-white shadow-[0_24px_60px_rgba(15,23,42,0.22)]">
         <div className="flex h-full flex-col">
           {/* Logo */}
-          <div className="flex h-16 items-center gap-3 border-b border-white/20 px-6">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 border border-white/20">
+          <div className="flex h-20 items-center gap-3 border-b border-white/12 px-6">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/20 bg-white/12 shadow-inner">
               <Shield className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-black tracking-tight text-white">ImmoSmart</h1>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-white/80">{t("role.admin")}</p>
+              <h1 className="text-xl font-bold tracking-tight text-white">ImmoSmart</h1>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/70">{t("role.admin")}</p>
             </div>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 space-y-1 p-4">
+          <nav className="flex-1 space-y-1.5 p-4">
             {navItems.map((item) => {
               const Icon = item.icon
               const isActive = activeSection === item.key
@@ -867,14 +882,14 @@ export function AdminDashboard() {
                   key={item.key}
                   onClick={() => setActiveSection(item.key)}
                   className={cn(
-                    "group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-300",
+                    "group flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm transition-all duration-300",
                     isActive
-                      ? "bg-white text-blue-700 shadow-lg shadow-black/10 scale-105"
-                      : "text-white/80 hover:bg-white/10 hover:text-white"
+                      ? "bg-white text-blue-700 shadow-[0_12px_30px_rgba(15,23,42,0.16)]"
+                      : "text-white/82 hover:bg-white/10 hover:text-white"
                   )}
                 >
                   <Icon className="h-5 w-5" />
-                  <span>{lang === "fr" ? item.label : item.labelEn}</span>
+                  <span className="font-medium">{lang === "fr" ? item.label : item.labelEn}</span>
                   {item.key === "verifications" && pendingVerificationsCount > 0 && (
                     <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-black text-white shadow-lg animate-bounce-short">
                       {pendingVerificationsCount}
@@ -886,21 +901,21 @@ export function AdminDashboard() {
           </nav>
 
           {/* Admin Info & Logout */}
-          <div className="border-t border-white/20 p-4">
-            <div className="mb-3 flex items-center gap-3 rounded-lg bg-white/10 p-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white">
+          <div className="border-t border-white/12 p-4">
+            <div className="mb-3 flex items-center gap-3 rounded-2xl border border-white/12 bg-white/10 p-3.5">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/18 text-white">
                 <Shield className="h-5 w-5" />
               </div>
               <div className="flex-1 truncate">
                 <p className="text-sm font-medium">{user?.name || "Admin"}</p>
-                <p className="text-xs text-white/80">{user?.email}</p>
+                <p className="text-xs text-white/72">{user?.email}</p>
               </div>
             </div>
             
             {/* Logout Button */}
             <button
               onClick={logout}
-              className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-white/85 hover:bg-red-500/20 hover:text-red-100 transition-all duration-200"
+              className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-white/85 transition-all duration-200 hover:bg-red-500/20 hover:text-red-100"
             >
               <LogOut className="h-5 w-5" />
               <span>{lang === "fr" ? "Deconnexion" : "Logout"}</span>
@@ -912,22 +927,20 @@ export function AdminDashboard() {
       {/* Main Content */}
       <div className="ml-64 bg-slate-50/50 transition-all duration-300">
         {/* Top Bar */}
-        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-slate-200/60 bg-white/80 px-8 py-4 backdrop-blur-xl">
+        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-slate-200/60 bg-white/88 px-8 py-4 shadow-sm backdrop-blur-xl">
           <div className="flex items-center gap-2">
             <MapPin className="w-4 h-4 text-slate-500" />
             <span className="text-sm text-slate-500">Monastir, Tunisie</span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-slate-500">
+            <div className="hidden rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-500 shadow-sm md:block">
               {lang === "fr" ? "Bienvenue," : "Welcome,"} <span className="font-medium text-slate-800">{user?.name}</span>
-            </span>
-
-
+            </div>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setLang(lang === "fr" ? "en" : "fr")}
-              className="gap-2"
+              className="gap-2 rounded-full border-slate-200 bg-white px-4 shadow-sm"
             >
               <Globe className="h-4 w-4" />
               {lang === "fr" ? "FR" : "EN"}

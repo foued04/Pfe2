@@ -31,12 +31,12 @@ interface AuthContextType {
   role: UserRole | null
   isAuthenticated: boolean
   isLoading: boolean
-  login: (email: string, password: string, role?: UserRole) => Promise<{ success: boolean; message?: string }>
+  login: (email: string, password: string, role?: UserRole) => Promise<{ success: boolean; message?: string; role?: UserRole }>
   register: (data: RegisterData) => Promise<{ success: boolean; message?: string; devCode?: string }>
   logout: () => void
   updateProfile: (data: Partial<User>) => Promise<{ success: boolean; message?: string }>
   updatePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; message?: string }>
-  loginWithGoogle: (credential: string) => Promise<{ success: boolean; message?: string }>
+  loginWithGoogle: (credential: string, mode: "login" | "register", role?: UserRole) => Promise<{ success: boolean; message?: string; role?: UserRole }>
 }
 
 interface RegisterData {
@@ -122,7 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuthStatus()
   }, [])
 
-  const login = async (email: string, password: string, selectedRole?: UserRole): Promise<{ success: boolean; message?: string }> => {
+  const login = async (email: string, password: string, selectedRole?: UserRole): Promise<{ success: boolean; message?: string; role?: UserRole }> => {
     try {
       const normalizedEmail = email.trim().toLowerCase()
       const response = await fetch(`${API_URL}/auth/login`, {
@@ -145,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const mappedUser = mapBackendUser(data.user)
         setUser(mappedUser)
         setRole(mappedUser.role)
-        return { success: true }
+        return { success: true, role: mappedUser.role }
       }
 
       const errData = await response.json().catch(() => null)
@@ -242,12 +242,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const loginWithGoogle = async (credential: string): Promise<{ success: boolean; message?: string }> => {
+  const loginWithGoogle = async (
+    credential: string,
+    mode: "login" | "register",
+    role?: UserRole
+  ): Promise<{ success: boolean; message?: string; role?: UserRole }> => {
     try {
       const response = await fetch(`${API_URL}/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: credential }),
+        body: JSON.stringify({ token: credential, mode, role }),
       })
 
       if (response.ok) {
@@ -259,7 +263,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const mappedUser = mapBackendUser(data.user)
         setUser(mappedUser)
         setRole(mappedUser.role)
-        return { success: true }
+        return { success: true, role: mappedUser.role }
       }
 
       const errData = await response.json().catch(() => null)

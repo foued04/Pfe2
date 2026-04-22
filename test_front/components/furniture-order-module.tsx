@@ -8,10 +8,11 @@ import { FurnitureCatalog } from "./furniture-catalog"
 import { FurnitureCart } from "./furniture-cart"
 import { FurnitureReceipt } from "./furniture-receipt"
 import { CartItem, FurnitureItem, FurnitureOrder, OrderStatus, submitFurnitureOrder, addFurnitureItem, FurnitureCategory } from "@/lib/furniture-data"
-import { Package, Receipt, ShoppingBag, LayoutGrid, Armchair, Plus, Image as ImageIcon, Loader2 } from "lucide-react"
+import { Package, Receipt, ShoppingBag, LayoutGrid, Armchair, Plus, Image as ImageIcon, Loader2, CreditCard, ChevronRight } from "lucide-react"
 import { Input } from "./ui/input"
 import { Label } from "./ui/label"
 import { Textarea } from "./ui/textarea"
+import { Badge } from "./ui/badge"
 import { 
   Dialog, 
   DialogContent, 
@@ -22,6 +23,7 @@ import {
 } from "./ui/dialog"
 import { Button } from "./ui/button"
 import { cn } from "@/lib/utils"
+import { FurnitureChangeRequestModal } from "./furniture-change-request-modal"
 
 interface FurnitureOrderModuleProps {
   initialPropertyId?: string | null
@@ -60,6 +62,80 @@ export function FurnitureOrderModule({ initialPropertyId }: FurnitureOrderModule
   }, [])
   const [paymentMethod, setPaymentMethod] = useState<string>("cash")
   const [validatedOrder, setValidatedOrder] = useState<FurnitureOrder | null>(null)
+  const [existingFurniture, setExistingFurniture] = useState<any[]>([])
+  const [isExistingLoading, setIsExistingLoading] = useState(false)
+
+  const [isChangeModalOpen, setIsChangeModalOpen] = useState(false)
+  const [orders, setOrders] = useState<any[]>([])
+  const [ordersLoading, setOrdersLoading] = useState(false)
+  const [brokenExistingImages, setBrokenExistingImages] = useState<Record<string, boolean>>({})
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+
+  useEffect(() => {
+    if (user?.role === 'tenant') {
+       fetchTenantOrders()
+    }
+  }, [user])
+
+  const fetchTenantOrders = async () => {
+    setOrdersLoading(true)
+    try {
+      const token = localStorage.getItem("accessToken")
+      if (!token) return
+      const response = await fetch(`${API_URL}/furniture/tenant-orders`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setOrders(Array.isArray(data) ? data : [])
+      }
+    } catch (error) {
+      console.error("Error fetching tenant orders:", error)
+    } finally {
+      setOrdersLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (selectedPropertyId) {
+      fetchExistingFurniture(selectedPropertyId)
+    }
+  }, [selectedPropertyId])
+
+  const fetchExistingFurniture = async (propertyId: string) => {
+    setIsExistingLoading(true)
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/furniture/property/${propertyId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      if (response.ok) {
+        const data = await response.json()
+        if (data && data.length > 0) {
+          setExistingFurniture(data)
+        } else {
+          // Fallback to mock data
+          const mockProp = mockProperties.find(p => p.id === propertyId || (p as any)._id === propertyId)
+          if (mockProp?.furnishing?.items) {
+            setExistingFurniture(mockProp.furnishing.items as any)
+          }
+        }
+      } else {
+        // Fallback to mock data
+        const mockProp = mockProperties.find(p => p.id === propertyId || (p as any)._id === propertyId)
+        if (mockProp?.furnishing?.items) {
+          setExistingFurniture(mockProp.furnishing.items as any)
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching existing furniture:", error)
+    } finally {
+      setIsExistingLoading(false)
+    }
+  }
   
   // Suggestion State
   const [isAdding, setIsAdding] = useState(false)
@@ -149,6 +225,29 @@ export function FurnitureOrderModule({ initialPropertyId }: FurnitureOrderModule
     }
   }
 
+  const renderExistingFurnitureThumb = (item: any, idx: number) => {
+    const itemKey = String(item._id || item.id || idx)
+    const hasImage = item.image && !brokenExistingImages[itemKey]
+
+    if (!hasImage) {
+      return (
+        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-100 via-white to-blue-50 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+          {item.category || "Mobilier"}
+        </div>
+      )
+    }
+
+    return (
+      <img
+        src={item.image}
+        alt={item.name}
+        loading="lazy"
+        onError={() => setBrokenExistingImages((prev) => ({ ...prev, [itemKey]: true }))}
+        className="h-full w-full object-cover"
+      />
+    )
+  }
+
   if (view === "receipt" && validatedOrder) {
     return (
       <div className="p-6">
@@ -178,7 +277,7 @@ export function FurnitureOrderModule({ initialPropertyId }: FurnitureOrderModule
                 Équipez vos propriétés avec des meubles de haute qualité. Un design raffiné pour des intérieurs d'exception.
               </p>
               
-              {user?.role === 'owner' && (
+              {user?.role === 'owner' ? (
                 <div className="pt-2">
                   <Dialog>
                     <DialogTrigger asChild>
@@ -261,6 +360,15 @@ export function FurnitureOrderModule({ initialPropertyId }: FurnitureOrderModule
                     </DialogContent>
                   </Dialog>
                 </div>
+              ) : (
+                <div className="pt-2">
+                  <Button 
+                    onClick={() => setIsChangeModalOpen(true)}
+                    className="bg-white text-blue-700 hover:bg-white/90 rounded-xl gap-2 font-bold px-6 shadow-xl shadow-black/10 transition-all active:scale-95"
+                  >
+                    <Plus className="w-5 h-5" /> Proposer / Changer un meuble
+                  </Button>
+                </div>
               )}
             </div>
             
@@ -306,12 +414,77 @@ export function FurnitureOrderModule({ initialPropertyId }: FurnitureOrderModule
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
         {/* Catalog Side */}
-        <div className="xl:col-span-8 space-y-6">
+        <div className="xl:col-span-8 space-y-8">
+          {/* Existing Furniture Section */}
+          {existingFurniture.length > 0 && (
+            <div className="bg-white p-6 rounded-2xl border border-blue-100 shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Armchair className="w-5 h-5 text-[#1e3a8a]" />
+                  <h3 className="font-bold text-lg text-[#1e3a8a]">Mobilier Actuellement Installé</h3>
+                </div>
+                <Badge variant="secondary" className="bg-blue-50 text-[#1e3a8a] border-none">
+                  {existingFurniture.length} articles
+                </Badge>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {existingFurniture.map((item, idx) => (
+                  <div key={item._id || idx} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 group hover:border-blue-200 transition-all">
+                    <div className="h-12 w-12 shrink-0 rounded-lg overflow-hidden bg-white border border-slate-200 shadow-sm">
+                      {renderExistingFurnitureThumb(item, idx)}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-black text-slate-900 truncate uppercase">{item.name}</p>
+                      <p className="text-[10px] text-slate-500 font-bold">{item.category}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <FurnitureCatalog onAddToCart={handleAddToCart} />
+
+          {/* How it works Section (Unified) */}
+          <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm space-y-8">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <LayoutGrid className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-[#1e3a8a] uppercase tracking-tight">Comment ça marche ?</h3>
+                <p className="text-xs text-muted-foreground font-medium">Suivez ces étapes pour équiper votre logement</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
+              {[
+                { step: 1, title: "Choisissez", desc: lang === 'fr' ? "Sélectionnez vos meubles dans le catalogue" : "Select your furniture from the catalog", icon: <Package className="w-5 h-5" /> },
+                { step: 2, title: "Panier", desc: lang === 'fr' ? "Vérifiez vos articles et quantités" : "Check your items and quantities", icon: <ShoppingBag className="w-5 h-5" /> },
+                { step: 3, title: "Bon d'achat", desc: lang === 'fr' ? "Générez votre bon de commande" : "Generate your order voucher", icon: <Receipt className="w-5 h-5" /> },
+                { step: 4, title: "Règlement", desc: lang === 'fr' ? "Payez à la livraison à domicile" : "Pay upon delivery at home", icon: <CreditCard className="w-5 h-5" /> }
+              ].map(item => (
+                <div key={item.step} className="flex flex-col items-center text-center space-y-4 group">
+                  <div className="relative">
+                    <div className="w-14 h-14 rounded-2xl bg-slate-50 shadow-sm group-hover:bg-primary group-hover:text-white transition-all duration-300 flex items-center justify-center text-primary border border-slate-100">
+                      {item.icon}
+                    </div>
+                    <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-secondary text-primary flex items-center justify-center font-black text-xs border-2 border-white shadow-sm">
+                      {item.step}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="font-black text-sm uppercase tracking-tight text-slate-900">{item.title}</h4>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Cart Side */}
-        <div className="xl:col-span-4 h-fit">
+        <div className="xl:col-span-4 space-y-8 sticky top-24">
           <div className="flex items-center gap-2 mb-4">
              <ShoppingBag className="w-5 h-5 text-primary" />
              <h3 className="font-bold text-lg">{t("furn.cart")}</h3>
@@ -323,12 +496,68 @@ export function FurnitureOrderModule({ initialPropertyId }: FurnitureOrderModule
             onCheckout={handleCheckout}
             propertyId={selectedPropertyId}
             onPropertyChange={setSelectedPropertyId}
+            properties={properties} // Pass real properties here
             paymentMethod={paymentMethod}
             onPaymentMethodChange={setPaymentMethod}
           />
+
+          {/* Orders History Section */}
+          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/50 space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Receipt className="w-5 h-5 text-primary" />
+                <h4 className="font-black text-sm uppercase tracking-tight text-slate-900">Historique</h4>
+              </div>
+              <Badge variant="outline" className="rounded-lg font-black text-[10px] bg-slate-50 border-slate-200">
+                {orders.length}
+              </Badge>
+            </div>
+            
+            {ordersLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-primary/40" />
+              </div>
+            ) : orders.length === 0 ? (
+              <div className="text-center py-8 space-y-2 opacity-50">
+                <p className="text-xs font-bold text-slate-400 italic">Aucune commande</p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                {orders.map((order) => (
+                  <div key={order._id || order.id} className="group p-3 rounded-2xl border border-slate-50 bg-slate-50/50 hover:bg-white hover:border-blue-100 hover:shadow-md transition-all duration-300">
+                    <div className="flex justify-between items-start mb-2">
+                       <span className="text-[10px] font-black text-primary uppercase">#{ (order._id || order.id).slice(-6) }</span>
+                       <Badge className={cn(
+                         "text-[8px] font-black px-1.5 py-0.5 rounded-md border-none",
+                         order.status === "Confirmée" ? "bg-emerald-500 text-white" : "bg-blue-100 text-blue-600"
+                       )}>
+                         {order.status || "Brouillon"}
+                       </Badge>
+                    </div>
+                    <div className="flex justify-between items-end">
+                      <div className="space-y-1">
+                        <p className="text-xs font-black text-slate-900">{order.total?.toLocaleString()} DT</p>
+                        <p className="text-[9px] text-slate-400 font-bold">{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : order.date}</p>
+                      </div>
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0 rounded-lg hover:bg-primary hover:text-white transition-colors">
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
       </div>
+
+      <FurnitureChangeRequestModal 
+        isOpen={isChangeModalOpen} 
+        onClose={() => setIsChangeModalOpen(false)}
+        furnitureList={existingFurniture}
+        propertyId={selectedPropertyId}
+      />
     </div>
   )
 }

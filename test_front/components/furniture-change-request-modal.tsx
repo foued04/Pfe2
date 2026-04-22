@@ -19,10 +19,19 @@ interface FurnitureChangeRequestModalProps {
   isOpen: boolean
   onClose: () => void
   furnitureList: Furniture[]
-  contractId: string
+  contractId?: string
+  propertyId?: string
 }
 
-export function FurnitureChangeRequestModal({ isOpen, onClose, furnitureList, contractId }: FurnitureChangeRequestModalProps) {
+const isMongoObjectId = (value?: string) => Boolean(value && /^[a-f\d]{24}$/i.test(value))
+
+export function FurnitureChangeRequestModal({
+  isOpen,
+  onClose,
+  furnitureList,
+  contractId,
+  propertyId,
+}: FurnitureChangeRequestModalProps) {
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     furnitureId: "",
@@ -51,7 +60,8 @@ export function FurnitureChangeRequestModal({ isOpen, onClose, furnitureList, co
         },
         body: JSON.stringify({
           ...formData,
-          contractId
+          ...(isMongoObjectId(contractId) ? { contractId } : {}),
+          ...(propertyId ? { propertyId } : {}),
         })
       })
 

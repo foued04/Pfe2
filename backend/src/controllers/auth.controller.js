@@ -52,10 +52,14 @@ const resetPassword = asyncHandler(async (req, res) => {
 // ─── Google Login Stub ──────────────────────────────────────────────────
 
 const googleLogin = asyncHandler(async (req, res) => {
-  const { token } = req.body;
+  const { token, mode = 'login', role } = req.body;
   
   if (!token) {
     return res.status(400).send({ message: 'Token Google manquant' });
+  }
+
+  if (!['login', 'register'].includes(mode)) {
+    return res.status(400).send({ message: 'Mode Google invalide' });
   }
 
   try {
@@ -93,24 +97,76 @@ const googleLogin = asyncHandler(async (req, res) => {
 
     const { email, name, picture, sub: googleId } = payload;
 
+    if (!email) {
+      return res.status(400).send({ message: 'Email Google introuvable' });
+    }
+
     let user = await User.findOne({ email });
-    
-    if (!user) {
-      // Auto-register if user doesn't exist
-      user = await User.create({
-        fullName: name,
-        email,
-        password: Math.random().toString(36).slice(-10) + 'Xy1!', // Strong random password
-        role: 'tenant', // Default role
-        avatar: picture,
-        googleId, // Optional: store googleId for future reference
-        isEmailVerified: true, // Google users are pre-verified
-      });
-    } else if (!user.googleId) {
-      // Link google account if email matches but googleId is missing
-      user.googleId = googleId;
-      if (!user.avatar) user.avatar = picture;
-      await user.save();
+
+    if (mode === 'register') {
+      if (user) {
+        if (user.googleId && user.googleId !== googleId) {
+          return res.status(409).send({
+            message: 'Ce compte est deja lie a un autre compte Google.',
+          });
+        }
+
+        if (!user.googleId) {
+          user.googleId = googleId;
+        }
+        if (!user.avatar && picture) {
+          user.avatar = picture;
+        }
+        if (!user.fullName && name) {
+          user.fullName = name;
+        }
+        if (!user.isEmailVerified) {
+          user.isEmailVerified = true;
+        }
+
+        await user.save();
+      } else {
+        user = await User.create({
+          fullName: name || email.split('@')[0],
+          email,
+          password: Math.random().toString(36).slice(-10) + 'Xy1!',
+          role: role === 'owner' ? 'owner' : 'tenant',
+          avatar: picture || '',
+          googleId,
+          isEmailVerified: true,
+        });
+      }
+    } else {
+      if (!user) {
+        return res.status(403).send({
+          message: "Aucun compte trouve. Veuillez vous inscrire d'abord.",
+        });
+      }
+
+      if (!user.googleId) {
+        return res.status(403).send({
+          message: "Ce compte n'est pas inscrit avec Google. Veuillez vous inscrire d'abord.",
+        });
+      }
+
+      if (user.googleId !== googleId) {
+        return res.status(403).send({
+          message: 'Ce compte Google ne correspond pas a cet utilisateur.',
+        });
+      }
+
+      let updated = false;
+      if (!user.avatar && picture) {
+        user.avatar = picture;
+        updated = true;
+      }
+      if (!user.fullName && name) {
+        user.fullName = name;
+        updated = true;
+      }
+      if (updated) {
+        await user.save();
+      }
     }
 
     const accessToken = tokenService.generateAuthToken(user);

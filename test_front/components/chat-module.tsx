@@ -24,6 +24,7 @@ export function ChatModule({ contextId, contextTitle, recipientId, category }: C
   const [newMessage, setNewMessage] = useState("")
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [sendError, setSendError] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
@@ -64,6 +65,7 @@ export function ChatModule({ contextId, contextTitle, recipientId, category }: C
   const handleSendMessage = async () => {
     if (!newMessage.trim() || isLoading) return
     setIsLoading(true)
+    setSendError(null)
     try {
       const token = localStorage.getItem("accessToken")
       const response = await fetch(`${API_URL}/messages`, {
@@ -83,10 +85,14 @@ export function ChatModule({ contextId, contextTitle, recipientId, category }: C
       })
       if (response.ok) {
         setNewMessage("")
-        fetchChat()
+        await fetchChat()
+      } else {
+        const err = await response.json().catch(() => null)
+        setSendError(err?.message || (lang === "fr" ? "Message non envoye." : "Message not sent."))
       }
     } catch (err) {
       console.error("Send message error:", err)
+      setSendError(lang === "fr" ? "Erreur de connexion." : "Connection error.")
     } finally {
       setIsLoading(false)
     }
@@ -210,6 +216,9 @@ export function ChatModule({ contextId, contextTitle, recipientId, category }: C
       </ScrollArea>
       
       <div className="p-4 bg-white/80 backdrop-blur-md border-t border-border/40">
+        {sendError && (
+          <p className="mb-2 text-xs font-bold text-destructive">{sendError}</p>
+        )}
         <div className="flex items-end gap-3 max-w-4xl mx-auto">
           <div className="flex gap-2 mb-1.5 opacity-60">
             <PlusCircle className="h-5 w-5 text-primary cursor-pointer hover:opacity-100" />

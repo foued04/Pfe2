@@ -22,6 +22,22 @@ export interface TenantNotification {
     message: string
     intervention?: NotificationIntervention
   }
+  attachments?: Array<{
+    name: string
+    type: string
+    size: number
+    dataUrl: string
+  }>
+  claimMeta?: {
+    claimId?: string
+    tenantId?: string
+    ownerId?: string
+    propertyId?: string
+    propertyTitle?: string
+    category?: string
+    priority?: string
+    photos?: string[]
+  }
   contractData?: {
     contractId: string
     propertyTitle: string

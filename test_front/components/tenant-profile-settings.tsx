@@ -11,7 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
 import { Separator } from "./ui/separator"
 import { Badge } from "./ui/badge"
 import { useToast } from "./ui/use-toast"
-import { Switch } from "./ui/switch"
 import { 
   User, 
   Mail, 
@@ -20,11 +19,7 @@ import {
   Lock, 
   Camera, 
   Save, 
-  FileText, 
-  Settings,
-  Bell,
-  Globe,
-  Upload,
+  FileText,  Upload,
   Trash2,
   Activity,
   AlertCircle,
@@ -44,7 +39,7 @@ import {
 import { Progress } from "./ui/progress"
 
 export function TenantProfileSettings() {
-  const { lang, setLang } = useI18n()
+  const { lang } = useI18n()
   const { user, updateProfile, updatePassword } = useAuth()
   const { toast } = useToast()
 
@@ -217,10 +212,6 @@ export function TenantProfileSettings() {
             <Lock className="h-4 w-4" />
             <span className="font-semibold">{lang === "fr" ? "Sécurité" : "Security"}</span>
           </TabsTrigger>
-          <TabsTrigger value="settings" className="flex-1 min-w-[120px] gap-2 rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary h-10">
-            <Settings className="h-4 w-4" />
-            <span className="font-semibold">{lang === "fr" ? "Paramètres" : "Settings"}</span>
-          </TabsTrigger>
           <TabsTrigger value="diagnostic" className="flex-1 min-w-[120px] gap-2 rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary h-10">
             <Activity className="h-4 w-4" />
             <span className="font-semibold">{lang === "fr" ? "Diagnostic" : "Diagnostic"}</span>
@@ -354,35 +345,6 @@ export function TenantProfileSettings() {
           </Card>
         </TabsContent>
 
-        {/* ─── SETTINGS ─────────────────────────────────────────────────── */}
-        <TabsContent value="settings">
-          <Card className="max-w-2xl shadow-sm border-border/50">
-            <CardHeader>
-              <CardTitle className="text-lg">{lang === "fr" ? "Paramètres" : "Settings"}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl border">
-                <div className="flex items-center gap-4">
-                  <Globe className="h-5 w-5 text-primary" />
-                  <div>
-                    <h4 className="font-semibold text-sm">{lang === "fr" ? "Langue" : "Language"}</h4>
-                  </div>
-                </div>
-                <div className="flex border rounded-lg overflow-hidden">
-                  <button onClick={() => setLang("fr")} className={`px-3 py-1.5 text-xs ${lang === "fr" ? "bg-primary text-white" : ""}`}>Fr</button>
-                  <button onClick={() => setLang("en")} className={`px-3 py-1.5 text-xs ${lang === "en" ? "bg-primary text-white" : ""}`}>En</button>
-                </div>
-              </div>
-              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl border">
-                <div className="flex items-center gap-4">
-                  <Bell className="h-5 w-5 text-primary" />
-                  <h4 className="font-semibold text-sm">Notifications</h4>
-                </div>
-                <Switch checked={notifPrefs.acceptedRequests} onCheckedChange={(val) => setNotifPrefs({...notifPrefs, acceptedRequests: val})} />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         {/* ─── DIAGNOSTIC / ANALYTIQUE ───────────────────────────────────── */}
         <TabsContent value="diagnostic">
@@ -539,3 +501,4 @@ export function TenantProfileSettings() {
     </div>
   )
 }
+

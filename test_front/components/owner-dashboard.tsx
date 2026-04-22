@@ -44,11 +44,11 @@ const navItems = [
   { key: "profile", icon: User, label: "profile" },
 ]
 
-export function OwnerDashboard() {
+export function OwnerDashboard({ initialSection = "overview" }: { initialSection?: string }) {
   const { t, lang, setLang } = useI18n()
   const { user, logout } = useAuth()
   
-  const [activeSection, setActiveSection] = useState("overview")
+  const [activeSection, setActiveSection] = useState(initialSection)
   const [preSelectedPropertyId, setPreSelectedPropertyId] = useState<string | null>(null)
   const [properties, setProperties] = useState<any[]>([])
   const [editingProperty, setEditingProperty] = useState<any | null>(null)
@@ -56,6 +56,10 @@ export function OwnerDashboard() {
   const [isFetching, setIsFetching] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [requestCount, setRequestCount] = useState(0)
+
+  useEffect(() => {
+    setActiveSection(initialSection)
+  }, [initialSection])
   const [unreadMessageCount, setUnreadMessageCount] = useState(0)
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0)
 

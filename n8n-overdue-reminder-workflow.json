@@ -1,0 +1,117 @@
+{
+  "name": "Overdue Rent Reminder - Simplified",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-daily-9am",
+      "name": "Every Day at 9AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -920,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "aggregate",
+        "collection": "contracts",
+        "query": "[\n  {\n    \"$match\": {\n      \"status\": \"SignedByBoth\",\n      \"paymentStatus\": { \"$ne\": \"paid\" },\n      \"$expr\": { \"$lt\": [\"$dueDate\", \"$$NOW\"] }\n    }\n  },\n  {\n    \"$addFields\": {\n      \"days_late\": {\n        \"$floor\": {\n          \"$divide\": [\n            { \"$subtract\": [\"$$NOW\", { \"$toDate\": \"$dueDate\" }] },\n            86400000\n          ]\n        }\n      }\n    }\n  },\n  {\n    \"$project\": {\n      \"contract_id\": { \"$toString\": \"$_id\" },\n      \"tenant_email\": 1,\n      \"tenant_name\": 1,\n      \"homeowner_email\": 1,\n      \"homeowner_name\": 1,\n      \"property_address\": 1,\n      \"amount\": \"$rentAmount\",\n      \"dueDate\": 1,\n      \"days_late\": { \"$ifNull\": [\"$days_late\", 0] }\n    }\n  }\n]\n"
+      },
+      "id": "find-overdue-payments",
+      "name": "Find Overdue Payments",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1,
+      "position": [
+        -680,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(({ json }) => {\n  const daysLate = Number(json.days_late || 0);\n  const tenantName = json.tenant_name || 'Tenant';\n  const dueDate = json.dueDate || '';\n  const amount = json.amount ?? '';\n\n  const reminderLevel = daysLate >= 8 ? 'final' : daysLate >= 4 ? 'firm' : 'friendly';\n  const emailSubject = daysLate >= 8\n    ? 'Final warning: your rent payment is overdue'\n    : daysLate >= 4\n      ? 'Urgent reminder: rent payment overdue'\n      : 'Friendly reminder: rent payment overdue';\n\n  const emailMessage = daysLate >= 8\n    ? `<p>Dear ${tenantName},</p><p>This is a final warning that your rent payment of <strong>${amount} DT</strong> was due on <strong>${dueDate}</strong>.</p><p>Your payment is now <strong>${daysLate}</strong> days late. Please pay immediately to avoid further action.</p><p>Thank you.</p>`\n    : daysLate >= 4\n      ? `<p>Dear ${tenantName},</p><p>This is an urgent reminder that your rent payment of <strong>${amount} DT</strong> was due on <strong>${dueDate}</strong>.</p><p>Your payment is now <strong>${daysLate}</strong> days late. Please complete payment as soon as possible.</p><p>Thank you.</p>`\n      : `<p>Dear ${tenantName},</p><p>This is a friendly reminder that your rent payment of <strong>${amount} DT</strong> was due on <strong>${dueDate}</strong>.</p><p>Your payment is now <strong>${daysLate}</strong> day(s) late.</p><p>Please complete payment when possible.</p><p>Thank you.</p>`;\n\n  return {\n    json: {\n      ...json,\n      reminder_level: reminderLevel,\n      email_subject: emailSubject,\n      email_message: emailMessage,\n    },\n  };\n});"
+      },
+      "id": "set-email-content",
+      "name": "Set Email Content",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -420,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.tenant_email }}",
+        "subject": "={{ $json.email_subject }}",
+        "message": "={{ $json.email_message }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "send-email-tenant",
+      "name": "Send Email to Tenant",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -140,
+        220
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Every Day at 9AM": {
+      "main": [
+        [
+          {
+            "node": "Find Overdue Payments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Overdue Payments": {
+      "main": [
+        [
+          {
+            "node": "Set Email Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Email Content": {
+      "main": [
+        [
+          {
+            "node": "Send Email to Tenant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "00000000-0000-0000-0000-000000000001",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "id": "overdue-rent-reminder-simplified",
+  "tags": []
+}

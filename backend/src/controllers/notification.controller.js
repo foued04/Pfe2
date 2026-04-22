@@ -21,7 +21,17 @@ exports.markAsRead = asyncHandler(async (req, res) => {
 });
 
 exports.createNotification = asyncHandler(async (req, res) => {
-  const { recipient, type, title, preview, content, claimResponse, contractData } = req.body;
+  const { recipient, type, title, preview, content, claimResponse, attachments, claimMeta, contractData } = req.body;
+  const normalizedAttachments = Array.isArray(attachments)
+    ? attachments
+        .map((item) => {
+          if (typeof item === 'string') return item;
+          if (item && typeof item === 'object') return item;
+          return null;
+        })
+        .filter(Boolean)
+    : [];
+
   const notification = new Notification({
     recipient,
     type,
@@ -29,6 +39,8 @@ exports.createNotification = asyncHandler(async (req, res) => {
     preview,
     content,
     claimResponse,
+    attachments: normalizedAttachments,
+    claimMeta,
     contractData
   });
   await notification.save();

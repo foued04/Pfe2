@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import dynamic from "next/dynamic"
+import { useRouter } from "next/navigation"
 import type { Property } from "@/lib/property-data"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -27,9 +28,13 @@ import {
   ChevronRight,
   Send,
   Star,
+  Armchair,
+  Package,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
+import { useAuth } from "@/lib/auth-context"
+import { toast } from "@/hooks/use-toast"
 
 const PropertyMiniMap = dynamic(
   () => import("./property-mini-map").then((mod) => mod.PropertyMiniMap),
@@ -71,10 +76,48 @@ export function PropertyDetailsModal({
   isOwnerView = false,
 }: PropertyDetailsModalProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [furniture, setFurniture] = useState<any[]>([])
+  const [isFurnitureLoading, setIsFurnitureLoading] = useState(false)
+  const router = useRouter()
+  const { role, isAuthenticated } = useAuth()
+  const canViewOwnerContact = role === "owner" || role === "admin"
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
 
   useEffect(() => {
-    if (isOpen) setCurrentImageIndex(0)
-  }, [property?.id, isOpen])
+    if (isOpen) {
+      setCurrentImageIndex(0)
+      if (property?.id || property?._id) {
+        fetchFurniture(property.id || (property as any)._id)
+      }
+    }
+  }, [property?.id, (property as any)?._id, isOpen])
+
+  const fetchFurniture = async (propertyId: string) => {
+    setIsFurnitureLoading(true)
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/furniture/property/${propertyId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+      if (response.ok) {
+        const data = await response.json()
+        if (data.length > 0) {
+          setFurniture(data)
+        } else if (property.furnishing?.items) {
+          setFurniture(property.furnishing.items)
+        }
+      } else if (property.furnishing?.items) {
+        setFurniture(property.furnishing.items)
+      }
+    } catch (error) {
+      console.error("Error fetching furniture for property details:", error)
+    } finally {
+      setIsFurnitureLoading(false)
+    }
+  }
 
   if (!property) return null
 
@@ -98,6 +141,16 @@ export function PropertyDetailsModal({
   }
 
   const handleSendRequest = () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Connexion requise",
+        description: "Connectez-vous ou recevez un code pour continuer votre demande.",
+      })
+      router.push(`/request-access?propertyTitle=${encodeURIComponent(property.title)}&redirect=${encodeURIComponent(`/property/${property.id || (property as any)._id || ""}`)}`)
+      onClose()
+      return
+    }
+
     onContact(property)
     onClose()
   }
@@ -250,6 +303,51 @@ export function PropertyDetailsModal({
 
             <hr className="border-gray-100" />
 
+            {/* Furniture Section */}
+            {(furniture.length > 0 || isFurnitureLoading) && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+                    <Armchair className="h-4 w-4 text-primary" />
+                    Mobilier & Équipements
+                  </h3>
+                  <Badge variant="secondary" className="bg-primary/10 text-primary border-none">
+                    {furniture.length} {furniture.length > 1 ? "articles" : "article"}
+                  </Badge>
+                </div>
+                
+                {isFurnitureLoading ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="h-20 bg-gray-50 animate-pulse rounded-lg border border-gray-100" />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {furniture.map((item, idx) => (
+                      <div key={item.id || idx} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg border border-gray-100 group hover:border-primary/30 transition-colors">
+                        <div className="h-10 w-10 shrink-0 rounded-md overflow-hidden bg-white border border-gray-200">
+                          {item.image ? (
+                            <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="h-full w-full flex items-center justify-center text-gray-400">
+                              <Package className="h-5 w-5" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-bold text-gray-900 truncate uppercase">{item.name}</p>
+                          <p className="text-[9px] text-gray-500 font-medium">{item.category}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <hr className="border-gray-100" />
+
             {/* Owner Section */}
             <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6 bg-gray-50 rounded-lg p-5 border border-gray-100">
               <div className="flex items-center gap-4">
@@ -262,16 +360,22 @@ export function PropertyDetailsModal({
                 </div>
               </div>
               
-              <div className="flex flex-col gap-1.5 text-sm">
-                <a href={`mailto:${property.owner?.email || property.ownerEmail}`} className="flex items-center gap-2 text-gray-600 hover:text-primary transition-colors">
-                  <Mail className="h-4 w-4 shrink-0" />
-                  <span>{property.owner?.email || property.ownerEmail || "-"}</span>
-                </a>
-                <a href={`tel:${property.owner?.phone || property.ownerPhone}`} className="flex items-center gap-2 text-gray-600 hover:text-primary transition-colors">
-                  <Phone className="h-4 w-4 shrink-0" />
-                  <span>{property.owner?.phone || property.ownerPhone || "-"}</span>
-                </a>
-              </div>
+              {canViewOwnerContact ? (
+                <div className="flex flex-col gap-1.5 text-sm">
+                  <a href={`mailto:${property.owner?.email || property.ownerEmail}`} className="flex items-center gap-2 text-gray-600 hover:text-primary transition-colors">
+                    <Mail className="h-4 w-4 shrink-0" />
+                    <span>{property.owner?.email || property.ownerEmail || "-"}</span>
+                  </a>
+                  <a href={`tel:${property.owner?.phone || property.ownerPhone}`} className="flex items-center gap-2 text-gray-600 hover:text-primary transition-colors">
+                    <Phone className="h-4 w-4 shrink-0" />
+                    <span>{property.owner?.phone || property.ownerPhone || "-"}</span>
+                  </a>
+                </div>
+              ) : (
+                <div className="max-w-xs text-sm text-gray-500">
+                  Les coordonnees du proprietaire ne sont pas visibles pour les utilisateurs standards. Passez par la demande pour continuer.
+                </div>
+              )}
             </div>
 
             {/* CTA */}

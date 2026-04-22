@@ -9,14 +9,14 @@ const furnitureCatalog = [
     name: "Canapé Angle Velours Royal",
     category: "Salon",
     price: 1450,
-    image: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&h=600&fit=crop",
+    image: "https://images.unsplash.com/photo-1550254478-ead40ccce451?w=800&h=600&fit=crop",
     description: "Un canapé d'angle majestueux en velours bleu profond, alliant confort absolu et design contemporain. Parfait pour vos soirées détente."
   },
   {
     name: "Table Basse Marbre & Or",
     category: "Salon",
     price: 580,
-    image: "https://images.unsplash.com/photo-1533090161767-e6ffed986c88?w=800&h=600&fit=crop",
+    image: "https://images.unsplash.com/photo-1577083552431-6e5fd01988ec?w=800&h=600&fit=crop",
     description: "Table basse minimaliste avec plateau en marbre de Carrare véritable et structure en acier brossé doré."
   },
   {
@@ -30,7 +30,7 @@ const furnitureCatalog = [
     name: "Fauteuil Relax 'Polaris'",
     category: "Salon",
     price: 890,
-    image: "https://images.unsplash.com/photo-1567016432779-094069958ad5?w=800&h=600&fit=crop",
+    image: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&h=600&fit=crop",
     description: "Fauteuil ergonomique avec repose-pieds intégré, idéal pour la lecture ou une sieste improvisée."
   },
   {
@@ -86,7 +86,7 @@ const furnitureCatalog = [
     name: "Tapis Berbère Artisanal",
     category: "Décoration",
     price: 420,
-    image: "https://images.unsplash.com/photo-1575414003591-ece8d0416c7a?w=800&h=600&fit=crop",
+    image: "https://images.unsplash.com/photo-1531835551805-16d864c8d311?w=800&h=600&fit=crop",
     description: "Tapis fait main aux motifs géométriques élégants. Apporte chaleur et authenticité à votre sol."
   },
   {
@@ -114,7 +114,7 @@ const furnitureCatalog = [
     name: "Chaise Pivotante Ergonomique",
     category: "Bureau",
     price: 450,
-    image: "https://images.unsplash.com/photo-1505797149-43b00fe90494?w=800&h=600&fit=crop",
+    image: "https://images.unsplash.com/photo-1505843490701-5be5d2b13297?w=800&h=600&fit=crop",
     description: "Soutien lombaire ajustable et accoudoirs 4D. Le confort ultime pour de longues heures de travail."
   },
   {
@@ -127,11 +127,16 @@ const furnitureCatalog = [
 ];
 
 const seedDB = async () => {
-  await connectDB();
-  await Furniture.deleteMany({});
-  await Furniture.insertMany(furnitureCatalog);
-  console.log("Database seeded with furniture!");
-  process.exit();
+  try {
+    await connectDB();
+    await Furniture.deleteMany({});
+    await Furniture.insertMany(furnitureCatalog);
+    console.log("Database seeded with furniture!");
+  } catch (error) {
+    console.error("Error seeding furniture:", error);
+  } finally {
+    process.exit();
+  }
 };
 
 seedDB();
