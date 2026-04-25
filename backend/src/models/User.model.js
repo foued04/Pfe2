@@ -36,7 +36,11 @@ const userSchema = new mongoose.Schema({
       comment: { type: String, default: '' },
       uploadedAt: { type: Date }
     }
-  }
+  },
+  favoriteProperties: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Property',
+  }]
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

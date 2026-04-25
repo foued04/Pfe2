@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import type { ComponentType } from "react"
 import type { UserRole } from "@/lib/auth-context"
+import { useI18n } from "@/lib/i18n"
 import { AppLogo } from "@/components/shared/app-logo"
 import { cn } from "@/lib/utils"
 import {
@@ -81,6 +82,7 @@ export function DashboardSidebar({
   unreadNotifications?: number
 }) {
   const pathname = usePathname()
+  const { lang } = useI18n()
   const items = getNavItems(role)
   const settingsHref =
     role === "owner"
@@ -111,7 +113,23 @@ export function DashboardSidebar({
               )}
             >
               <item.icon className="h-4 w-4" />
-              <span className="flex-1">{item.label}</span>
+              <span className="flex-1">
+                {item.label === "Dashboard" ? (lang === "fr" ? "Tableau de bord" : "Dashboard") :
+                 item.label === "My Properties" ? (lang === "fr" ? "Mes proprietes" : "My Properties") :
+                 item.label === "Add Property" ? (lang === "fr" ? "Ajouter un bien" : "Add Property") :
+                 item.label === "Map" ? (lang === "fr" ? "Carte" : "Map") :
+                 item.label === "Requests" ? (lang === "fr" ? "Demandes" : "Requests") :
+                 item.label === "Notifications" ? (lang === "fr" ? "Notifications" : "Notifications") :
+                 item.label === "Furniture" ? (lang === "fr" ? "Mobilier" : "Furniture") :
+                 item.label === "My Home" ? (lang === "fr" ? "Mon logement" : "My Home") :
+                 item.label === "Reclamation" ? (lang === "fr" ? "Reclamation" : "Reclamation") :
+                 item.label === "Favorites" ? (lang === "fr" ? "Favoris" : "Favorites") :
+                 item.label === "Users" ? (lang === "fr" ? "Utilisateurs" : "Users") :
+                 item.label === "Properties" ? (lang === "fr" ? "Proprietes" : "Properties") :
+                 item.label === "Verifications" ? (lang === "fr" ? "Verifications" : "Verifications") :
+                 item.label === "Reports" ? (lang === "fr" ? "Rapports" : "Reports") :
+                 item.label}
+              </span>
               {role === "owner" && item.href === "/dashboard/owner/requests" && pendingRequests > 0 && (
                 <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white shadow-sm">
                   {pendingRequests > 99 ? "99+" : pendingRequests}
@@ -137,7 +155,7 @@ export function DashboardSidebar({
           )}
         >
           <Settings className="h-4 w-4" />
-          Settings
+          {lang === "fr" ? "Parametres" : "Settings"}
         </Link>
       </div>
     </div>

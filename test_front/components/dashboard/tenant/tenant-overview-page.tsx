@@ -6,9 +6,10 @@ import { ArrowLeft, Bell, FileText, Heart, Home, Map, Megaphone, ShoppingBag } f
 import type { Property } from "@/lib/property-data"
 import { useProperties } from "@/hooks/api/use-properties"
 import { useTenantHomes } from "@/hooks/api/use-tenant-homes"
+import { useFavorites } from "@/hooks/api/use-favorites"
 import { PageHeader } from "@/components/dashboard/shared/page-header"
 import { StatsGrid } from "@/components/dashboard/shared/stats-grid"
-import { PropertyCard } from "@/components/property/property-card"
+import { TenantPropertyCard } from "@/components/tenant-property-card"
 import { PropertyDetailPage } from "@/components/property/property-detail-page"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -16,6 +17,7 @@ import { Card, CardContent } from "@/components/ui/card"
 export function TenantOverviewPage() {
   const { properties, isLoading, error } = useProperties({ auth: true })
   const { homes: myHomes, isLoading: isHomesLoading } = useTenantHomes()
+  const { favoriteIds, toggleFavorite } = useFavorites()
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null)
   const availableProperties = useMemo(() => {
     const rentedIds = new Set(myHomes.map((home) => home.id))
@@ -69,7 +71,16 @@ export function TenantOverviewPage() {
           </div>
           <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
             {myHomes.map((property) => (
-              <PropertyCard key={property.id} property={property} onSelect={setSelectedProperty} />
+              <TenantPropertyCard
+                key={property.id}
+                property={property}
+                isFavorite={favoriteIds.includes(property.id)}
+                onToggleFavorite={(propertyId) => {
+                  void toggleFavorite(propertyId)
+                }}
+                onViewDetails={setSelectedProperty}
+                onContact={setSelectedProperty}
+              />
             ))}
           </div>
         </section>
@@ -86,7 +97,16 @@ export function TenantOverviewPage() {
           </div>
           <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
             {availableProperties.slice(0, 3).map((property) => (
-              <PropertyCard key={property.id} property={property} onSelect={setSelectedProperty} />
+              <TenantPropertyCard
+                key={property.id}
+                property={property}
+                isFavorite={favoriteIds.includes(property.id)}
+                onToggleFavorite={(propertyId) => {
+                  void toggleFavorite(propertyId)
+                }}
+                onViewDetails={setSelectedProperty}
+                onContact={setSelectedProperty}
+              />
             ))}
           </div>
         </section>

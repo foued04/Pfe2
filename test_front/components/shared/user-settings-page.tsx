@@ -182,8 +182,8 @@ export function UserSettingsPage() {
               </h1>
               <p className="text-sm text-slate-500">
                 {lang === "fr"
-                  ? "Gerez la securite, les notifications et les preferences de votre compte."
-                  : "Manage your account security, notifications, and preferences."}
+                  ? "Gerez la securite, les notifications et les preferences de votre compte professionnel."
+                  : "Manage your security, notifications, and professional account preferences."}
               </p>
             </div>
           </div>

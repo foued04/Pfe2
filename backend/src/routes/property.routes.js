@@ -10,6 +10,15 @@ router
   .get(optionalAuth, propertyController.getProperties);
 
 router
+  .route('/favorites')
+  .get(auth, propertyController.getFavoriteProperties);
+
+router
+  .route('/:propertyId/favorite')
+  .post(auth, propertyController.addFavoriteProperty)
+  .delete(auth, propertyController.removeFavoriteProperty);
+
+router
   .route('/:propertyId')
   .get(propertyController.getProperty)
   .put(auth, propertyController.updateProperty)

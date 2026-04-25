@@ -1,12 +1,14 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { Bath, Bed, Building2, MapPin, Maximize, Search } from "lucide-react"
+import { Bath, Bed, Building2, Heart, MapPin, Maximize, Search } from "lucide-react"
 import { type Property } from "@/lib/property-data"
 import { PropertyDetailsModal } from "@/components/property-details-modal"
 import { PublicFooter } from "@/components/public-footer"
 import { PublicNavbar } from "@/components/public-navbar"
 import { useProperties } from "@/hooks/api/use-properties"
+import { useFavorites } from "@/hooks/api/use-favorites"
+import { useAuth } from "@/lib/auth-context"
 
 const typeOptions = [
   { value: "all", label: "Tous les types" },
@@ -34,8 +36,9 @@ export function PropertiesPage() {
   const [search, setSearch] = useState("")
   const [typeFilter, setTypeFilter] = useState("all")
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null)
-  const [favorites, setFavorites] = useState<string[]>([])
   const { properties, isLoading, error } = useProperties()
+  const { isAuthenticated, role } = useAuth()
+  const { favoriteIds, toggleFavorite } = useFavorites()
 
   const filteredProperties = useMemo(() => {
     return properties.filter((property) => {
@@ -45,10 +48,6 @@ export function PropertiesPage() {
       return matchesSearch && matchesType
     })
   }, [properties, search, typeFilter])
-
-  const toggleFavorite = (id: string) => {
-    setFavorites((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]))
-  }
 
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(180deg, #eff6ff 0%, #f8fafc 55%, #ffffff 100%)", color: "#0f172a" }}>
@@ -151,6 +150,33 @@ export function PropertiesPage() {
                     <span style={{ position: "absolute", top: "14px", left: "14px", background: statusColors[property.status], color: "#fff", borderRadius: "999px", padding: "6px 12px", fontSize: "12px", fontWeight: 700 }}>
                       {statusLabels[property.status]}
                     </span>
+                    {isAuthenticated && role === "tenant" ? (
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          void toggleFavorite(property.id)
+                        }}
+                        aria-label={favoriteIds.includes(property.id) ? "Retirer des favoris" : "Ajouter aux favoris"}
+                        style={{
+                          position: "absolute",
+                          top: "14px",
+                          right: "14px",
+                          height: "40px",
+                          width: "40px",
+                          borderRadius: "999px",
+                          border: "none",
+                          display: "grid",
+                          placeItems: "center",
+                          background: favoriteIds.includes(property.id) ? "#2563eb" : "rgba(255,255,255,0.88)",
+                          color: favoriteIds.includes(property.id) ? "#ffffff" : "#0f172a",
+                          boxShadow: "0 10px 24px rgba(15, 23, 42, 0.18)",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <Heart size={18} fill={favoriteIds.includes(property.id) ? "currentColor" : "none"} />
+                      </button>
+                    ) : null}
                     <span style={{ position: "absolute", bottom: "14px", left: "14px", background: "rgba(15, 23, 42, 0.72)", color: "#fff", borderRadius: "12px", padding: "8px 12px", fontWeight: 800 }}>
                       {property.rent.toLocaleString("fr-TN")} DT / mois
                     </span>
@@ -185,7 +211,7 @@ export function PropertiesPage() {
         property={selectedProperty}
         isOpen={!!selectedProperty}
         onClose={() => setSelectedProperty(null)}
-        isFavorite={selectedProperty ? favorites.includes(selectedProperty.id) : false}
+        isFavorite={selectedProperty ? favoriteIds.includes(selectedProperty.id) : false}
         onToggleFavorite={toggleFavorite}
         onContact={() => setSelectedProperty(null)}
       />

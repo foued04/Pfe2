@@ -1,8 +1,10 @@
 "use client"
 
-import { createContext, useContext, useState, type ReactNode } from "react"
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
 
-type Language = "en" | "fr" | "ar"
+export type Language = "en" | "fr" | "ar"
+
+const LANGUAGE_STORAGE_KEY = "immosmart:language"
 
 interface I18nContextType {
   lang: Language
@@ -587,14 +589,39 @@ const translations: Record<Language, Record<string, string>> = {
 const I18nContext = createContext<I18nContextType | undefined>(undefined)
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [lang, setLang] = useState<Language>("fr")
+  const [lang, setLangState] = useState<Language>("fr")
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    const storedLang = window.localStorage.getItem(LANGUAGE_STORAGE_KEY)
+    if (storedLang === "fr" || storedLang === "en" || storedLang === "ar") {
+      setLangState(storedLang)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(LANGUAGE_STORAGE_KEY, lang)
+    }
+
+    if (typeof document !== "undefined") {
+      document.documentElement.lang = lang
+    }
+  }, [lang])
+
+  const setLang = (nextLang: Language) => {
+    setLangState(nextLang)
+  }
 
   const t = (key: string): string => {
     return translations[lang][key] || translations.fr[key] || translations.en[key] || key
   }
 
+  const value = useMemo(() => ({ lang, setLang, t }), [lang])
+
   return (
-    <I18nContext.Provider value={{ lang, setLang, t }}>
+    <I18nContext.Provider value={value}>
       {children}
     </I18nContext.Provider>
   )

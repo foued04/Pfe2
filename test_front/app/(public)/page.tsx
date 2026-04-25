@@ -16,9 +16,6 @@ export default function HomeRoute() {
     <div>
       <section id="accueil" className="mx-auto grid max-w-7xl scroll-mt-28 gap-10 px-4 py-16 md:grid-cols-2 md:px-6 md:py-24">
         <div className="space-y-6">
-          <span className="inline-flex rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-            Real estate SaaS
-          </span>
           <h1 className="text-5xl font-black tracking-tight text-foreground md:text-6xl">
             Une plateforme immobiliere claire, routee comme une vraie app.
           </h1>

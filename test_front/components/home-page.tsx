@@ -66,9 +66,6 @@ export function HomePage({ onLogin, onRegister, onPublish }: HomePageProps) {
         <section style={{ maxWidth: "1240px", margin: "0 auto", padding: "48px 24px 0" }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "36px", alignItems: "center" }}>
             <div>
-              <span style={{ display: "inline-block", background: "rgba(29, 78, 216, 0.1)", color: "#1d4ed8", padding: "8px 14px", borderRadius: "999px", fontSize: "12px", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                Plateforme immobiliere
-              </span>
               <h1 style={{ margin: "18px 0 14px", fontSize: "clamp(38px, 6vw, 68px)", lineHeight: 0.98 }}>
                 Chaque lien du menu ouvre maintenant sa propre page.
               </h1>

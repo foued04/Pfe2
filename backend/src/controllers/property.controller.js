@@ -2,6 +2,7 @@ const asyncHandler = require('../utils/asyncHandler');
 const propertyService = require('../services/property.service');
 const ApiError = require('../utils/ApiError');
 const Contract = require('../models/Contract.model');
+const User = require('../models/User.model');
 
 const createProperty = asyncHandler(async (req, res) => {
   const propertyBody = {
@@ -55,6 +56,69 @@ const getProperty = asyncHandler(async (req, res) => {
   res.send(property);
 });
 
+const getFavoriteProperties = asyncHandler(async (req, res) => {
+  if (req.user.role !== 'tenant') {
+    throw new ApiError(403, 'Only tenants can manage favorite properties');
+  }
+
+  const tenant = await User.findById(req.user._id)
+    .populate({
+      path: 'favoriteProperties',
+      populate: {
+        path: 'owner',
+        select: 'fullName email phone',
+      },
+    });
+
+  res.send(tenant?.favoriteProperties || []);
+});
+
+const addFavoriteProperty = asyncHandler(async (req, res) => {
+  if (req.user.role !== 'tenant') {
+    throw new ApiError(403, 'Only tenants can manage favorite properties');
+  }
+
+  const property = await propertyService.getPropertyById(req.params.propertyId);
+
+  if (property.moderationStatus !== 'approved' || property.status !== 'available') {
+    throw new ApiError(400, 'Only approved available properties can be added to favorites');
+  }
+
+  const tenant = await User.findByIdAndUpdate(
+    req.user._id,
+    { $addToSet: { favoriteProperties: property._id } },
+    { new: true }
+  ).populate({
+    path: 'favoriteProperties',
+    populate: {
+      path: 'owner',
+      select: 'fullName email phone',
+    },
+  });
+
+  res.send(tenant?.favoriteProperties || []);
+});
+
+const removeFavoriteProperty = asyncHandler(async (req, res) => {
+  if (req.user.role !== 'tenant') {
+    throw new ApiError(403, 'Only tenants can manage favorite properties');
+  }
+
+  const tenant = await User.findByIdAndUpdate(
+    req.user._id,
+    { $pull: { favoriteProperties: req.params.propertyId } },
+    { new: true }
+  ).populate({
+    path: 'favoriteProperties',
+    populate: {
+      path: 'owner',
+      select: 'fullName email phone',
+    },
+  });
+
+  res.send(tenant?.favoriteProperties || []);
+});
+
 const updateProperty = asyncHandler(async (req, res) => {
   const property = await propertyService.getPropertyById(req.params.propertyId);
   const ownerId = property.owner?._id || property.owner;
@@ -85,6 +149,9 @@ module.exports = {
   createProperty,
   getProperties,
   getProperty,
+  getFavoriteProperties,
+  addFavoriteProperty,
+  removeFavoriteProperty,
   updateProperty,
   deleteProperty,
 };
