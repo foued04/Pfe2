@@ -9,11 +9,10 @@ import { cn } from "@/lib/utils"
 import {
   Bell,
   Building2,
-  FileSignature,
   FileText,
   Home,
+  Megaphone,
   Map,
-  MessageSquare,
   Plus,
   Sofa,
   Settings,
@@ -31,9 +30,9 @@ const ownerItems: NavItem[] = [
   { href: "/dashboard/owner", label: "Dashboard", icon: Home },
   { href: "/dashboard/owner/properties", label: "My Properties", icon: Building2 },
   { href: "/dashboard/owner/properties/new", label: "Add Property", icon: Plus },
+  { href: "/dashboard/owner/map", label: "Map", icon: Map },
   { href: "/dashboard/owner/requests", label: "Requests", icon: FileText },
-  { href: "/dashboard/owner/contracts", label: "Contracts", icon: FileSignature },
-  { href: "/dashboard/owner/messages", label: "Messages", icon: MessageSquare },
+  { href: "/dashboard/owner/notifications", label: "Notifications", icon: Bell },
   { href: "/dashboard/owner/furniture", label: "Furniture", icon: ShoppingBag },
 ]
 
@@ -41,6 +40,7 @@ const tenantItems: NavItem[] = [
   { href: "/dashboard/tenant", label: "Dashboard", icon: Home },
   { href: "/dashboard/tenant/map", label: "Map", icon: Map },
   { href: "/dashboard/tenant/requests", label: "Requests", icon: FileText },
+  { href: "/dashboard/tenant/reclamations", label: "Reclamation", icon: Megaphone },
   { href: "/dashboard/tenant/favorites", label: "Favorites", icon: Heart },
   { href: "/dashboard/tenant/furniture", label: "Furniture", icon: ShoppingBag },
   { href: "/dashboard/tenant/notifications", label: "Notifications", icon: Bell },
@@ -69,7 +69,15 @@ export function getNavItems(role: UserRole | null): NavItem[] {
   }
 }
 
-export function DashboardSidebar({ role }: { role: UserRole | null }) {
+export function DashboardSidebar({
+  role,
+  pendingRequests = 0,
+  unreadNotifications = 0,
+}: {
+  role: UserRole | null
+  pendingRequests?: number
+  unreadNotifications?: number
+}) {
   const pathname = usePathname()
   const items = getNavItems(role)
   const settingsHref =
@@ -101,7 +109,17 @@ export function DashboardSidebar({ role }: { role: UserRole | null }) {
               )}
             >
               <item.icon className="h-4 w-4" />
-              {item.label}
+              <span className="flex-1">{item.label}</span>
+              {role === "owner" && item.href === "/dashboard/owner/requests" && pendingRequests > 0 && (
+                <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white shadow-sm">
+                  {pendingRequests > 99 ? "99+" : pendingRequests}
+                </span>
+              )}
+              {role === "tenant" && item.href === "/dashboard/tenant/notifications" && unreadNotifications > 0 && (
+                <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white shadow-sm">
+                  {unreadNotifications > 99 ? "99+" : unreadNotifications}
+                </span>
+              )}
             </Link>
           )
         })}

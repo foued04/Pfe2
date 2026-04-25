@@ -2,8 +2,8 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Menu } from "lucide-react"
-import { AppLogo } from "@/components/shared/app-logo"
+import { Home, Menu } from "lucide-react"
+import { ProfileDropdown } from "@/components/shared/profile-dropdown"
 import { Button } from "@/components/ui/button"
 import {
   Sheet,
@@ -13,21 +13,38 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
-
-const navItems = [
-  { href: "/", label: "Accueil" },
-  { href: "/properties", label: "Properties" },
-  { href: "/ameublement", label: "Meubles" },
-  { href: "/contact", label: "Contact" },
-]
+import { useAuth } from "@/lib/auth-context"
 
 export function PublicNavbar() {
   const pathname = usePathname()
+  const { isAuthenticated, isLoading, role } = useAuth()
+  const dashboardHref =
+    role === "tenant"
+      ? "/dashboard/tenant"
+      : role === "owner"
+        ? "/dashboard/owner"
+        : role === "admin"
+          ? "/dashboard/admin"
+          : "/dashboard"
+  const homeHref = isAuthenticated ? dashboardHref : "/"
+  const navItems = [
+    { href: homeHref, label: "Accueil" },
+    { href: "/properties", label: "Properties" },
+    { href: "/ameublement", label: "Meubles" },
+    { href: "/contact", label: "Contact" },
+  ]
+  const showAccountControls = isAuthenticated && !isLoading
+  const showGuestControls = !isAuthenticated && !isLoading
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/70 bg-background/90 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-4 md:px-6">
-        <AppLogo />
+        <Link href={homeHref} className="inline-flex items-center gap-3 text-foreground no-underline">
+          <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+            <Home className="h-4 w-4" />
+          </span>
+          <span className="text-lg font-black tracking-tight">ImmoSmart</span>
+        </Link>
 
         <nav className="hidden flex-1 items-center justify-center gap-2 md:flex">
           {navItems.map((item) => (
@@ -47,12 +64,25 @@ export function PublicNavbar() {
         </nav>
 
         <div className="ml-auto hidden items-center gap-3 md:flex">
-          <Button asChild variant="outline" className="h-12 rounded-full px-6 text-base">
-            <Link href="/login">Connexion</Link>
-          </Button>
-          <Button asChild className="h-12 rounded-full px-6 text-base">
-            <Link href="/register">Inscription</Link>
-          </Button>
+          {showAccountControls ? (
+            <>
+              <Button asChild variant="outline" className="h-12 rounded-full px-6 text-base">
+                <Link href={dashboardHref}>Dashboard</Link>
+              </Button>
+              <ProfileDropdown />
+            </>
+          ) : showGuestControls ? (
+            <>
+              <Button asChild variant="outline" className="h-12 rounded-full px-6 text-base">
+                <Link href="/login">Connexion</Link>
+              </Button>
+              <Button asChild className="h-12 rounded-full px-6 text-base">
+                <Link href="/register">Inscription</Link>
+              </Button>
+            </>
+          ) : (
+            <div className="h-12 w-48" />
+          )}
         </div>
 
         <div className="ml-auto md:hidden">
@@ -82,12 +112,27 @@ export function PublicNavbar() {
                   </Link>
                 ))}
                 <div className="mt-4 flex flex-col gap-2">
-                  <Button asChild variant="outline" className="h-12 text-base">
-                    <Link href="/login">Connexion</Link>
-                  </Button>
-                  <Button asChild className="h-12 text-base">
-                    <Link href="/register">Inscription</Link>
-                  </Button>
+                  {showAccountControls ? (
+                    <>
+                      <Button asChild variant="outline" className="h-12 text-base">
+                        <Link href={dashboardHref}>Dashboard</Link>
+                      </Button>
+                      <div className="flex justify-start">
+                        <ProfileDropdown />
+                      </div>
+                    </>
+                  ) : showGuestControls ? (
+                    <>
+                      <Button asChild variant="outline" className="h-12 text-base">
+                        <Link href="/login">Connexion</Link>
+                      </Button>
+                      <Button asChild className="h-12 text-base">
+                        <Link href="/register">Inscription</Link>
+                      </Button>
+                    </>
+                  ) : (
+                    <div className="h-12" />
+                  )}
                 </div>
               </div>
             </SheetContent>

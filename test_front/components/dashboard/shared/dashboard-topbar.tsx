@@ -1,10 +1,25 @@
 "use client"
 
-import { Menu } from "lucide-react"
+import Link from "next/link"
+import { Bell, Menu } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ProfileDropdown } from "@/components/shared/profile-dropdown"
 
-export function DashboardTopbar({ title, onOpenMobileMenu }: { title: string; onOpenMobileMenu: () => void }) {
+export function DashboardTopbar({
+  title,
+  onOpenMobileMenu,
+  pendingRequests = 0,
+  unreadNotifications = 0,
+  showOwnerNotifications = false,
+  showTenantNotifications = false,
+}: {
+  title: string
+  onOpenMobileMenu: () => void
+  pendingRequests?: number
+  unreadNotifications?: number
+  showOwnerNotifications?: boolean
+  showTenantNotifications?: boolean
+}) {
   return (
     <div className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-border bg-background/95 px-4 backdrop-blur md:px-6">
       <div className="flex items-center gap-3">
@@ -16,8 +31,45 @@ export function DashboardTopbar({ title, onOpenMobileMenu }: { title: string; on
           <div className="text-lg font-bold text-foreground">{title}</div>
         </div>
       </div>
-      <ProfileDropdown />
+      <div className="flex items-center gap-3">
+        {showOwnerNotifications && (
+          <Button
+            asChild
+            variant="outline"
+            className="relative h-11 rounded-full px-4 text-sm font-semibold"
+            title={pendingRequests > 0 ? `${pendingRequests} demande(s) en attente` : "Aucune nouvelle demande"}
+          >
+            <Link href="/dashboard/owner/requests">
+              <Bell className="mr-2 h-4 w-4" />
+              Demandes
+              {pendingRequests > 0 && (
+                <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-xs font-bold text-white shadow-md ring-2 ring-background">
+                  {pendingRequests > 99 ? "99+" : pendingRequests}
+                </span>
+              )}
+            </Link>
+          </Button>
+        )}
+        {showTenantNotifications && (
+          <Button
+            asChild
+            variant="outline"
+            className="relative h-11 rounded-full px-4 text-sm font-semibold"
+            title={unreadNotifications > 0 ? `${unreadNotifications} notification(s) non lue(s)` : "Aucune nouvelle notification"}
+          >
+            <Link href="/dashboard/tenant/notifications">
+              <Bell className="mr-2 h-4 w-4" />
+              Notifications
+              {unreadNotifications > 0 && (
+                <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-xs font-bold text-white shadow-md ring-2 ring-background">
+                  {unreadNotifications > 99 ? "99+" : unreadNotifications}
+                </span>
+              )}
+            </Link>
+          </Button>
+        )}
+        <ProfileDropdown />
+      </div>
     </div>
   )
 }
-

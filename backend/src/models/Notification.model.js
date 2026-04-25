@@ -65,6 +65,13 @@ const NotificationSchema = new mongoose.Schema({
     endDate: String,
     rent: Number
   },
+  messageMeta: {
+    conversationId: String,
+    messageId: String,
+    senderId: String,
+    senderName: String,
+    contextId: String
+  },
   createdAt: {
     type: Date,
     default: Date.now

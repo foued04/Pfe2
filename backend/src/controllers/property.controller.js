@@ -16,14 +16,16 @@ const getProperties = asyncHandler(async (req, res) => {
   const filter = {};
   
   if (!req.user) {
-    // Public access: only show approved properties
+    // Public access: only show approved and available properties
     filter.moderationStatus = 'approved';
+    filter.status = 'available';
   } else if (req.user.role === 'owner') {
     // Owner: see their own properties
     filter.owner = req.user._id;
   } else if (req.user.role === 'tenant') {
-    // Tenant: only show approved properties
+    // Tenant: only show approved properties that are still available
     filter.moderationStatus = 'approved';
+    filter.status = 'available';
   }
   // Admin sees all by default (no filter added)
   

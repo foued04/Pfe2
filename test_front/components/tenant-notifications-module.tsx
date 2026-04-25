@@ -17,10 +17,11 @@ import {
   Wrench,
   Info,
   Mail,
-  ChevronRight
+  Send
 } from "lucide-react"
 import { ContractView } from "./contract-view"
 import { Contract } from "@/lib/rental-request-data"
+import { Textarea } from "./ui/textarea"
 
 export function TenantNotificationsModule() {
   const { lang } = useI18n()
@@ -30,6 +31,10 @@ export function TenantNotificationsModule() {
   const [searchQuery, setSearchQuery] = useState("")
   const [contractToView, setContractToView] = useState<Contract | null>(null)
   const [viewContractError, setViewContractError] = useState<string | null>(null)
+  const [replyText, setReplyText] = useState("")
+  const [isReplying, setIsReplying] = useState(false)
+  const [replyError, setReplyError] = useState<string | null>(null)
+  const [replySuccess, setReplySuccess] = useState<string | null>(null)
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
 
@@ -128,7 +133,8 @@ export function TenantNotificationsModule() {
             claimResponse: n.claimResponse,
             attachments: n.attachments,
             claimMeta: n.claimMeta,
-            contractData: n.contractData
+            contractData: n.contractData,
+            messageMeta: n.messageMeta
           }))
           setNotifications(prev => [...mapped, ...prev.filter(p => !mapped.some(m => m.id === p.id))])
         }
@@ -182,7 +188,8 @@ export function TenantNotificationsModule() {
             claimResponse: n.claimResponse,
             attachments: n.attachments,
             claimMeta: n.claimMeta,
-            contractData: n.contractData
+            contractData: n.contractData,
+            messageMeta: n.messageMeta
           }))
           setNotifications(prev => [...mapped, ...prev.filter(p => !mapped.some(m => m.id === p.id))])
         }
@@ -205,6 +212,75 @@ export function TenantNotificationsModule() {
   }, [notifications, activeType, searchQuery])
 
   const activeNotif = notifications.find(n => n.id === activeNotifId)
+
+  const openNotification = async (notification: TenantNotification) => {
+    setActiveNotifId(notification.id)
+    setReplyText("")
+    setReplyError(null)
+    setReplySuccess(null)
+    if (notification.isRead) return
+
+    setNotifications((prev) =>
+      prev.map((item) => (item.id === notification.id ? { ...item, isRead: true } : item))
+    )
+
+    try {
+      const token = localStorage.getItem("accessToken")
+      await fetch(`${API_URL}/notifications/${notification.id}/read`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` },
+      })
+    } catch (err) {
+      console.error("Mark notification as read error:", err)
+    }
+  }
+
+  const handleReplyToMessage = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!activeNotif?.messageMeta?.conversationId) {
+      setReplyError("Impossible de retrouver la conversation.")
+      return
+    }
+
+    const cleanReply = replyText.trim()
+    if (!cleanReply) {
+      setReplyError("Veuillez ecrire une reponse.")
+      return
+    }
+
+    setIsReplying(true)
+    setReplyError(null)
+    setReplySuccess(null)
+
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          conversationId: activeNotif.messageMeta.conversationId,
+          content: cleanReply,
+        }),
+      })
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => null)
+        setReplyError(err?.message || "Impossible d'envoyer la reponse.")
+        return
+      }
+
+      setReplyText("")
+      setReplySuccess("Votre reponse a ete envoyee.")
+    } catch (err) {
+      console.error("Reply to message error:", err)
+      setReplyError("Erreur de connexion.")
+    } finally {
+      setIsReplying(false)
+    }
+  }
 
   const getTypeConfig = (type: NotificationType) => {
     switch (type) {
@@ -285,7 +361,7 @@ export function TenantNotificationsModule() {
                 return (
                   <button
                     key={n.id}
-                    onClick={() => setActiveNotifId(n.id)}
+                    onClick={() => openNotification(n)}
                     className={cn(
                       "w-full text-left p-4 rounded-2xl transition-all duration-200 border",
                       isActive 
@@ -480,14 +556,41 @@ export function TenantNotificationsModule() {
             )}
 
             {activeNotif.type === "Système" && (
-              <div className="flex gap-4 p-8 bg-blue-50 border border-blue-200 rounded-3xl">
-                <Info className="w-10 h-10 text-blue-500 flex-shrink-0" />
-                <div>
-                  <h4 className="text-xl font-black text-blue-900 mb-2">Information Système</h4>
-                  <p className="text-blue-800/80 leading-relaxed font-medium">
-                    {activeNotif.content}
-                  </p>
+              <div className="space-y-5">
+                <div className="flex gap-4 p-8 bg-blue-50 border border-blue-200 rounded-3xl">
+                  <Info className="w-10 h-10 text-blue-500 flex-shrink-0" />
+                  <div>
+                    <h4 className="text-xl font-black text-blue-900 mb-2">Information Système</h4>
+                    <p className="text-blue-800/80 leading-relaxed font-medium">
+                      {activeNotif.content}
+                    </p>
+                  </div>
                 </div>
+
+                {activeNotif.messageMeta?.conversationId && (
+                  <form onSubmit={handleReplyToMessage} className="rounded-3xl border border-border bg-white p-6 shadow-sm">
+                    <div className="mb-4">
+                      <h4 className="text-xl font-black text-foreground">Repondre au message</h4>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Votre reponse sera envoyee dans la conversation avec {activeNotif.messageMeta.senderName || "le proprietaire"}.
+                      </p>
+                    </div>
+                    <Textarea
+                      value={replyText}
+                      onChange={(event) => setReplyText(event.target.value)}
+                      placeholder="Ecrivez votre reponse..."
+                      className="min-h-28 resize-none"
+                    />
+                    {replyError && <p className="mt-3 text-sm font-semibold text-destructive">{replyError}</p>}
+                    {replySuccess && <p className="mt-3 text-sm font-semibold text-emerald-700">{replySuccess}</p>}
+                    <div className="mt-4 flex justify-end">
+                      <Button type="submit" className="gap-2" disabled={isReplying}>
+                        {isReplying ? "Envoi..." : "Envoyer la reponse"}
+                        {!isReplying && <Send className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </form>
+                )}
               </div>
             )}
           </div>

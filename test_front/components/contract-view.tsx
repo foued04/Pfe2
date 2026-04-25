@@ -186,7 +186,7 @@ export function ContractView({ contract, onBack, onOwnerSign, onTenantSign, onSe
             <div className="flex items-center gap-2">
               <UserIcon className="h-3.5 w-3.5 text-primary" />
               <p className="text-[10px] font-black uppercase text-primary tracking-[0.2em]">
-                {lang === "fr" ? "Le Bailleur (Propriétaire)" : "The Landlord (Owner)"}
+                {lang === "fr" ? "Locateur" : "Landlord"}
               </p>
             </div>
             <div className="space-y-1">
@@ -200,7 +200,7 @@ export function ContractView({ contract, onBack, onOwnerSign, onTenantSign, onSe
           <div className="space-y-4 text-right">
             <div className="flex items-center gap-2 justify-end">
               <p className="text-[10px] font-black uppercase text-[#6B7280] tracking-[0.2em]">
-                {lang === "fr" ? "Le Preneur (Locataire)" : "The Tenant"}
+                {lang === "fr" ? "Locataire" : "Tenant"}
               </p>
               <UserIcon className="h-3.5 w-3.5 text-muted-foreground" />
             </div>
@@ -344,7 +344,7 @@ export function ContractView({ contract, onBack, onOwnerSign, onTenantSign, onSe
               </div>
               <div className="space-y-4">
                 <SignaturePad
-                  label={lang === "fr" ? "Le Locataire" : "The Tenant"}
+                  label={lang === "fr" ? "Le Locataire" : "Tenant"}
                   existingSignature={contract.tenantSignature}
                   onSign={onTenantSign}
                   disabled={contract.status !== "SentToTenant" || userRole !== "tenant"}
@@ -380,3 +380,4 @@ export function ContractView({ contract, onBack, onOwnerSign, onTenantSign, onSe
     </div>
   )
 }
+

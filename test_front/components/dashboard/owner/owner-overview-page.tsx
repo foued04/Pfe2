@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Building2, FileText, Plus, TrendingUp } from "lucide-react"
+import { Building2, FileText, Map, Plus, TrendingUp } from "lucide-react"
 import { useOwnerDashboard } from "@/hooks/api/use-owner-dashboard"
 import { PageHeader } from "@/components/dashboard/shared/page-header"
 import { StatsGrid } from "@/components/dashboard/shared/stats-grid"
@@ -44,7 +44,7 @@ export function OwnerOverviewPage() {
             <CardContent className="flex flex-wrap gap-4 p-6">
               <Button asChild variant="outline"><Link href="/dashboard/owner/properties">View all properties</Link></Button>
               <Button asChild variant="outline"><Link href="/dashboard/owner/requests">Review requests</Link></Button>
-              <Button asChild variant="outline"><Link href="/dashboard/owner/contracts">Open contracts</Link></Button>
+              <Button asChild variant="outline"><Link href="/dashboard/owner/map"><Map className="mr-2 h-4 w-4" />Open map</Link></Button>
               <Button asChild variant="outline"><Link href="/dashboard/owner/furniture">Manage furniture</Link></Button>
             </CardContent>
           </Card>
@@ -59,4 +59,3 @@ export function OwnerOverviewPage() {
     </div>
   )
 }
-

@@ -3,6 +3,7 @@ const rentalRequestService = require('../services/rentalRequest.service');
 const ApiError = require('../utils/ApiError');
 const Conversation = require('../models/Conversation.model');
 const Message = require('../models/Message.model');
+const Notification = require('../models/Notification.model');
 
 const createRequest = asyncHandler(async (req, res) => {
   const requestBody = {
@@ -81,9 +82,39 @@ const updateRequestStatus = asyncHandler(async (req, res) => {
       await conversation.save();
     }
   }
+
+  const tenantId = request.tenant?._id || request.tenant;
+  const propertyTitle = request.property?.title || 'votre logement';
+  const normalizedStatus = String(status || '').toLowerCase();
+  let notificationTitle = null;
+  let notificationPreview = null;
+  let notificationContent = null;
+
+  if (normalizedStatus.includes('accept')) {
+    notificationTitle = 'Demande de location acceptee';
+    notificationPreview = `Votre demande pour ${propertyTitle} a ete acceptee.`;
+    notificationContent = `Le proprietaire a accepte votre demande de location pour ${propertyTitle}. Vous pouvez consulter le suivi dans vos demandes.`;
+  } else if (normalizedStatus.includes('refus')) {
+    notificationTitle = 'Demande de location refusee';
+    notificationPreview = `Votre demande pour ${propertyTitle} a ete refusee.`;
+    notificationContent = `Le proprietaire a refuse votre demande de location pour ${propertyTitle}.`;
+  }
+
+  if (tenantId && notificationTitle) {
+    await Notification.create({
+      recipient: tenantId,
+      type: 'Système',
+      title: notificationTitle,
+      preview: notificationPreview,
+      content: notificationContent,
+      status: 'En attente',
+      isRead: false,
+    });
+  }
   
-  // If status is "Contrat actif", update property status to "rented"
-  if (status === "Contrat actif") {
+  // When an owner accepts a request, the property is no longer available.
+  // Keep the later contract-active transition covered as well.
+  if (normalizedStatus.includes('accept') || status === "Contrat actif") {
     const propertyService = require('../services/property.service');
     await propertyService.updatePropertyById(request.property._id, { status: 'rented' });
   }

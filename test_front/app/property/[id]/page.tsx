@@ -4,4 +4,3 @@ export default async function PropertyDetailRoute({ params }: { params: Promise<
   const { id } = await params
   return <PropertyDetailPage propertyId={id} />
 }
-

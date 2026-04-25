@@ -3,6 +3,7 @@ const ApiError = require('../utils/ApiError');
 const Conversation = require('../models/Conversation.model');
 const Message = require('../models/Message.model');
 const RentalRequest = require('../models/RentalRequest.model');
+const Notification = require('../models/Notification.model');
 
 const asStringId = (value) => (value ? value.toString() : '');
 
@@ -59,6 +60,7 @@ const getMessages = asyncHandler(async (req, res) => {
 const sendMessage = asyncHandler(async (req, res) => {
   const { conversationId, content, category, contextId, contextTitle, recipientId } = req.body;
   const normalizedContextId = contextId ? String(contextId).trim() : null;
+  const messageContent = String(content || '').trim();
   
   let conversation;
   
@@ -94,11 +96,36 @@ const sendMessage = asyncHandler(async (req, res) => {
   const message = await Message.create({
     conversation: conversation._id,
     sender: req.user._id,
-    content
+    content: messageContent
   });
   
   conversation.lastMessage = message._id;
   await conversation.save();
+
+  const recipients = (conversation.participants || [])
+    .map((participant) => asStringId(participant))
+    .filter((participantId) => participantId && participantId !== asStringId(req.user._id));
+
+  await Promise.all(
+    recipients.map((participantId) =>
+      Notification.create({
+        recipient: participantId,
+        type: 'Système',
+        title: 'Nouveau message',
+        preview: `${req.user.fullName || 'Un utilisateur'} vous a envoye un message.`,
+        content: messageContent.length > 160 ? `${messageContent.slice(0, 157)}...` : messageContent,
+        status: 'En attente',
+        isRead: false,
+        messageMeta: {
+          conversationId: conversation._id.toString(),
+          messageId: message._id.toString(),
+          senderId: req.user._id.toString(),
+          senderName: req.user.fullName || 'Utilisateur',
+          contextId: conversation.contextId || '',
+        },
+      })
+    )
+  );
   
   res.status(201).send(message);
 });

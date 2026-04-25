@@ -39,13 +39,21 @@ export interface TenantNotification {
     photos?: string[]
   }
   contractData?: {
-    contractId: string
+    contractId?: string
+    requestId?: string
     propertyTitle: string
     propertyAddress: string
     propertyImage: string
     startDate: string
     endDate: string
     rent: number
+  }
+  messageMeta?: {
+    conversationId?: string
+    messageId?: string
+    senderId?: string
+    senderName?: string
+    contextId?: string
   }
 }
 

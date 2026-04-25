@@ -38,7 +38,10 @@ const pickAllowedPropertyFields = (payload = {}) => {
  * @returns {Promise<Property>}
  */
 const createProperty = async (propertyBody) => {
-  return Property.create(pickAllowedPropertyFields(propertyBody));
+  return Property.create({
+    ...pickAllowedPropertyFields(propertyBody),
+    owner: propertyBody.owner,
+  });
 };
 
 /**
