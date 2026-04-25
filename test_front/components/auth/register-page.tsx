@@ -16,4 +16,3 @@ export function RegisterPage() {
 
   return <AuthForms initialView="register" />
 }
-

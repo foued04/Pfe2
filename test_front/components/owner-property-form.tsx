@@ -120,6 +120,7 @@ const DEFAULT_MAP_POSITION = { lat: 36.8065, lng: 10.1815 }
 export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerPropertyFormProps) {
   const { t } = useI18n()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   
   const [formData, setFormData] = useState(createInitialFormData(initialData))
   const [images, setImages] = useState<ImageUploadState>(createInitialImages(initialData))
@@ -130,22 +131,21 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
     setImages(createInitialImages(initialData))
     setMapPosition(DEFAULT_MAP_POSITION)
     setIsSubmitting(false)
+    setSubmitError(null)
   }, [initialData])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+    setSubmitError(null)
     
-    // Compile final data to match Property structure
     const finalData = {
-      ...(initialData || {}),
       ...formData,
       rent: Number(formData.rent),
       deposit: Number(formData.deposit),
       surface: Number(formData.surface),
       bedrooms: Number(formData.bedrooms),
       bathrooms: Number(formData.bathrooms),
-      livingRooms: Number(formData.livingRooms),
       availability: initialData?.availability || new Date().toISOString().slice(0, 10),
       images: {
         cover: images.cover,
@@ -157,11 +157,16 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
         gallery: images.gallery,
       }
     }
-    
-    if (onSave) {
-      onSave(finalData)
+
+    try {
+      if (onSave) {
+        await onSave(finalData)
+      }
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Erreur lors de l'enregistrement du bien.")
+    } finally {
+      setIsSubmitting(false)
     }
-    setIsSubmitting(false)
   }
 
   const updateField = (field: string, value: string | boolean) => {
@@ -590,6 +595,11 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
                 )}
               </Button>
             </div>
+            {submitError ? (
+              <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive">
+                {submitError}
+              </div>
+            ) : null}
           </form>
         </CardContent>
       </Card>

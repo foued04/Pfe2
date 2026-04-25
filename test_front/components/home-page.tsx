@@ -1,11 +1,12 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { ArrowRight, Bath, Bed, Building2, CheckCircle2, MapPin, Maximize, Search, ShieldCheck, Sofa, Sparkles } from "lucide-react"
-import { mapBackendProperty, mockProperties, type Property } from "@/lib/property-data"
+import { type Property } from "@/lib/property-data"
 import { PropertyDetailsModal } from "@/components/property-details-modal"
 import { PublicFooter } from "@/components/public-footer"
 import { PublicNavbar } from "@/components/public-navbar"
+import { useProperties } from "@/hooks/api/use-properties"
 
 const typeOptions = [
   { value: "all", label: "Tous les types" },
@@ -36,28 +37,11 @@ interface HomePageProps {
 }
 
 export function HomePage({ onLogin, onRegister, onPublish }: HomePageProps) {
-  const [properties, setProperties] = useState<Property[]>([])
   const [search, setSearch] = useState("")
   const [typeFilter, setTypeFilter] = useState("all")
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null)
   const [favorites, setFavorites] = useState<string[]>([])
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
-
-  useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        const response = await fetch(`${API_URL}/properties`)
-        if (!response.ok) throw new Error("Failed to fetch properties")
-        const data = await response.json()
-        setProperties(data.map(mapBackendProperty))
-      } catch (error) {
-        console.error("Error fetching properties:", error)
-        setProperties(mockProperties.map(mapBackendProperty))
-      }
-    }
-
-    fetchProperties()
-  }, [API_URL])
+  const { properties, isLoading, error } = useProperties()
 
   const filteredProperties = useMemo(() => {
     return properties.filter((property) => {
@@ -249,49 +233,59 @@ export function HomePage({ onLogin, onRegister, onPublish }: HomePageProps) {
           </div>
 
           <div style={{ marginTop: "30px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "24px" }}>
-            {featuredProperties.map((property) => (
-              <button
-                key={property.id}
-                type="button"
-                onClick={() => setSelectedProperty(property)}
-                style={{
-                  border: "1px solid rgba(148, 163, 184, 0.18)",
-                  borderRadius: "22px",
-                  overflow: "hidden",
-                  background: "#fff",
-                  textAlign: "left",
-                  cursor: "pointer",
-                  boxShadow: "0 16px 34px rgba(148, 163, 184, 0.12)",
-                  padding: 0,
-                }}
-              >
-                <div style={{ position: "relative", height: "220px" }}>
-                  <img src={property.images.cover} alt={property.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  <span style={{ position: "absolute", top: "14px", left: "14px", background: statusColors[property.status], color: "#fff", borderRadius: "999px", padding: "6px 12px", fontSize: "12px", fontWeight: 700 }}>
-                    {statusLabels[property.status]}
-                  </span>
-                  <span style={{ position: "absolute", bottom: "14px", left: "14px", background: "rgba(15, 23, 42, 0.72)", color: "#fff", borderRadius: "12px", padding: "8px 12px", fontWeight: 800 }}>
-                    {property.rent.toLocaleString("fr-TN")} DT / mois
-                  </span>
-                </div>
-                <div style={{ padding: "18px" }}>
-                  <h3 style={{ margin: 0, fontSize: "18px", lineHeight: 1.35 }}>{property.title}</h3>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "10px", color: "#475569", fontSize: "14px" }}>
-                    <MapPin size={14} color="#1d4ed8" />
-                    {property.address}
+            {isLoading ? (
+              <div style={{ gridColumn: "1 / -1", padding: "40px 0", textAlign: "center", color: "#64748b" }}>
+                Chargement des biens approuves...
+              </div>
+            ) : featuredProperties.length > 0 ? (
+              featuredProperties.map((property) => (
+                <button
+                  key={property.id}
+                  type="button"
+                  onClick={() => setSelectedProperty(property)}
+                  style={{
+                    border: "1px solid rgba(148, 163, 184, 0.18)",
+                    borderRadius: "22px",
+                    overflow: "hidden",
+                    background: "#fff",
+                    textAlign: "left",
+                    cursor: "pointer",
+                    boxShadow: "0 16px 34px rgba(148, 163, 184, 0.12)",
+                    padding: 0,
+                  }}
+                >
+                  <div style={{ position: "relative", height: "220px" }}>
+                    <img src={property.images.cover} alt={property.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    <span style={{ position: "absolute", top: "14px", left: "14px", background: statusColors[property.status], color: "#fff", borderRadius: "999px", padding: "6px 12px", fontSize: "12px", fontWeight: 700 }}>
+                      {statusLabels[property.status]}
+                    </span>
+                    <span style={{ position: "absolute", bottom: "14px", left: "14px", background: "rgba(15, 23, 42, 0.72)", color: "#fff", borderRadius: "12px", padding: "8px 12px", fontWeight: 800 }}>
+                      {property.rent.toLocaleString("fr-TN")} DT / mois
+                    </span>
                   </div>
-                  <p style={{ margin: "14px 0", color: "#64748b", lineHeight: 1.6 }}>
-                    {property.description.slice(0, 120)}
-                    {property.description.length > 120 ? "..." : ""}
-                  </p>
-                  <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", color: "#334155", fontSize: "14px", fontWeight: 600 }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><Maximize size={14} /> {property.surface} m2</span>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><Bed size={14} /> {property.bedrooms}</span>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><Bath size={14} /> {property.bathrooms}</span>
+                  <div style={{ padding: "18px" }}>
+                    <h3 style={{ margin: 0, fontSize: "18px", lineHeight: 1.35 }}>{property.title}</h3>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "10px", color: "#475569", fontSize: "14px" }}>
+                      <MapPin size={14} color="#1d4ed8" />
+                      {property.address}
+                    </div>
+                    <p style={{ margin: "14px 0", color: "#64748b", lineHeight: 1.6 }}>
+                      {property.description.slice(0, 120)}
+                      {property.description.length > 120 ? "..." : ""}
+                    </p>
+                    <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", color: "#334155", fontSize: "14px", fontWeight: 600 }}>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><Maximize size={14} /> {property.surface} m2</span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><Bed size={14} /> {property.bedrooms}</span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}><Bath size={14} /> {property.bathrooms}</span>
+                    </div>
                   </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              ))
+            ) : (
+              <div style={{ gridColumn: "1 / -1", padding: "40px 0", textAlign: "center", color: "#64748b" }}>
+                {error ? "Impossible de charger les biens approuves pour le moment." : "Aucun bien approuve n'est encore visible."}
+              </div>
+            )}
           </div>
 
           <div style={{ textAlign: "center", marginTop: "26px" }}>

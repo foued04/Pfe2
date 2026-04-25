@@ -17,4 +17,3 @@ export function LoginPage() {
 
   return <AuthForms initialView="login" />
 }
-

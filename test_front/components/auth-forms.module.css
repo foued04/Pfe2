@@ -54,6 +54,20 @@
   padding: 0;
   background: transparent;
   border: 0;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.badge:hover {
+  transform: translateY(-1px);
+  opacity: 0.96;
+}
+
+.badge:focus-visible {
+  outline: 2px solid rgba(147, 197, 253, 0.9);
+  outline-offset: 6px;
+  border-radius: 18px;
 }
 
 .badgeIcon {

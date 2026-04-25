@@ -1,13 +1,44 @@
 const Property = require('../models/Property.model');
 const ApiError = require('../utils/ApiError');
 
+const pickAllowedPropertyFields = (payload = {}) => {
+  const allowedFields = [
+    'title',
+    'description',
+    'city',
+    'address',
+    'rent',
+    'deposit',
+    'type',
+    'surface',
+    'bedrooms',
+    'bathrooms',
+    'equippedKitchen',
+    'balcony',
+    'parking',
+    'availability',
+    'status',
+    'moderationStatus',
+    'images',
+    'furnishing',
+    'meuble',
+  ];
+
+  return allowedFields.reduce((result, field) => {
+    if (payload[field] !== undefined) {
+      result[field] = payload[field];
+    }
+    return result;
+  }, {});
+};
+
 /**
  * Create a new property
  * @param {Object} propertyBody
  * @returns {Promise<Property>}
  */
 const createProperty = async (propertyBody) => {
-  return Property.create(propertyBody);
+  return Property.create(pickAllowedPropertyFields(propertyBody));
 };
 
 /**
@@ -16,7 +47,9 @@ const createProperty = async (propertyBody) => {
  * @returns {Promise<QueryResult>}
  */
 const queryProperties = async (filter = {}) => {
-  const properties = await Property.find(filter).populate('owner', 'fullName email phone');
+  const properties = await Property.find(filter)
+    .sort({ createdAt: -1 })
+    .populate('owner', 'fullName email phone');
   return properties;
 };
 
@@ -41,7 +74,7 @@ const getPropertyById = async (id) => {
  */
 const updatePropertyById = async (propertyId, updateBody) => {
   const property = await getPropertyById(propertyId);
-  Object.assign(property, updateBody);
+  Object.assign(property, pickAllowedPropertyFields(updateBody));
   await property.save();
   return property;
 };

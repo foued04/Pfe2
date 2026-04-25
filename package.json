@@ -1,4 +1,10 @@
 {
+  "scripts": {
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:frontend": "npm run dev --prefix test_front",
+    "start:backend": "npm start --prefix backend",
+    "start:frontend": "npm start --prefix test_front"
+  },
   "devDependencies": {
     "autoprefixer": "^10.4.27",
     "postcss": "^8.5.8",

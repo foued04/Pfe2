@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, useRef, useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth, type UserRole } from "@/lib/auth-context"
@@ -282,10 +283,10 @@ export function AuthForms({ initialView = "login", onClose }: { initialView?: Vi
       <div className={styles.shell}>
         <aside className={styles.left}>
           <div className={styles.leftOverlay}>
-            <div className={styles.badge}>
+            <Link href="/" className={styles.badge}>
               <span className={styles.badgeIcon}><Home size={18} /></span>
               <span className={styles.badgeText}>ImmoSmart</span>
-            </div>
+            </Link>
             <div className={styles.hero}>
               <p className={styles.kicker}>Plateforme immobiliere</p>
               <h2>

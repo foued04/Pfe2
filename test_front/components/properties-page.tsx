@@ -1,11 +1,12 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { Bath, Bed, Building2, MapPin, Maximize, Search } from "lucide-react"
-import { mapBackendProperty, mockProperties, type Property } from "@/lib/property-data"
+import { type Property } from "@/lib/property-data"
 import { PropertyDetailsModal } from "@/components/property-details-modal"
 import { PublicFooter } from "@/components/public-footer"
 import { PublicNavbar } from "@/components/public-navbar"
+import { useProperties } from "@/hooks/api/use-properties"
 
 const typeOptions = [
   { value: "all", label: "Tous les types" },
@@ -30,32 +31,11 @@ const statusLabels: Record<string, string> = {
 }
 
 export function PropertiesPage() {
-  const [properties, setProperties] = useState<Property[]>([])
-  const [isLoading, setIsLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [typeFilter, setTypeFilter] = useState("all")
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null)
   const [favorites, setFavorites] = useState<string[]>([])
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
-
-  useEffect(() => {
-    const fetchProperties = async () => {
-      try {
-        setIsLoading(true)
-        const response = await fetch(`${API_URL}/properties`)
-        if (!response.ok) throw new Error("Failed to fetch properties")
-        const data = await response.json()
-        setProperties(data.map(mapBackendProperty))
-      } catch (error) {
-        console.error("Error fetching properties:", error)
-        setProperties(mockProperties.map(mapBackendProperty))
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchProperties()
-  }, [API_URL])
+  const { properties, isLoading, error } = useProperties()
 
   const filteredProperties = useMemo(() => {
     return properties.filter((property) => {
@@ -146,7 +126,7 @@ export function PropertiesPage() {
           ) : filteredProperties.length === 0 ? (
             <div style={{ padding: "80px 0", textAlign: "center", color: "#64748b" }}>
               <Building2 size={44} style={{ marginBottom: "14px" }} />
-              <div>Aucune propriete ne correspond a cette recherche.</div>
+              <div>{error ? "Impossible de charger les proprietes approuvees." : "Aucune propriete ne correspond a cette recherche."}</div>
             </div>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "24px" }}>
