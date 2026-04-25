@@ -205,36 +205,27 @@ export function TenantReclamationsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           recipient: selectedUnit.ownerId,
-          type: "R\u00c3\u00a9clamation",
+          type: "Réclamation",
           title,
-          preview: `${selectedCategory} - ${selectedPriority}`,
+          preview: `${selectedUnit.title} • ${selectedCategory} • ${selectedPriority}`,
           content,
           status: "En attente",
           attachments: photoDataUrls,
           claimMeta: {
             claimId: `REC-${Date.now()}`,
             tenantId: user?.id || "",
+            tenantName: user?.name || "",
             ownerId: selectedUnit.ownerId,
             propertyId: selectedUnit.propertyId,
             propertyTitle: selectedUnit.title,
+            propertyAddress: selectedUnit.address,
+            subject: title,
             category: selectedCategory,
             priority: selectedPriority,
+            description: cleanDescription,
             source: "tenant",
             photos: photoDataUrls,
           },
-        }),
-      })
-
-      await apiFetch("/messages", {
-        auth: true,
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          recipientId: selectedUnit.ownerId,
-          category: "Maintenance",
-          contextId: `reclamation-${selectedUnit.propertyId}`,
-          contextTitle: `Reclamation - ${selectedUnit.title}`,
-          content: `${title}\n\n${content}${photos.length > 0 ? `\n\nPhotos attached: ${photos.length}` : ""}`,
         }),
       })
 
@@ -371,10 +362,33 @@ export function TenantReclamationsPage() {
                 <Label htmlFor="reclamation-photos">Photos</Label>
                 <label
                   htmlFor="reclamation-photos"
-                  className="flex min-h-32 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-muted-foreground/25 bg-muted/20 px-4 py-6 text-center transition-colors hover:bg-muted/40"
+                  className="flex min-h-32 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-muted-foreground/25 bg-muted/20 p-3 text-center transition-colors hover:bg-muted/40"
                 >
-                  <ImageIcon className="mb-2 h-8 w-8 text-muted-foreground" />
-                  <span className="text-sm font-medium">Import photos of the reclamation</span>
+                  {photos.length > 0 ? (
+                    <div className="grid w-full gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {photos.map((photo, index) => (
+                        <div key={`${photo.name}-${index}`} className="relative overflow-hidden rounded-lg border bg-background shadow-sm">
+                          <img src={photo.dataUrl} alt={photo.name} className="h-32 w-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.preventDefault()
+                              removePhoto(index)
+                            }}
+                            className="absolute right-2 top-2 rounded-full bg-black/70 p-1 text-white hover:bg-black"
+                            aria-label="Remove photo"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <>
+                      <ImageIcon className="mb-2 h-8 w-8 text-muted-foreground" />
+                      <span className="text-sm font-medium">Import photos of the reclamation</span>
+                    </>
+                  )}
                   <input
                     id="reclamation-photos"
                     type="file"
@@ -385,24 +399,6 @@ export function TenantReclamationsPage() {
                     disabled={photos.length >= MAX_PHOTOS}
                   />
                 </label>
-
-                {photos.length > 0 && (
-                  <div className="grid gap-3 sm:grid-cols-3 md:grid-cols-5">
-                    {photos.map((photo, index) => (
-                      <div key={`${photo.name}-${index}`} className="relative overflow-hidden rounded-lg border bg-muted/30">
-                        <img src={photo.dataUrl} alt={photo.name} className="h-24 w-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => removePhoto(index)}
-                          className="absolute right-1 top-1 rounded-full bg-black/70 p-1 text-white hover:bg-black"
-                          aria-label="Remove photo"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
 
               <div className="flex justify-end">

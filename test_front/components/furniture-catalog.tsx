@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react"
 import { useI18n } from "@/lib/i18n"
-import { fetchFurniture, FurnitureCategory, FurnitureItem } from "@/lib/furniture-data"
+import { fetchFurniture, FurnitureCategory, FurnitureItem, getFurnitureFallbackImage } from "@/lib/furniture-data"
 import { Card, CardContent } from "./ui/card"
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
 import { Badge } from "./ui/badge"
-import { Search, Plus, Filter, ImageOff } from "lucide-react"
+import { Search, Plus, Filter, ImageOff, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface FurnitureCatalogProps {
@@ -65,9 +65,10 @@ export function FurnitureCatalog({ onAddToCart }: FurnitureCatalogProps) {
 
   const renderImage = (item: FurnitureItem) => {
     const imageFailed = failedImages[item.id] || !item.image
+    const imageSrc = imageFailed ? getFurnitureFallbackImage(item) : item.image
     const visualClass = categoryVisuals[item.category] || "from-slate-100 via-slate-50 to-white"
 
-    if (imageFailed) {
+    if (!imageSrc) {
       return (
         <div className={cn("absolute inset-0 bg-gradient-to-br", visualClass)}>
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(37,99,235,0.14),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(15,23,42,0.08),transparent_35%)]" />
@@ -86,7 +87,7 @@ export function FurnitureCatalog({ onAddToCart }: FurnitureCatalogProps) {
 
     return (
       <img
-        src={item.image}
+        src={imageSrc}
         alt={item.name}
         loading="lazy"
         onError={() => setFailedImages((prev) => ({ ...prev, [item.id]: true }))}
@@ -97,32 +98,50 @@ export function FurnitureCatalog({ onAddToCart }: FurnitureCatalogProps) {
 
   return (
     <div className="space-y-8">
-      <div className="space-y-6 rounded-2xl border border-border/50 bg-white p-6 shadow-sm">
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder={t("general.search")}
-            className="h-14 rounded-xl border-none bg-blue-50/50 pl-12 text-lg transition-all focus-visible:ring-primary/20"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+      <div className="overflow-hidden rounded-3xl border border-border/50 bg-white shadow-sm">
+        <div className="flex flex-col gap-4 border-b bg-slate-950 p-6 text-white md:flex-row md:items-center md:justify-between">
+          <div>
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-black uppercase tracking-wider text-blue-100">
+              <Sparkles className="h-3.5 w-3.5" />
+              Sélection meublée
+            </div>
+            <h2 className="text-2xl font-black">Catalogue mobilier prêt à louer</h2>
+            <p className="mt-1 max-w-2xl text-sm font-medium text-slate-300">
+              Des exemples réalistes avec photos pour équiper salon, chambre, cuisine, bureau et décoration.
+            </p>
+          </div>
+          <div className="rounded-2xl bg-white/10 px-4 py-3 text-sm font-black">
+            {filteredItems.length} articles
+          </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={cn(
-                "rounded-full border px-5 py-2 text-sm font-bold transition-all",
-                selectedCategory === cat
-                  ? "border-primary bg-primary text-white shadow-lg shadow-blue-100"
-                  : "border-border bg-white text-muted-foreground hover:border-primary/30 hover:text-primary"
-              )}
-            >
-              {getCategoryLabel(cat)}
-            </button>
-          ))}
+        <div className="space-y-5 p-6">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder={t("general.search")}
+              className="h-14 rounded-xl border-none bg-blue-50/50 pl-12 text-lg transition-all focus-visible:ring-primary/20"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={cn(
+                  "rounded-full border px-5 py-2 text-sm font-bold transition-all",
+                  selectedCategory === cat
+                    ? "border-primary bg-primary text-white shadow-lg shadow-blue-100"
+                    : "border-border bg-white text-muted-foreground hover:border-primary/30 hover:text-primary"
+                )}
+              >
+                {getCategoryLabel(cat)}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -138,17 +157,17 @@ export function FurnitureCatalog({ onAddToCart }: FurnitureCatalogProps) {
             <Card key={item.id} className="group flex h-full flex-col overflow-hidden rounded-2xl border-none bg-white shadow-sm transition-all duration-500 hover:-translate-y-1 hover:shadow-xl">
               <div className="relative aspect-[16/11] overflow-hidden">
                 {renderImage(item)}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-80" />
                 <Badge className="absolute right-4 top-4 border-none bg-white/90 px-3 py-1 font-black text-primary backdrop-blur-md">
                   {getCategoryLabel(item.category)}
                 </Badge>
+                <div className="absolute bottom-4 left-4 rounded-2xl bg-slate-950/85 px-4 py-2 text-lg font-black text-white shadow-lg backdrop-blur">
+                  {item.price.toLocaleString()} DT
+                </div>
               </div>
               <CardContent className="flex flex-1 flex-col p-6">
-                <div className="mb-2 flex items-start justify-between gap-2">
-                  <h3 className="line-clamp-1 text-lg font-extrabold transition-colors group-hover:text-primary">{item.name}</h3>
-                  <span className="whitespace-nowrap text-lg font-black text-primary">{item.price.toLocaleString()} DT</span>
-                </div>
-                <p className="mb-6 min-h-[4rem] line-clamp-3 text-sm leading-relaxed text-muted-foreground">
+                <h3 className="line-clamp-1 text-xl font-black transition-colors group-hover:text-primary">{item.name}</h3>
+                <p className="mb-6 mt-3 min-h-[4.8rem] line-clamp-3 text-sm leading-relaxed text-muted-foreground">
                   {item.description}
                 </p>
 

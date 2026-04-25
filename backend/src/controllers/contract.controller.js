@@ -7,6 +7,18 @@ const { createAutomatedMessage } = require('../utils/message.utils');
 const ApiError = require('../utils/ApiError');
 const Notification = require('../models/Notification.model');
 
+const markContractAsRented = async (contract) => {
+  const requestId = contract.request?._id || contract.request;
+  const propertyId = contract.property?._id || contract.property;
+
+  if (!requestId || !propertyId) {
+    return;
+  }
+
+  await rentalRequestService.updateRentalRequestStatus(requestId, 'Contrat actif');
+  await propertyService.updatePropertyById(propertyId, { status: 'rented' });
+};
+
 // @desc    Générer un contrat à partir d'une demande
 // @route   POST /api/contracts/generate
 const generateContract = asyncHandler(async (req, res) => {
@@ -83,6 +95,10 @@ const signContract = asyncHandler(async (req, res) => {
   }
 
   const contract = await contractService.updateContract(contractId, updateBody);
+
+  if (req.user.role !== 'owner') {
+    await markContractAsRented(contract);
+  }
 
   // Send notification to owner when tenant signs
   if (req.user.role !== 'owner' && contract.status === 'SignedByTenant') {
@@ -249,6 +265,8 @@ const sendBackToOwner = asyncHandler(async (req, res) => {
   const updatedContract = await contractService.updateContract(contractId, { 
     status: 'SignedByTenant' 
   });
+
+  await markContractAsRented(updatedContract);
 
   // Create notification for owner
   try {

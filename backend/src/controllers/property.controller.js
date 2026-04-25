@@ -1,6 +1,7 @@
 const asyncHandler = require('../utils/asyncHandler');
 const propertyService = require('../services/property.service');
 const ApiError = require('../utils/ApiError');
+const Contract = require('../models/Contract.model');
 
 const createProperty = asyncHandler(async (req, res) => {
   const propertyBody = {
@@ -30,6 +31,22 @@ const getProperties = asyncHandler(async (req, res) => {
   // Admin sees all by default (no filter added)
   
   const result = await propertyService.queryProperties(filter);
+
+  if (req.user?.role === 'owner') {
+    const signedContracts = await Contract.find({
+      owner: req.user._id,
+      status: { $in: ['SignedByTenant', 'SignedByBoth'] },
+    }).select('property');
+    const rentedPropertyIds = new Set(signedContracts.map((contract) => contract.property.toString()));
+
+    return res.send(result.map((property) => {
+      const propertyObject = property.toObject ? property.toObject() : property;
+      return rentedPropertyIds.has(propertyObject._id.toString())
+        ? { ...propertyObject, status: 'rented' }
+        : propertyObject;
+    }));
+  }
+
   res.send(result);
 });
 

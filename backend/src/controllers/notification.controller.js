@@ -22,6 +22,14 @@ exports.markAsRead = asyncHandler(async (req, res) => {
 
 exports.createNotification = asyncHandler(async (req, res) => {
   const { recipient, type, title, preview, content, claimResponse, attachments, claimMeta, contractData } = req.body;
+  const normalizedType =
+    type === 'RÃ©clamation'
+      ? 'Réclamation'
+      : type === 'SystÃ¨me'
+        ? 'Système'
+        : type === 'VÃ©rification'
+          ? 'Vérification'
+          : type;
   const normalizedAttachments = Array.isArray(attachments)
     ? attachments
         .map((item) => {
@@ -34,7 +42,7 @@ exports.createNotification = asyncHandler(async (req, res) => {
 
   const notification = new Notification({
     recipient,
-    type,
+    type: normalizedType,
     title,
     preview,
     content,

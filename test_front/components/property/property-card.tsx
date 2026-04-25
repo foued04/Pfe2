@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 
 const statusLabel: Record<string, string> = {
   available: "Disponible",
-  rented: "Loue",
+  rented: "Loué",
   maintenance: "Maintenance",
 }
 

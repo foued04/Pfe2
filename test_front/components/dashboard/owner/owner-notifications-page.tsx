@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/dashboard/shared/page-header"
-import { MessagesModule } from "@/components/messages-module"
+import { NotificationsModule } from "@/components/notifications-module"
 
 export function OwnerNotificationsPage() {
   return (
@@ -7,9 +7,9 @@ export function OwnerNotificationsPage() {
       <PageHeader
         eyebrow="Owner"
         title="Notifications"
-        description="Consultez les messages et echanges recus depuis vos locataires."
+        description="Consultez les messages, reclamations et alertes recus depuis vos locataires."
       />
-      <MessagesModule />
+      <NotificationsModule />
     </div>
   )
 }

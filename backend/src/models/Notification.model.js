@@ -47,11 +47,15 @@ const NotificationSchema = new mongoose.Schema({
   claimMeta: {
     claimId: String,
     tenantId: String,
+    tenantName: String,
     ownerId: String,
     propertyId: String,
     propertyTitle: String,
+    propertyAddress: String,
+    subject: String,
     category: String,
     priority: String,
+    description: String,
     source: String,
     photos: [String]
   },

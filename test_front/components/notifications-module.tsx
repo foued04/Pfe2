@@ -20,7 +20,11 @@ import {
   Mail,
   ChevronRight,
   ShieldCheck,
-  ShieldAlert
+  ShieldAlert,
+  Home,
+  MapPin,
+  User,
+  AlertTriangle
 } from "lucide-react"
 
 export interface Notification {
@@ -42,6 +46,14 @@ export interface Notification {
       }
   >;
   claimMeta?: {
+    tenantId?: string;
+    tenantName?: string;
+    propertyTitle?: string;
+    propertyAddress?: string;
+    subject?: string;
+    category?: string;
+    priority?: string;
+    description?: string;
     photos?: string[];
   };
   contractData?: {
@@ -57,7 +69,8 @@ export interface Notification {
 }
 
 export function NotificationsModule() {
-  const { lang, isFr } = useI18n()
+  const { lang } = useI18n()
+  const isFr = lang === "fr"
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [activeType, setActiveType] = useState<string | "Tous">("Tous")
   const [activeNotifId, setActiveNotifId] = useState<string | null>(null)
@@ -65,8 +78,20 @@ export function NotificationsModule() {
   const [isLoading, setIsLoading] = useState(false)
   const [contractToView, setContractToView] = useState<Contract | null>(null)
   const [viewContractError, setViewContractError] = useState<string | null>(null)
+  const [reclamationReply, setReclamationReply] = useState("")
+  const [isSendingReply, setIsSendingReply] = useState(false)
+  const [replyStatus, setReplyStatus] = useState<{ type: "success" | "error"; message: string } | null>(null)
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+  const normalizeType = (type: string) =>
+    type === "RÃ©clamation"
+      ? "Réclamation"
+      : type === "SystÃ¨me"
+        ? "Système"
+        : type === "VÃ©rification"
+          ? "Vérification"
+          : type
+  const isReclamation = (type: string) => normalizeType(type) === "Réclamation"
 
   const fetchNotifications = async () => {
     try {
@@ -203,6 +228,70 @@ export function NotificationsModule() {
     }
   }
 
+  const handleReplyToReclamation = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!activeNotif || !isReclamation(activeNotif.type)) return
+
+    const tenantId = activeNotif.claimMeta?.tenantId
+    const cleanReply = reclamationReply.trim()
+
+    if (!tenantId) {
+      setReplyStatus({ type: "error", message: "Impossible de retrouver le locataire pour cette réclamation." })
+      return
+    }
+
+    if (!cleanReply) {
+      setReplyStatus({ type: "error", message: "Veuillez écrire une réponse." })
+      return
+    }
+
+    setIsSendingReply(true)
+    setReplyStatus(null)
+
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/notifications`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          recipient: tenantId,
+          type: "Réclamation",
+          title: `Réponse à votre réclamation - ${activeNotif.claimMeta?.propertyTitle || activeNotif.title}`,
+          preview: cleanReply.length > 120 ? `${cleanReply.slice(0, 117)}...` : cleanReply,
+          content: cleanReply,
+          status: "En attente",
+          claimResponse: {
+            message: cleanReply,
+          },
+          claimMeta: {
+            ...activeNotif.claimMeta,
+            source: "owner",
+            subject: activeNotif.claimMeta?.subject || activeNotif.title,
+            description: cleanReply,
+          },
+        }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null)
+        throw new Error(data?.message || "Erreur lors de l'envoi de la réponse.")
+      }
+
+      setReclamationReply("")
+      setReplyStatus({ type: "success", message: "Réponse envoyée au locataire." })
+    } catch (err) {
+      setReplyStatus({
+        type: "error",
+        message: err instanceof Error ? err.message : "Erreur lors de l'envoi de la réponse.",
+      })
+    } finally {
+      setIsSendingReply(false)
+    }
+  }
+
   useEffect(() => {
     setIsLoading(true)
     fetchNotifications()
@@ -217,11 +306,13 @@ export function NotificationsModule() {
         markAsRead(activeNotifId)
       }
     }
+    setReclamationReply("")
+    setReplyStatus(null)
   }, [activeNotifId])
 
   const filteredNotifs = useMemo(() => {
     return notifications
-      .filter(n => activeType === "Tous" || n.type === activeType)
+      .filter(n => activeType === "Tous" || normalizeType(n.type) === activeType)
       .filter(n => 
         n.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
         n.content.toLowerCase().includes(searchQuery.toLowerCase())
@@ -241,13 +332,13 @@ export function NotificationsModule() {
   }, [activeNotif])
 
   const getTypeConfig = (type: string) => {
-    switch (type) {
+    switch (normalizeType(type)) {
       case "Vérification":
         return { color: "text-emerald-700 bg-emerald-100 border-emerald-200", icon: ShieldCheck }
       case "Contrat":
         return { color: "text-blue-700 bg-blue-100 border-blue-200", icon: FileSignature }
       case "Réclamation":
-        return { color: "text-orange-700 bg-orange-100 border-orange-200", icon: Wrench }
+        return { color: "text-red-700 bg-red-100 border-red-200", icon: AlertTriangle }
       case "Système":
       default:
         return { color: "text-slate-700 bg-slate-100 border-slate-200", icon: Info }
@@ -333,6 +424,7 @@ export function NotificationsModule() {
                 const config = getTypeConfig(n.type)
                 const Icon = config.icon
                 const isActive = activeNotifId === n._id
+                const normalizedType = normalizeType(n.type)
                 
                 return (
                   <button
@@ -359,9 +451,16 @@ export function NotificationsModule() {
                           {n.preview}
                         </p>
                         <div className="mt-2 flex items-center justify-between">
-                           <span className="text-[9px] font-bold text-slate-400 uppercase">
-                            {formatDate(n.createdAt)}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase">
+                              {formatDate(n.createdAt)}
+                            </span>
+                            {isReclamation(normalizedType) && (
+                              <span className="rounded-full bg-red-50 px-2 py-0.5 text-[9px] font-black uppercase text-red-600">
+                                {n.claimMeta?.priority || "Reclamation"}
+                              </span>
+                            )}
+                          </div>
                           {!n.isRead && (
                             <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
                           )}
@@ -394,7 +493,7 @@ export function NotificationsModule() {
           <div className="p-8 md:p-12 max-w-3xl mx-auto space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
             <div className="flex items-center justify-between">
               <Badge className={cn("px-4 py-1 text-[10px] uppercase font-black border-transparent shadow-sm", getTypeConfig(activeNotif.type).color)}>
-                {activeNotif.type}
+                {normalizeType(activeNotif.type)}
               </Badge>
               <span className="text-xs font-bold text-slate-400 flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5" />
@@ -409,15 +508,73 @@ export function NotificationsModule() {
               <div className="h-1 w-20 bg-primary rounded-full" />
             </div>
 
-            <div className="prose prose-slate max-w-none">
-              <div className="bg-slate-50 border border-slate-100 p-8 rounded-3xl shadow-inner">
-                <p className="text-lg text-slate-700 leading-relaxed font-medium whitespace-pre-wrap">
-                  {activeNotif.content}
-                </p>
+            {isReclamation(activeNotif.type) ? (
+              <div className="overflow-hidden rounded-3xl border border-red-100 bg-white shadow-xl shadow-red-50">
+                <div className="border-b border-red-100 bg-red-50/70 p-6">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="rounded-2xl bg-red-600 p-3 text-white shadow-lg shadow-red-200">
+                        <Wrench className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-[0.2em] text-red-600">Réclamation locataire</p>
+                        <h3 className="text-xl font-black text-slate-950">{activeNotif.claimMeta?.subject || activeNotif.title}</h3>
+                      </div>
+                    </div>
+                    <Badge className="border-red-200 bg-white px-4 py-1.5 text-xs font-black uppercase text-red-700">
+                      {activeNotif.claimMeta?.priority || activeNotif.preview}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="grid gap-4 p-6 md:grid-cols-2">
+                  <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                    <p className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-500">
+                      <User className="h-4 w-4 text-primary" />
+                      Locataire
+                    </p>
+                    <p className="text-lg font-black text-slate-900">{activeNotif.claimMeta?.tenantName || "Locataire"}</p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                    <p className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-500">
+                      <Home className="h-4 w-4 text-primary" />
+                      Logement
+                    </p>
+                    <p className="text-lg font-black text-slate-900">{activeNotif.claimMeta?.propertyTitle || "-"}</p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 md:col-span-2">
+                    <p className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-500">
+                      <MapPin className="h-4 w-4 text-primary" />
+                      Adresse
+                    </p>
+                    <p className="font-bold text-slate-800">{activeNotif.claimMeta?.propertyAddress || "-"}</p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                    <p className="mb-2 text-xs font-black uppercase tracking-wider text-slate-500">Catégorie</p>
+                    <p className="font-black text-slate-900">{activeNotif.claimMeta?.category || "-"}</p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                    <p className="mb-2 text-xs font-black uppercase tracking-wider text-slate-500">Statut</p>
+                    <p className="font-black text-amber-600">{activeNotif.status || "En attente"}</p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-100 bg-white p-5 md:col-span-2">
+                    <p className="mb-3 text-xs font-black uppercase tracking-wider text-slate-500">Description</p>
+                    <p className="whitespace-pre-wrap text-base font-semibold leading-7 text-slate-700">
+                      {activeNotif.claimMeta?.description || activeNotif.content}
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="prose prose-slate max-w-none">
+                <div className="bg-slate-50 border border-slate-100 p-8 rounded-3xl shadow-inner">
+                  <p className="text-lg text-slate-700 leading-relaxed font-medium whitespace-pre-wrap">
+                    {activeNotif.content}
+                  </p>
+                </div>
+              </div>
+            )}
 
-            {activeNotif.type.toLowerCase().includes("clamation") && activeNotifPhotos.length > 0 && (
+            {isReclamation(activeNotif.type) && activeNotifPhotos.length > 0 && (
               <div className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm">
                 <h4 className="text-sm font-black uppercase tracking-wider text-slate-700 mb-4">
                   {isFr ? "Photos de la Réclamation" : "Reclamation Photos"}
@@ -440,6 +597,40 @@ export function NotificationsModule() {
                   ))}
                 </div>
               </div>
+            )}
+
+            {isReclamation(activeNotif.type) && (
+              <form onSubmit={handleReplyToReclamation} className="rounded-3xl border border-blue-100 bg-blue-50/60 p-6 shadow-sm">
+                <div className="mb-4 flex items-center justify-between gap-4">
+                  <div>
+                    <h4 className="text-lg font-black text-slate-950">Répondre au locataire</h4>
+                    <p className="text-sm font-medium text-slate-500">
+                      Votre message sera envoyé dans les notifications du locataire.
+                    </p>
+                  </div>
+                  <Mail className="h-5 w-5 text-primary" />
+                </div>
+                <textarea
+                  value={reclamationReply}
+                  onChange={(event) => setReclamationReply(event.target.value)}
+                  className="min-h-28 w-full resize-none rounded-2xl border border-blue-100 bg-white p-4 text-sm font-medium outline-none ring-primary/20 transition focus:ring-4"
+                  placeholder="Ecrivez votre réponse, par exemple: Je vais envoyer un technicien demain matin..."
+                />
+                {replyStatus && (
+                  <p className={cn(
+                    "mt-3 text-sm font-bold",
+                    replyStatus.type === "success" ? "text-emerald-600" : "text-destructive"
+                  )}>
+                    {replyStatus.message}
+                  </p>
+                )}
+                <div className="mt-4 flex justify-end">
+                  <Button type="submit" disabled={isSendingReply} className="rounded-2xl px-6 font-black">
+                    {isSendingReply ? "Envoi..." : "Envoyer la réponse"}
+                    {!isSendingReply && <ChevronRight className="ml-2 h-4 w-4" />}
+                  </Button>
+                </div>
+              </form>
             )}
 
             {activeNotif.type === "Contrat" && activeNotif.contractData && (

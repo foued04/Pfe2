@@ -11,6 +11,7 @@ import {
   Building2,
   FileText,
   Home,
+  KeyRound,
   Megaphone,
   Map,
   Plus,
@@ -38,6 +39,7 @@ const ownerItems: NavItem[] = [
 
 const tenantItems: NavItem[] = [
   { href: "/dashboard/tenant", label: "Dashboard", icon: Home },
+  { href: "/dashboard/tenant/my-home", label: "My Home", icon: KeyRound },
   { href: "/dashboard/tenant/map", label: "Map", icon: Map },
   { href: "/dashboard/tenant/requests", label: "Requests", icon: FileText },
   { href: "/dashboard/tenant/reclamations", label: "Reclamation", icon: Megaphone },

@@ -249,6 +249,7 @@ export function TenantRequestsModule({ autoOpenRequestId, onAutoOpenHandled }: T
                 const updated = await response.json()
                 setViewingContract(prev => prev ? { ...prev, status: updated.status || "SignedByTenant" } : null)
                 alert(lang === "fr" ? "Contrat renvoyé au propriétaire." : "Contract sent back to owner.")
+                fetchRequests()
               }
             } catch (err) {
               console.error("Send back contract error:", err)
