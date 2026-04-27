@@ -7,9 +7,6 @@ import {
   RentalRequest, 
   Contract,
   RequestStatus,
-  mockRentalRequests, 
-  mockContracts, 
-  generateContract,
   requestStatusConfig,
 } from "@/lib/rental-request-data"
 import { RentalRequestList } from "./rental-request-list"
@@ -24,8 +21,13 @@ import {
   FileSignature,
   Zap,
   Inbox,
+  ShoppingCart,
+  Timer,
+  AlertTriangle,
+  ChevronRight
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Button } from "./ui/button"
 
 type ModuleView = "list" | "detail" | "contract"
 
@@ -34,6 +36,7 @@ export function RentalRequestsModule() {
   const { user } = useAuth()
 
   const [requests, setRequests] = useState<RentalRequest[]>([])
+  const [furnitureSuggestions, setFurnitureSuggestions] = useState<any[]>([])
   const [contracts, setContracts] = useState<Contract[]>([])
   const [currentView, setCurrentView] = useState<ModuleView>("list")
   const [selectedRequest, setSelectedRequest] = useState<RentalRequest | null>(null)
@@ -86,8 +89,27 @@ export function RentalRequestsModule() {
     }
   }
 
+  const fetchFurnitureSuggestions = async () => {
+    if (!user) return
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/furniture/my-suggestions`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setFurnitureSuggestions(Array.isArray(data) ? data : [])
+      }
+    } catch (err) {
+      console.error("Fetch furniture suggestions error:", err)
+    }
+  }
+
   useEffect(() => {
     fetchRequests()
+    fetchFurnitureSuggestions()
   }, [user])
 
   // Stats
@@ -98,7 +120,8 @@ export function RentalRequestsModule() {
     rejected: requests.filter(r => r.status === "Refusée").length,
     contractGenerated: requests.filter(r => r.status === "Contrat généré").length,
     active: requests.filter(r => r.status === "Contrat actif").length,
-  }), [requests])
+    furniture: furnitureSuggestions.length,
+  }), [requests, furnitureSuggestions])
 
   // Handlers
   const handleViewDetails = async (request: RentalRequest) => {
@@ -119,7 +142,6 @@ export function RentalRequestsModule() {
                     status: data.status,
                     ownerSignature: data.ownerSignature,
                     tenantSignature: data.tenantSignature
-                    // ... other fields if needed, but the main purpose is to have it in the list
                 } as any])
             }
         } catch (err) { console.error("Fetch contract for detail error:", err) }
@@ -165,7 +187,6 @@ export function RentalRequestsModule() {
             setSelectedContract(finalContract)
             setCurrentView("contract")
         } else {
-            // If not found, fallback to generate? or just alert
             alert("Contrat non trouvé.")
         }
     } catch (err) {
@@ -188,11 +209,8 @@ export function RentalRequestsModule() {
       if (response.ok) {
         const updated = await response.json()
         alert(lang === "fr" ? "Contrat activé avec succès ! Le bien est désormais loué." : "Contract activated successfully! The property is now rented.")
-        
-        // Update local state
         setRequests(prev => prev.map(r => r.id === updated.request ? { ...r, status: "Contrat actif" } : r))
         if (selectedRequest) setSelectedRequest(prev => prev ? { ...prev, status: "Contrat actif" } : null)
-        
         handleBackToList()
       } else {
         const err = await response.json()
@@ -218,21 +236,12 @@ export function RentalRequestsModule() {
       })
 
       if (response.ok) {
-        const updated = await response.json()
         setRequests(prev => prev.map(r => r.id === requestId ? { ...r, status: "Acceptée" as RequestStatus } : r))
         if (selectedRequest?.id === requestId) setSelectedRequest(prev => prev ? { ...prev, status: "Acceptée" as RequestStatus } : null)
-        
-        // For now, satisfy the frontend's immediate contract generation logic
-        const request = requests.find(r => r.id === requestId)
-        if (request) {
-           handleGenerateContract(requestId)
-        }
-      } else {
-        alert("Erreur lors de la mise à jour du statut.")
+        handleGenerateContract(requestId)
       }
     } catch (err) {
       console.error("Update status error:", err)
-      alert("Erreur de connexion.")
     }
   }
 
@@ -251,12 +260,9 @@ export function RentalRequestsModule() {
       if (response.ok) {
         setRequests(prev => prev.map(r => r.id === requestId ? { ...r, status: "Refusée" as RequestStatus } : r))
         if (selectedRequest?.id === requestId) setSelectedRequest(prev => prev ? { ...prev, status: "Refusée" as RequestStatus } : null)
-      } else {
-        alert("Erreur lors de la mise à jour du statut.")
       }
     } catch (err) {
       console.error("Update status error:", err)
-      alert("Erreur de connexion.")
     }
   }
 
@@ -273,33 +279,6 @@ export function RentalRequestsModule() {
       })
 
       if (response.ok) {
-        const contract = await response.json()
-        const mappedContract: Contract = {
-          id: contract._id,
-          requestId: contract.request,
-          propertyId: contract.property,
-          propertyTitle: "...", 
-          ownerName: user?.name || "Propriétaire",
-          ownerEmail: user?.email || "",
-          ownerPhone: "",
-          tenantName: "",
-          tenantEmail: "",
-          tenantPhone: "",
-          propertyRent: contract.rentAmount,
-          propertySurface: 0,
-          propertyAddress: "",
-          propertyType: "Appartement",
-          startDate: contract.startDate || "",
-          endDate: contract.endDate || "",
-          duration: "12 mois",
-          propertyDeposit: contract.depositAmount,
-          status: contract.status,
-          ownerSignature: contract.ownerSignature,
-          tenantSignature: contract.tenantSignature,
-          createdAt: contract.createdAt
-        }
-        
-        // Better: Fetch the full contract details from backend to get populated fields
         const fullContractResponse = await fetch(`${API_URL}/contracts/request/${requestId}`, {
           headers: { Authorization: `Bearer ${token}` }
         })
@@ -332,10 +311,9 @@ export function RentalRequestsModule() {
           }
           setContracts(prev => [...prev.filter(c => c.id !== finalContract.id), finalContract])
           setSelectedContract(finalContract)
+          setRequests(prev => prev.map(r => r.id === requestId ? { ...r, status: "Contrat généré" as RequestStatus } : r))
+          setCurrentView("contract")
         }
-        
-        setRequests(prev => prev.map(r => r.id === requestId ? { ...r, status: "Contrat généré" as RequestStatus } : r))
-        setCurrentView("contract")
       }
     } catch (err) {
       console.error("Generate contract error:", err)
@@ -356,7 +334,6 @@ export function RentalRequestsModule() {
       })
 
       if (response.ok) {
-        const updated = await response.json()
         setSelectedContract(prev => prev ? { ...prev, ownerSignature: signature, status: "SignedByOwner" } : null)
         setContracts(prev => prev.map(c => c.id === selectedContract.id ? { ...c, ownerSignature: signature, status: "SignedByOwner" } : c))
       }
@@ -367,18 +344,10 @@ export function RentalRequestsModule() {
 
   const handleTenantSign = (signature: string) => {
     if (!selectedContract) return
-    const updated = { 
-      ...selectedContract, 
-      tenantSignature: signature, 
-      status: "SignedByBoth" as const 
-    }
+    const updated = { ...selectedContract, tenantSignature: signature, status: "SignedByBoth" as const }
     setSelectedContract(updated)
     setContracts(prev => prev.map(c => c.id === updated.id ? updated : c))
-
-    // Mark request as active
-    setRequests(prev => prev.map(r => 
-      r.id === updated.requestId ? { ...r, status: "Contrat actif" as RequestStatus } : r
-    ))
+    setRequests(prev => prev.map(r => r.id === updated.requestId ? { ...r, status: "Contrat actif" as RequestStatus } : r))
   }
 
   const handleSendToTenant = async (message: string) => {
@@ -419,17 +388,17 @@ export function RentalRequestsModule() {
   const statCards = [
     { key: "total", label_fr: "Total", label_en: "Total", value: stats.total, icon: Inbox, color: "text-foreground", bg: "bg-muted/50" },
     { key: "pending", label_fr: "En attente", label_en: "Pending", value: stats.pending, icon: Clock, color: "text-amber-600", bg: "bg-amber-50" },
-    { key: "accepted", label_fr: "Acceptées", label_en: "Accepted", value: stats.accepted, icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50" },
+    { key: "furniture", label_fr: "Mobilier", label_en: "Furniture", value: stats.furniture, icon: ShoppingCart, color: "text-orange-600", bg: "bg-orange-50" },
     { key: "contracts", label_fr: "Contrats", label_en: "Contracts", value: stats.contractGenerated + stats.active, icon: FileSignature, color: "text-blue-600", bg: "bg-blue-50" },
   ]
 
   // Filter tabs
-  const filterTabs: { key: string; label_fr: string; label_en: string; count: number }[] = [
+  const filterTabs = [
     { key: "all", label_fr: "Toutes", label_en: "All", count: stats.total },
     { key: "En attente", label_fr: "En attente", label_en: "Pending", count: stats.pending },
+    { key: "furniture", label_fr: "Mobilier", label_en: "Furniture", count: stats.furniture },
     { key: "Acceptée", label_fr: "Acceptées", label_en: "Accepted", count: stats.accepted },
     { key: "Refusée", label_fr: "Refusées", label_en: "Rejected", count: stats.rejected },
-    { key: "Contrat généré", label_fr: "Contrats", label_en: "Contracts", count: stats.contractGenerated },
     { key: "Contrat actif", label_fr: "Actifs", label_en: "Active", count: stats.active },
   ]
 
@@ -481,8 +450,8 @@ export function RentalRequestsModule() {
         </h2>
         <p className="text-muted-foreground max-w-xl">
           {lang === "fr" 
-            ? "Gérez les demandes de location reçues, acceptez ou refusez, et générez des contrats." 
-            : "Manage incoming rental requests, accept or reject, and generate contracts."}
+            ? "Gérez les demandes de location reçues et suivez vos suggestions de mobilier." 
+            : "Manage incoming rental requests and track your furniture suggestions."}
         </p>
       </div>
 
@@ -507,7 +476,7 @@ export function RentalRequestsModule() {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
+      <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
         {filterTabs.map(tab => (
           <button
             key={tab.key}
@@ -530,13 +499,63 @@ export function RentalRequestsModule() {
         ))}
       </div>
 
-      {/* Requests List */}
+      {/* List */}
       {isLoading ? (
         <div className="flex items-center justify-center p-20">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
       ) : error ? (
         <div className="p-10 text-center text-destructive">{error}</div>
+      ) : statusFilter === "furniture" ? (
+        <div className="space-y-4">
+          {furnitureSuggestions.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center opacity-40">
+               <ShoppingCart className="h-12 w-12 mb-4" />
+               <p className="font-bold">{lang === "fr" ? "Aucune suggestion de meuble" : "No furniture suggestions"}</p>
+            </div>
+          ) : (
+            furnitureSuggestions.map((item, idx) => (
+              <div key={item._id} className="group border border-border/50 rounded-2xl bg-white overflow-hidden transition-all hover:shadow-lg flex animate-in fade-in slide-in-from-bottom-2" style={{ animationDelay: `${idx * 50}ms` }}>
+                <div className="w-32 h-32 flex-shrink-0">
+                  <img src={item.image} className="w-full h-full object-cover" alt={item.name} />
+                </div>
+                <div className="flex-1 p-5 flex items-center justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-black text-slate-900 uppercase tracking-tight">{item.name}</h3>
+                      <Badge variant="outline" className="text-[9px] uppercase font-bold">{item.category}</Badge>
+                    </div>
+                    <div className="flex items-center gap-4 text-xs text-slate-500 font-bold">
+                       <span className="flex items-center gap-1"><Timer className="w-3 h-3" /> {new Date(item.createdAt).toLocaleDateString()}</span>
+                       <span className="text-primary">{item.price} DT</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right mr-4">
+                      <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Statut Admin</p>
+                      <div className="flex items-center justify-end gap-2">
+                        <div className={cn(
+                          "h-2 w-2 rounded-full",
+                          item.status === "approved" ? "bg-emerald-500" : item.status === "rejected" ? "bg-red-500" : "bg-orange-500 animate-pulse"
+                        )} />
+                        <span className="text-xs font-black uppercase tracking-wider text-slate-700">
+                          {item.status === "approved" ? (lang === "fr" ? "Approuvé" : "Approved") : 
+                           item.status === "rejected" ? (lang === "fr" ? "Rejeté" : "Rejected") : 
+                           (lang === "fr" ? "En attente" : "Pending")}
+                        </span>
+                      </div>
+                    </div>
+                    {item.status === "rejected" && (
+                      <div className="p-2 rounded-full bg-red-50 text-red-500">
+                        <AlertTriangle className="w-4 h-4" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       ) : (
         <RentalRequestList
           requests={requests}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import { useI18n } from "@/lib/i18n"
 import { useAuth } from "@/lib/auth-context"
 import { mockProperties } from "@/lib/property-data"
@@ -8,7 +8,7 @@ import { FurnitureCatalog } from "./furniture-catalog"
 import { FurnitureCart } from "./furniture-cart"
 import { FurnitureReceipt } from "./furniture-receipt"
 import { CartItem, FurnitureItem, FurnitureOrder, OrderStatus, submitFurnitureOrder, addFurnitureItem, FurnitureCategory } from "@/lib/furniture-data"
-import { Package, Receipt, ShoppingBag, LayoutGrid, Armchair, Plus, Image as ImageIcon, Loader2, CreditCard, ChevronRight } from "lucide-react"
+import { Package, Receipt, ShoppingBag, LayoutGrid, Armchair, Plus, Image as ImageIcon, Loader2, CreditCard, ChevronRight, Upload, X, FileImage } from "lucide-react"
 import { Input } from "./ui/input"
 import { Label } from "./ui/label"
 import { Textarea } from "./ui/textarea"
@@ -66,6 +66,8 @@ export function FurnitureOrderModule({ initialPropertyId }: FurnitureOrderModule
   const [isExistingLoading, setIsExistingLoading] = useState(false)
 
   const [isChangeModalOpen, setIsChangeModalOpen] = useState(false)
+  const [rentals, setRentals] = useState<any[]>([])
+  const [isRentalsLoading, setIsRentalsLoading] = useState(false)
   const [orders, setOrders] = useState<any[]>([])
   const [ordersLoading, setOrdersLoading] = useState(false)
   const [brokenExistingImages, setBrokenExistingImages] = useState<Record<string, boolean>>({})
@@ -75,8 +77,27 @@ export function FurnitureOrderModule({ initialPropertyId }: FurnitureOrderModule
   useEffect(() => {
     if (user?.role === 'tenant') {
        fetchTenantOrders()
+       fetchTenantRentals()
     }
   }, [user])
+
+  const fetchTenantRentals = async () => {
+    setIsRentalsLoading(true)
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL.replace('/api', '')}/api/properties/my-rentals`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setRentals(data)
+      }
+    } catch (error) {
+      console.error("Error fetching tenant rentals:", error)
+    } finally {
+      setIsRentalsLoading(false)
+    }
+  }
 
   const fetchTenantOrders = async () => {
     setOrdersLoading(true)
@@ -147,15 +168,59 @@ export function FurnitureOrderModule({ initialPropertyId }: FurnitureOrderModule
     description: ""
   })
 
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert(lang === "fr" ? "L'image est trop volumineuse (max 5Mo)" : "Image is too large (max 5MB)")
+        return
+      }
+
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const base64String = reader.result as string
+        setImagePreview(base64String)
+        setNewItem({ ...newItem, image: base64String })
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const removeImage = () => {
+    setImagePreview(null)
+    setNewItem({ ...newItem, image: "" })
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
+  }
+
   const handleSuggestItem = async () => {
+    // Basic validation
+    if (!newItem.name.trim()) {
+      alert(lang === "fr" ? "Veuillez entrer un nom pour l'article." : "Please enter a name for the item.")
+      return
+    }
+    if (!newItem.image) {
+      alert(lang === "fr" ? "Veuillez ajouter une image." : "Please add an image.")
+      return
+    }
+    if (newItem.price <= 0) {
+      alert(lang === "fr" ? "Veuillez entrer un prix valide." : "Please enter a valid price.")
+      return
+    }
+
     setIsAdding(true)
     try {
       await addFurnitureItem(newItem)
       alert(lang === "fr" ? "Votre suggestion a été envoyée pour validation." : "Your suggestion has been sent for validation.")
       setNewItem({ name: "", category: "Salon", price: 0, image: "", description: "" })
-      // Refreshing catalog happens automatically because FurnitureCatalog has its own useEffect
-    } catch (error) {
-      alert("Error adding furniture")
+      setImagePreview(null)
+    } catch (error: any) {
+      console.error("Error adding furniture:", error)
+      alert(lang === "fr" ? "Erreur lors de l'envoi : " + (error.message || "Problème serveur") : "Error sending suggestion: " + (error.message || "Server issue"))
     } finally {
       setIsAdding(false)
     }
@@ -320,22 +385,90 @@ export function FurnitureOrderModule({ initialPropertyId }: FurnitureOrderModule
                             <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Prix Estimé (DT)</Label>
                             <Input 
                               type="number"
-                              value={newItem.price} 
-                              onChange={e => setNewItem({...newItem, price: Number(e.target.value)})}
+                              min="0"
+                              value={newItem.price || ""} 
+                              onChange={e => {
+                                const val = e.target.value;
+                                if (val === "") {
+                                  setNewItem({...newItem, price: 0});
+                                } else {
+                                  const num = parseFloat(val);
+                                  if (num >= 0) {
+                                    setNewItem({...newItem, price: num});
+                                  }
+                                }
+                              }}
                               className="rounded-xl border-muted bg-muted/30 h-12 font-bold"
+                              placeholder="0"
                             />
                           </div>
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">URL de l&apos;image</Label>
-                          <div className="relative">
-                            <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <Input 
-                              value={newItem.image} 
-                              onChange={e => setNewItem({...newItem, image: e.target.value})}
-                              className="rounded-xl border-muted bg-muted/30 h-12 pl-10 font-bold"
-                              placeholder="https://images.unsplash.com/..."
+                          <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Photo du meuble</Label>
+                          <div 
+                            onClick={() => !imagePreview && fileInputRef.current?.click()}
+                            className={cn(
+                              "relative group cursor-pointer transition-all duration-300",
+                              "rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-3 min-h-[160px] overflow-hidden",
+                              imagePreview 
+                                ? "border-primary/20 bg-primary/[0.02]" 
+                                : "border-muted-foreground/20 bg-muted/30 hover:border-primary/50 hover:bg-primary/[0.02]"
+                            )}
+                          >
+                            <input 
+                              type="file" 
+                              ref={fileInputRef}
+                              onChange={handleImageUpload}
+                              accept="image/*"
+                              className="hidden"
                             />
+                            
+                            {imagePreview ? (
+                              <div className="relative w-full h-full p-2 animate-in zoom-in-95 duration-300">
+                                <div className="relative aspect-video rounded-xl overflow-hidden shadow-md">
+                                  <img 
+                                    src={imagePreview} 
+                                    alt="Preview" 
+                                    className="w-full h-full object-cover"
+                                  />
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        fileInputRef.current?.click()
+                                      }}
+                                      className="text-white hover:bg-white/20 rounded-lg font-bold"
+                                    >
+                                      <Upload className="w-4 h-4 mr-2" /> Modifier
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        removeImage()
+                                      }}
+                                      className="text-white hover:bg-red-500/80 rounded-lg font-bold"
+                                    >
+                                      <X className="w-4 h-4 mr-2" /> Supprimer
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center gap-2 p-6 text-center">
+                                <div className="p-4 rounded-full bg-primary/10 text-primary group-hover:scale-110 transition-transform duration-300">
+                                  <Upload className="w-8 h-8" />
+                                </div>
+                                <div className="space-y-1">
+                                  <p className="text-sm font-black text-slate-700">Cliquez pour télécharger</p>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                         <div className="space-y-2">
@@ -366,7 +499,7 @@ export function FurnitureOrderModule({ initialPropertyId }: FurnitureOrderModule
                     onClick={() => setIsChangeModalOpen(true)}
                     className="bg-white text-blue-700 hover:bg-white/90 rounded-xl gap-2 font-bold px-6 shadow-xl shadow-black/10 transition-all active:scale-95"
                   >
-                    <Plus className="w-5 h-5" /> Proposer / Changer un meuble
+                    <Plus className="w-5 h-5" /> Changer un meuble
                   </Button>
                 </div>
               )}
@@ -461,7 +594,7 @@ export function FurnitureOrderModule({ initialPropertyId }: FurnitureOrderModule
               {[
                 { step: 1, title: "Choisissez", desc: lang === 'fr' ? "Sélectionnez vos meubles dans le catalogue" : "Select your furniture from the catalog", icon: <Package className="w-5 h-5" /> },
                 { step: 2, title: "Panier", desc: lang === 'fr' ? "Vérifiez vos articles et quantités" : "Check your items and quantities", icon: <ShoppingBag className="w-5 h-5" /> },
-                { step: 3, title: "Bon d'achat", desc: lang === 'fr' ? "Générez votre bon de commande" : "Generate your order voucher", icon: <Receipt className="w-5 h-5" /> },
+                { step: 3, title: "Bon d'achat", desc: lang === 'fr' ? "Générez votre bon de commande" : "Generate your order voucher", icon: <Receipt className="w-4 h-4" /> },
                 { step: 4, title: "Règlement", desc: lang === 'fr' ? "Payez à la livraison à domicile" : "Pay upon delivery at home", icon: <CreditCard className="w-5 h-5" /> }
               ].map(item => (
                 <div key={item.step} className="flex flex-col items-center text-center space-y-4 group">
@@ -557,6 +690,7 @@ export function FurnitureOrderModule({ initialPropertyId }: FurnitureOrderModule
         onClose={() => setIsChangeModalOpen(false)}
         furnitureList={existingFurniture}
         propertyId={selectedPropertyId}
+        properties={rentals}
       />
     </div>
   )

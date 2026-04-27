@@ -145,6 +145,29 @@ const deleteProperty = asyncHandler(async (req, res) => {
   res.status(204).send();
 });
 
+const getMyRentals = asyncHandler(async (req, res) => {
+  if (req.user.role !== 'tenant') {
+    throw new ApiError(403, 'Only tenants can view their rentals');
+  }
+
+  const contracts = await Contract.find({
+    tenant: req.user._id,
+    status: { $in: ['SignedByTenant', 'SignedByBoth'] }
+  }).populate({
+    path: 'property',
+    populate: {
+      path: 'owner',
+      select: 'fullName email phone'
+    }
+  });
+
+  const properties = contracts
+    .filter(c => c.property) // Ensure property exists
+    .map(c => c.property);
+  
+  res.send(properties);
+});
+
 module.exports = {
   createProperty,
   getProperties,
@@ -152,6 +175,7 @@ module.exports = {
   getFavoriteProperties,
   addFavoriteProperty,
   removeFavoriteProperty,
+  getMyRentals,
   updateProperty,
   deleteProperty,
 };

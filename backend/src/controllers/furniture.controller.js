@@ -16,20 +16,30 @@ const getFurniture = asyncHandler(async (req, res) => {
   let query = {};
   const role = req.user?.role;
 
-  if (role === 'admin' || role === 'tenant') {
-    // Admin and tenant can browse the full furniture catalog.
+  if (role === 'admin') {
+    // Admin can browse the full furniture catalog.
     query = {};
-  } else if (role === 'owner') {
-    // Owner sees approved catalog items plus the items they proposed.
-    query = {
-      $or: [{ status: 'approved' }, { addedBy: req.user?._id }],
-    };
+  } else if (role === 'tenant' || role === 'owner') {
+    // Both tenants and owners only see approved items in the general catalog.
+    // Owners track their own pending suggestions in the "Demandes" (Requests) section.
+    query = { status: 'approved' };
   } else {
     // Public/unauthenticated users only see approved items.
     query = { status: 'approved' };
   }
 
   const furniture = await Furniture.find(query);
+  res.status(200).json(furniture);
+});
+
+/**
+ * Get pending furniture items suggested by the current owner
+ */
+const getOwnerPendingFurniture = asyncHandler(async (req, res) => {
+  const furniture = await Furniture.find({ 
+    addedBy: req.user._id, 
+    status: { $ne: 'approved' } 
+  });
   res.status(200).json(furniture);
 });
 
@@ -109,6 +119,33 @@ const addFurniture = asyncHandler(async (req, res) => {
     addedBy: req.user._id,
   });
 
+  // Notify Admins of new suggestion
+  if (status === 'pending') {
+    try {
+      const admins = await User.find({ role: 'admin' });
+      for (const admin of admins) {
+        await Notification.create({
+          recipient: admin._id,
+          type: 'Mobilier',
+          title: 'Nouvelle suggestion de meuble',
+          preview: `Une nouvelle suggestion "${name}" est en attente de validation.`,
+          content: `Le propriétaire ${req.user.fullName || req.user.email} a suggéré d'ajouter "${name}" au catalogue de mobilier.`,
+          furnitureMeta: {
+            furnitureId: furniture._id,
+            furnitureName: name,
+            category,
+            price,
+            image,
+            ownerName: req.user.fullName || req.user.email,
+            status: 'pending'
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error creating admin notification for furniture:', error);
+    }
+  }
+
   res.status(201).json(furniture);
 });
 
@@ -165,7 +202,7 @@ const updateFurnitureStatus = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
 
-  if (!['pending', 'approved'].includes(status)) {
+  if (!['pending', 'approved', 'rejected', 'requested'].includes(status)) {
     throw new ApiError(400, 'Invalid status');
   }
 
@@ -255,6 +292,24 @@ const saveFurnitureOrder = asyncHandler(async (req, res) => {
     await order.save();
   }
 
+  // Notify Admins of new confirmed order
+  if (orderStatus === 'Confirmé') {
+    try {
+      const admins = await User.find({ role: 'admin' });
+      for (const admin of admins) {
+        await Notification.create({
+          recipient: admin._id,
+          type: 'Mobilier',
+          title: 'Nouvelle commande de mobilier',
+          preview: `Une nouvelle commande de ${items.length} articles a été passée.`,
+          content: `Une commande de mobilier d'un montant total de ${total} DT a été validée pour un bien immobilier par ${req.user.fullName || req.user.email}.`,
+        });
+      }
+    } catch (error) {
+      console.error('Error creating admin notification for furniture order:', error);
+    }
+  }
+
   res.status(201).json(order);
 });
 
@@ -302,15 +357,22 @@ const getFurnitureOrdersForTenant = asyncHandler(async (req, res) => {
  * Create a furniture change request
  */
 const createChangeRequest = asyncHandler(async (req, res) => {
-  const { furnitureId, contractId, propertyId, type, reason, description, photo } = req.body;
+  const { furnitureId, furnitureName, contractId, propertyId, type, reason, description, photo } = req.body;
 
-  if (!furnitureId || (!contractId && !propertyId) || !type || !reason) {
+  if ((!furnitureId && !furnitureName) || (!contractId && !propertyId) || !type || !reason) {
     throw new ApiError(400, 'Furniture, context and reason are required');
   }
 
-  const furniture = await Furniture.findById(furnitureId);
-  if (!furniture) {
-    throw new ApiError(404, 'Furniture not found');
+  let finalFurnitureName = furnitureName;
+  if (furnitureId && mongoose.Types.ObjectId.isValid(furnitureId)) {
+    const furniture = await Furniture.findById(furnitureId);
+    if (furniture) {
+      finalFurnitureName = furniture.name;
+    }
+  }
+
+  if (!finalFurnitureName) {
+    throw new ApiError(400, 'Furniture name or ID is required');
   }
 
   let resolvedContractId = contractId;
@@ -343,12 +405,11 @@ const createChangeRequest = asyncHandler(async (req, res) => {
     }
   }
 
-  if (!ownerRecipientId && resolvedPropertyId) {
+  if (!ownerRecipientId && resolvedPropertyId && mongoose.Types.ObjectId.isValid(resolvedPropertyId)) {
     const property = await Property.findById(resolvedPropertyId);
-    if (!property) {
-      throw new ApiError(404, 'Property not found');
+    if (property) {
+      ownerRecipientId = property.owner?.toString() || null;
     }
-    ownerRecipientId = property.owner?.toString() || null;
   }
 
   if (!resolvedContractId) {
@@ -356,7 +417,8 @@ const createChangeRequest = asyncHandler(async (req, res) => {
   }
 
   const changeRequest = await FurnitureChangeRequest.create({
-    furnitureId,
+    furnitureId: (furnitureId && mongoose.Types.ObjectId.isValid(furnitureId)) ? furnitureId : null,
+    furnitureName: finalFurnitureName,
     contractId: resolvedContractId,
     propertyId: resolvedPropertyId,
     tenantId: req.user.email || req.user._id,
@@ -377,11 +439,37 @@ const createChangeRequest = asyncHandler(async (req, res) => {
     if (recipientUserId && mongoose.Types.ObjectId.isValid(recipientUserId)) {
       await Notification.create({
         recipient: recipientUserId,
-        type: 'Système',
+        type: 'Mobilier',
         title: 'Nouvelle demande de changement de meuble',
-        preview: `Un locataire a demandé un changement pour "${furniture.name}".`,
-        content: `Le locataire a soumis une demande de changement (${type}) pour "${furniture.name}". Raison: ${reason}.`,
+        preview: `Un locataire a demandé un changement pour "${finalFurnitureName}".`,
+        content: `Le locataire a soumis une demande de changement (${type}) pour "${finalFurnitureName}". Raison: ${reason}. ${description ? '\n\nDescription: ' + description : ''}`,
+        furnitureMeta: {
+          furnitureId: (furnitureId && mongoose.Types.ObjectId.isValid(furnitureId)) ? furnitureId : null,
+          furnitureName: finalFurnitureName,
+          category: type,
+          image: photo || (furniture?.images?.[0] || ''),
+          ownerName: req.user.fullName || req.user.email,
+          status: 'pending'
+        }
       });
+
+      // Also notify admins
+      try {
+        const admins = await User.find({ role: 'admin' });
+        for (const admin of admins) {
+          if (admin._id.toString() !== recipientUserId) { // Don't notify twice if owner is admin (unlikely but safe)
+            await Notification.create({
+              recipient: admin._id,
+              type: 'Mobilier',
+              title: 'Demande de changement mobilier',
+              preview: `Changement demandé pour "${furniture.name}".`,
+              content: `Un locataire a soumis une demande de changement (${type}) pour "${furniture.name}".`,
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error notifying admins of change request:', error);
+      }
     }
   }
 
@@ -398,6 +486,28 @@ const getChangeRequestsByContract = asyncHandler(async (req, res) => {
   res.status(200).json(requests);
 });
 
+/**
+ * Get all furniture change requests (Admin only)
+ */
+const getAllChangeRequests = asyncHandler(async (req, res) => {
+  const requests = await FurnitureChangeRequest.find({})
+    .populate('furnitureId')
+    .populate('propertyId')
+    .sort({ createdAt: -1 });
+  res.status(200).json(requests);
+});
+
+/**
+ * Get all furniture orders (Admin only)
+ */
+const getAllFurnitureOrders = asyncHandler(async (req, res) => {
+  const orders = await FurnitureOrder.find({})
+    .populate('items.furniture')
+    .populate('property')
+    .sort({ createdAt: -1 });
+  res.status(200).json(orders);
+});
+
 module.exports = {
   getFurniture,
   addFurniture,
@@ -411,4 +521,7 @@ module.exports = {
   getFurnitureOrdersForTenant,
   createChangeRequest,
   getChangeRequestsByContract,
+  getOwnerPendingFurniture,
+  getAllChangeRequests,
+  getAllFurnitureOrders,
 };

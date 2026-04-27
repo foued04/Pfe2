@@ -12,8 +12,8 @@ const furnitureSchema = new mongoose.Schema({
   description: { type: String },
   status: { 
     type: String, 
-    enum: ['pending', 'approved'], 
-    default: 'approved' // Default to approved for seeded/admin items
+    enum: ['pending', 'approved', 'rejected', 'requested'], 
+    default: 'approved'
   },
   addedBy: {
     type: mongoose.Schema.Types.ObjectId,

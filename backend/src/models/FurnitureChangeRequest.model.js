@@ -4,7 +4,11 @@ const furnitureChangeRequestSchema = new mongoose.Schema({
   furnitureId: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'Furniture',
-    required: true 
+    required: false 
+  },
+  furnitureName: {
+    type: String,
+    required: false
   },
   contractId: { 
     type: mongoose.Schema.Types.ObjectId, 
@@ -22,7 +26,7 @@ const furnitureChangeRequestSchema = new mongoose.Schema({
   },
   type: { 
     type: String, 
-    enum: ['Remplacement', 'Échange', 'Réparation', 'Suppression', 'Ajout'],
+    enum: ['Remplacement', 'Échange', 'Réparation', 'Suppression', 'Ajout', 'Changement'],
     required: true 
   },
   reason: { 

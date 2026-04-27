@@ -66,6 +66,15 @@ export interface Notification {
     endDate?: string;
     rent?: number;
   };
+  furnitureMeta?: {
+    furnitureId?: string;
+    furnitureName?: string;
+    category?: string;
+    price?: number;
+    image?: string;
+    ownerName?: string;
+    status?: string;
+  };
 }
 
 export function NotificationsModule() {
@@ -81,6 +90,7 @@ export function NotificationsModule() {
   const [reclamationReply, setReclamationReply] = useState("")
   const [isSendingReply, setIsSendingReply] = useState(false)
   const [replyStatus, setReplyStatus] = useState<{ type: "success" | "error"; message: string } | null>(null)
+  const [isModerating, setIsModerating] = useState(false)
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
   const normalizeType = (type: string) =>
@@ -292,6 +302,41 @@ export function NotificationsModule() {
     }
   }
 
+  const handleModerateFurniture = async (id: string, status: "approved" | "rejected") => {
+    setIsModerating(true)
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/furniture/${id}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ status })
+      })
+
+      if (response.ok) {
+        // Update local state to reflect change
+        setNotifications(prev => prev.map(n => 
+          n.furnitureMeta?.furnitureId === id 
+            ? { ...n, furnitureMeta: { ...n.furnitureMeta, status } } 
+            : n
+        ))
+        setReplyStatus({ 
+          type: "success", 
+          message: status === "approved" ? "Mobilier approuvé avec succès !" : "Suggestion rejetée." 
+        })
+      } else {
+        throw new Error("Erreur lors de la modération")
+      }
+    } catch (err) {
+      console.error("Furniture moderation error:", err)
+      setReplyStatus({ type: "error", message: "Impossible de traiter la demande." })
+    } finally {
+      setIsModerating(false)
+    }
+  }
+
   useEffect(() => {
     setIsLoading(true)
     fetchNotifications()
@@ -339,6 +384,8 @@ export function NotificationsModule() {
         return { color: "text-blue-700 bg-blue-100 border-blue-200", icon: FileSignature }
       case "Réclamation":
         return { color: "text-red-700 bg-red-100 border-red-200", icon: AlertTriangle }
+      case "Mobilier":
+        return { color: "text-orange-700 bg-orange-100 border-orange-200", icon: Home }
       case "Système":
       default:
         return { color: "text-slate-700 bg-slate-100 border-slate-200", icon: Info }
@@ -395,7 +442,7 @@ export function NotificationsModule() {
           </div>
 
           <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-            {["Tous", "Réclamation", "Vérification", "Contrat", "Système"].map((type) => (
+            {["Tous", "Réclamation", "Mobilier", "Vérification", "Contrat", "Système"].map((type) => (
               <button
                 key={type}
                 onClick={() => setActiveType(type)}
@@ -570,6 +617,100 @@ export function NotificationsModule() {
                   <p className="text-lg text-slate-700 leading-relaxed font-medium whitespace-pre-wrap">
                     {activeNotif.content}
                   </p>
+                </div>
+              </div>
+            )}
+
+            {activeNotif.furnitureMeta && (
+              <div className="overflow-hidden rounded-[2.5rem] border border-slate-200 bg-white shadow-2xl shadow-slate-200/50">
+                <div className="relative h-64 w-full">
+                  <img 
+                    src={activeNotif.furnitureMeta.image || "https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=800"} 
+                    className="h-full w-full object-cover"
+                    alt={activeNotif.furnitureMeta.furnitureName}
+                  />
+                  <div className="absolute top-6 left-6">
+                    <Badge className="bg-primary/90 text-white border-none font-black px-4 py-1.5 rounded-full text-xs uppercase tracking-widest backdrop-blur-md">
+                      {activeNotif.furnitureMeta.category}
+                    </Badge>
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                  <div className="absolute bottom-6 left-8 right-8">
+                     <h3 className="text-3xl font-black text-white tracking-tight uppercase leading-none">
+                       {activeNotif.furnitureMeta.furnitureName}
+                     </h3>
+                  </div>
+                </div>
+                
+                <div className="p-10 space-y-8">
+                  <div className="grid grid-cols-2 gap-8 py-8 border-y border-slate-100">
+                    <div>
+                      <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-2">
+                        {activeNotif.title.includes("changement") ? "Type de Changement" : "Prix Suggéré"}
+                      </p>
+                      {activeNotif.title.includes("changement") ? (
+                        <p className="text-2xl font-black text-primary tracking-tight">
+                          {activeNotif.furnitureMeta.category}
+                        </p>
+                      ) : (
+                        <p className="text-3xl font-black text-primary tracking-tighter">
+                          {activeNotif.furnitureMeta.price} <span className="text-sm font-bold uppercase ml-1">DT</span>
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-2">
+                        {activeNotif.title.includes("changement") ? "Locataire" : "Demandeur"}
+                      </p>
+                      <p className="text-2xl font-black text-slate-800 tracking-tight">
+                        {activeNotif.furnitureMeta.ownerName || "Utilisateur"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100">
+                     <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-3">Statut Actuel</p>
+                     <div className="flex items-center gap-3">
+                        <div className={cn(
+                          "h-3 w-3 rounded-full animate-pulse",
+                          activeNotif.furnitureMeta.status === "approved" ? "bg-emerald-500" :
+                          activeNotif.furnitureMeta.status === "rejected" ? "bg-red-500" : "bg-orange-500"
+                        )} />
+                        <span className="font-black text-slate-700 uppercase text-sm tracking-widest">
+                          {activeNotif.furnitureMeta.status === "pending" ? "En attente de validation" :
+                           activeNotif.furnitureMeta.status === "approved" ? "Validé et publié" : "Refusé"}
+                        </span>
+                     </div>
+                  </div>
+
+                  {activeNotif.furnitureMeta.status === "pending" && (
+                    <div className="flex gap-4 pt-4">
+                      <Button 
+                        disabled={isModerating}
+                        onClick={() => activeNotif.furnitureMeta?.furnitureId && handleModerateFurniture(activeNotif.furnitureMeta.furnitureId, "approved")}
+                        className="flex-1 h-16 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-emerald-100 border-none px-8 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                      >
+                        <ShieldCheck className="w-5 h-5 mr-3" /> Approuver l'article
+                      </Button>
+                      <Button 
+                        disabled={isModerating}
+                        variant="outline"
+                        onClick={() => activeNotif.furnitureMeta?.furnitureId && handleModerateFurniture(activeNotif.furnitureMeta.furnitureId, "rejected")}
+                        className="flex-1 h-16 rounded-2xl border-red-200 text-red-500 hover:bg-red-50 font-black uppercase text-xs tracking-[0.2em] px-8 border-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                      >
+                        <AlertTriangle className="w-5 h-5 mr-3" /> Rejeter
+                      </Button>
+                    </div>
+                  )}
+
+                  {replyStatus && (
+                    <div className={cn(
+                      "p-4 rounded-2xl text-center font-black text-sm uppercase tracking-wider animate-in fade-in slide-in-from-bottom-2",
+                      replyStatus.type === "success" ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"
+                    )}>
+                      {replyStatus.message}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

@@ -8,7 +8,7 @@ const NotificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['Réclamation', 'Contrat', 'Système', 'Vérification'],
+    enum: ['Réclamation', 'Contrat', 'Système', 'Vérification', 'Mobilier'],
     required: true
   },
   title: {
@@ -75,6 +75,15 @@ const NotificationSchema = new mongoose.Schema({
     senderId: String,
     senderName: String,
     contextId: String
+  },
+  furnitureMeta: {
+    furnitureId: String,
+    furnitureName: String,
+    category: String,
+    price: Number,
+    image: String,
+    ownerName: String,
+    status: String
   },
   createdAt: {
     type: Date,

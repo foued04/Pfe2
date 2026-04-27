@@ -158,6 +158,7 @@ export function AdminDashboard({
   const [selectedUser, setSelectedUser] = useState<any | null>(null)
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null)
   const [pendingVerificationsCount, setPendingVerificationsCount] = useState(0)
+  const [pendingFurniture, setPendingFurniture] = useState<any[]>([])
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
 
@@ -212,6 +213,14 @@ export function AdminDashboard({
       setPropertyTypeData(data.propertyTypeData || [])
       setUserRoleData(data.userRoleData || [])
       setPendingProperties(data.pendingProperties || [])
+      
+      const furnitureResp = await fetch(`${API_URL}/furniture`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
+      })
+      if (furnitureResp.ok) {
+        const furnData = await furnitureResp.json()
+        setPendingFurniture(furnData.filter((i: any) => i.status === "pending"))
+      }
     } catch (error) {
       console.error("Error fetching dashboard stats:", error)
     } finally {
@@ -265,7 +274,10 @@ export function AdminDashboard({
       fetchDashboardStats()
     }
     fetchPendingVerificationsCount()
-    const interval = setInterval(fetchPendingVerificationsCount, 30000)
+    const interval = setInterval(() => {
+      fetchPendingVerificationsCount()
+      if (activeSection === "dashboard") fetchDashboardStats()
+    }, 30000)
     return () => clearInterval(interval)
   }, [activeSection])
 
@@ -716,18 +728,24 @@ export function AdminDashboard({
 
             <div className="grid gap-8 lg:grid-cols-2">
               {/* Recent Activity Timeline */}
-              <Card className="rounded-[2rem] border border-slate-200/70 bg-white/95 p-8 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
-                <CardHeader className="px-0 pt-0 mb-8 border-b border-border/50 pb-4">
-                  <div className="flex items-center justify-between">
+              <Card 
+                onClick={() => setActiveSection("furniture")}
+                className="rounded-[2rem] border border-slate-200/70 bg-white/95 p-8 shadow-[0_24px_60px_rgba(15,23,42,0.08)] cursor-pointer hover:border-primary/30 transition-all group"
+              >
+                <CardHeader className="px-0 pt-0 mb-8 border-b border-border/50 pb-4 flex flex-row items-center justify-between">
                     <div>
-                      <CardTitle className="text-xl font-black text-primary">Journal d&apos;activité</CardTitle>
-                      <p className="text-xs text-muted-foreground font-bold mt-1">Suivi en temps réel des actions système</p>
+                      <CardTitle className="text-xl font-black text-primary group-hover:text-primary/80">Suggestions Mobilier</CardTitle>
+                      <p className="text-xs text-muted-foreground font-bold mt-1">Nouvelles propositions des propriétaires</p>
                     </div>
-                    <Button variant="outline" size="sm" className="rounded-full border-slate-200 bg-white px-4 font-semibold text-[10px] uppercase tracking-[0.16em] shadow-sm">Tout voir</Button>
-                  </div>
+                    <Badge className="bg-orange-100 text-orange-600 border-none font-black px-3 py-1 rounded-full text-[11px] animate-pulse">
+                      {pendingFurniture.length} À VALIDER
+                    </Badge>
                 </CardHeader>
                 <div className="space-y-8 relative before:absolute before:left-[21px] before:top-2 before:bottom-2 before:w-0.5 before:bg-border/40">
-                  {recentActivities.map((activity, index) => {
+                  {pendingFurniture.length === 0 ? (
+                    <div className="text-center py-10 opacity-30 italic font-medium">Aucune suggestion en attente</div>
+                  ) : (
+                    pendingFurniture.map((activity, index) => {
                     const statusIcons = {
                       success: CheckCircle,
                       pending: Clock,
@@ -738,24 +756,25 @@ export function AdminDashboard({
                       pending: "bg-orange-100 text-orange-600 border-orange-200",
                       warning: "bg-red-100 text-red-600 border-red-200",
                     }
-                    const StatusIcon = statusIcons[activity.status as keyof typeof statusIcons]
+                    const status = (activity.status as any) || "pending"
+                    const StatusIcon = (statusIcons as any)[status] || Clock
                     return (
                       <div key={index} className="flex items-start gap-6 relative z-10 transition-transform hover:translate-x-1 duration-300">
-                        <div className={cn("p-2 rounded-full border-2 border-white shadow-md", statusColors[activity.status as keyof typeof statusColors])}>
+                        <div className={cn("p-2 rounded-full border-2 border-white shadow-md", (statusColors as any)[status] || statusColors.pending)}>
                           <StatusIcon className="h-4 w-4" />
                         </div>
                         <div className="flex-1">
-                          <p className="text-sm font-black text-foreground leading-snug">{activity.message[lang as "fr" | "en"]}</p>
+                          <p className="text-sm font-black text-foreground leading-snug">{activity.name}</p>
                           <div className="flex items-center gap-2 mt-1.5">
                             <Badge variant="secondary" className="px-2 py-0 h-4 text-[9px] font-black uppercase tracking-tighter rounded-sm">
-                              {activity.type}
+                              {activity.category}
                             </Badge>
-                            <p className="text-[10px] font-bold text-muted-foreground opacity-60 uppercase">{activity.time[lang as "fr" | "en"]}</p>
+                            <p className="text-[10px] font-bold text-muted-foreground opacity-60 uppercase">{activity.requesterName || "Propriétaire"}</p>
                           </div>
                         </div>
                       </div>
                     )
-                  })}
+                  }))}
                 </div>
               </Card>
 

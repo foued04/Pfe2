@@ -14,6 +14,10 @@ router
   .get(auth, propertyController.getFavoriteProperties);
 
 router
+  .route('/my-rentals')
+  .get(auth, propertyController.getMyRentals);
+
+router
   .route('/:propertyId/favorite')
   .post(auth, propertyController.addFavoriteProperty)
   .delete(auth, propertyController.removeFavoriteProperty);

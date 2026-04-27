@@ -15,7 +15,8 @@ import {
   Plus,
   Trash2,
   Image as ImageIcon,
-  Loader2
+  Loader2,
+  Clock
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { fetchFurniture, FurnitureItem, FurnitureCategory, addFurnitureItem, deleteFurnitureItem, updateFurnitureStatus as apiUpdateStatus } from "@/lib/furniture-data"
@@ -77,7 +78,7 @@ export function AdminFurnitureManagement() {
 
   const filteredItems = items.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(filter.search.toLowerCase()) || 
-                         item.requesterName.toLowerCase().includes(filter.search.toLowerCase())
+                         (item.requesterName || "").toLowerCase().includes(filter.search.toLowerCase())
     const matchesCategory = filter.category === "all" || item.category === filter.category
     const matchesStatus = filter.status === "all" || item.status === filter.status
     return matchesSearch && matchesCategory && matchesStatus
@@ -95,14 +96,9 @@ export function AdminFurnitureManagement() {
 
   const handleReject = async (id: string) => {
     try {
-      // In this context, reject might mean delete or just change status. 
-      // We'll just set it to 'pending' or keep as is, but the backend only has 'pending'/'approved'.
-      // For now, let's just delete it if rejected or status change if we add 'rejected' to model.
-      // Since model only has pending/approved, we'll just keep it pending for now or add 'rejected'.
-      // Actually, let's just update to 'pending' if it was approved and we want to 'reject' it.
-      await apiUpdateStatus(id, "pending")
+      await apiUpdateStatus(id, "rejected")
       await loadItems()
-      if (selectedItem?.id === id) setSelectedItem(prev => prev ? { ...prev, status: "pending" } : null)
+      if (selectedItem?.id === id) setSelectedItem(prev => prev ? { ...prev, status: "rejected" } : null)
     } catch (error) {
       alert("Error updating status")
     }
@@ -120,6 +116,14 @@ export function AdminFurnitureManagement() {
   }
 
   const handleAddItem = async () => {
+    if (!newItem.name.trim()) {
+      alert("Please enter a name")
+      return
+    }
+    if (!newItem.image) {
+      alert("Please add an image")
+      return
+    }
     setIsAdding(true)
     try {
       await addFurnitureItem(newItem)
@@ -228,9 +232,14 @@ export function AdminFurnitureManagement() {
              </DialogContent>
            </Dialog>
 
-           <Badge variant="outline" className="px-4 py-1.5 rounded-full bg-orange-50 text-orange-600 border-orange-100 font-bold items-center flex">
-             {items.filter(i => i.status === "pending").length} À valider
-           </Badge>
+            <Badge 
+              variant="outline" 
+              onClick={() => setFilter({ ...filter, status: "pending" })}
+              className="px-4 py-1.5 rounded-full bg-orange-50 text-orange-600 border-orange-100 font-bold items-center flex cursor-pointer hover:bg-orange-100 transition-colors shadow-sm"
+            >
+              <Clock className="w-3.5 h-3.5 mr-1.5 animate-pulse" />
+              {items.filter(i => i.status === "pending").length} À valider
+            </Badge>
         </div>
       </div>
 
@@ -287,15 +296,15 @@ export function AdminFurnitureManagement() {
             />
           </div>
           <select 
-            className="bg-muted/50 border-none rounded-xl px-4 py-2 text-sm font-black text-muted-foreground"
+            className="bg-muted/50 border-none rounded-xl px-4 py-2 text-sm font-black text-muted-foreground outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
             value={filter.status}
             onChange={(e) => setFilter({ ...filter, status: e.target.value })}
           >
             <option value="all">Tous les statuts</option>
-            <option value="pending">À valider</option>
-            <option value="requested">Demandes</option>
-            <option value="approved">Approuvés</option>
-            <option value="rejected">Rejetés</option>
+            <option value="pending">⚠️ À valider (Propriétaires)</option>
+            <option value="requested">📩 Demandes (Locataires)</option>
+            <option value="approved">✅ Approuvés</option>
+            <option value="rejected">❌ Rejetés</option>
           </select>
         </div>
       </Card>
@@ -427,13 +436,13 @@ export function AdminFurnitureManagement() {
                         "w-12 h-12 rounded-full flex items-center justify-center font-black text-lg",
                         selectedItem.requesterType === 'owner' ? "bg-orange-100 text-orange-600 shadow-orange-100 shadow-lg" : "bg-primary/10 text-primary shadow-primary/10 shadow-lg"
                       )}>
-                        {selectedItem.requesterName[0]}
+                        {(selectedItem.requesterName || "A")[0]}
                       </div>
                       <div>
                          <p className="text-[10px] font-black uppercase text-muted-foreground opacity-60 tracking-widest leading-none mb-1">Demandé par</p>
-                         <h4 className="text-lg font-black text-foreground tracking-tight leading-none">{selectedItem.requesterName}</h4>
+                         <h4 className="text-lg font-black text-foreground tracking-tight leading-none">{selectedItem.requesterName || "Propriétaire"}</h4>
                          <p className="text-[10px] font-bold text-primary/60 uppercase mt-1">
-                           {selectedItem.requesterType === 'owner' ? "Propriétaire (Validation requise)" : "Locataire (Demande d'achat)"}
+                           {selectedItem.requesterType === 'owner' || !selectedItem.requesterType ? "Propriétaire (Validation requise)" : "Locataire (Demande d'achat)"}
                          </p>
                       </div>
                    </div>

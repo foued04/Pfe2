@@ -115,17 +115,28 @@ export function OwnerDashboard({ initialSection = "overview" }: { initialSection
   const fetchRequestsCount = async () => {
     try {
       const token = localStorage.getItem("accessToken")
-      const response = await fetch(`${API_URL}/rental-requests`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      
+      // Fetch rental requests
+      const resRental = await fetch(`${API_URL}/rental-requests`, {
+        headers: { Authorization: `Bearer ${token}` },
       })
-      if (response.ok) {
-        const data = await response.json()
-        const dataArray = Array.isArray(data) ? data : []
-        const pendingCount = dataArray.filter((r: any) => r.status === "En attente").length
-        setRequestCount(pendingCount)
+      let rentalPending = 0
+      if (resRental.ok) {
+        const data = await resRental.json()
+        rentalPending = (Array.isArray(data) ? data : []).filter((r: any) => r.status === "En attente").length
       }
+
+      // Fetch furniture suggestions
+      const resFurniture = await fetch(`${API_URL}/furniture/my-suggestions`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      let furniturePending = 0
+      if (resFurniture.ok) {
+        const data = await resFurniture.json()
+        furniturePending = (Array.isArray(data) ? data : []).filter((f: any) => f.status === "pending").length
+      }
+
+      setRequestCount(rentalPending + furniturePending)
     } catch (err) {
       console.error("Fetch requests count error:", err)
     }
