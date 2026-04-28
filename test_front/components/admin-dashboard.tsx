@@ -882,8 +882,8 @@ export function AdminDashboard({
         <div className="flex h-full flex-col">
           {/* Logo */}
           <div className="flex h-20 items-center gap-3 border-b border-white/12 px-6">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/20 bg-white/12 shadow-inner">
-              <Shield className="h-5 w-5 text-white" />
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+              <Home className="h-5 w-5" />
             </div>
             <div>
               <h1 className="text-xl font-bold tracking-tight text-white">ImmoSmart</h1>

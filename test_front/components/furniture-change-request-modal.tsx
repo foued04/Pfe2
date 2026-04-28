@@ -7,8 +7,10 @@ import { Input } from "./ui/input"
 import { Label } from "./ui/label"
 import { Textarea } from "./ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
+import { apiFetch } from "@/lib/api/client"
 import { toast } from "sonner"
 import { Camera, Send, X, Upload } from "lucide-react"
+
 interface Furniture {
   _id: string
   name: string
@@ -47,126 +49,125 @@ export function FurnitureChangeRequestModal({
     type: "Changement",
     reason: "",
     description: "",
-    photo: ""
+    photo: "",
   })
-
-  // Sync internal selectedPropertyId with prop if it changes
-  useEffect(() => {
-    if (initialPropertyId) setSelectedPropertyId(initialPropertyId)
-    else if (properties.length > 0 && !selectedPropertyId) setSelectedPropertyId(properties[0].id || properties[0]._id || "")
-  }, [initialPropertyId, properties])
-
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
 
+  useEffect(() => {
+    if (initialPropertyId) setSelectedPropertyId(initialPropertyId)
+    else if (properties.length > 0 && !selectedPropertyId) setSelectedPropertyId(properties[0].id || properties[0]._id || "")
+  }, [initialPropertyId, properties, selectedPropertyId])
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("L'image est trop volumineuse (max 5Mo)")
-        return
-      }
+    if (!file) return
 
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        const base64String = reader.result as string
-        setImagePreview(base64String)
-        setFormData(prev => ({ ...prev, photo: base64String }))
-      }
-      reader.readAsDataURL(file)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("L'image est trop volumineuse (max 5Mo)")
+      return
     }
+
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      const base64String = reader.result as string
+      setImagePreview(base64String)
+      setFormData((prev) => ({ ...prev, photo: base64String }))
+    }
+    reader.readAsDataURL(file)
   }
 
   const removeImage = () => {
     setImagePreview(null)
-    setFormData(prev => ({ ...prev, photo: "" }))
+    setFormData((prev) => ({ ...prev, photo: "" }))
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
   }
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+  const resetForm = () => {
+    setFormData({
+      furnitureId: "",
+      furnitureName: "",
+      type: "Changement",
+      reason: "",
+      description: "",
+      photo: "",
+    })
+    setImagePreview(null)
+  }
 
   const handleSubmit = async () => {
+    const furnitureName = formData.furnitureName.trim()
+    const reason = formData.reason.trim()
+    const description = formData.description.trim()
+
     if (!selectedPropertyId) {
-      toast.error("Veuillez sélectionner un logement")
+      toast.error("Veuillez selectionner un logement")
       return
     }
-    if (!formData.furnitureName && !formData.furnitureId) {
-      toast.error("Veuillez indiquer le meuble concerné")
+
+    if (!furnitureName && !formData.furnitureId) {
+      toast.error("Veuillez indiquer le meuble concerne")
       return
     }
-    if (!formData.reason) {
+
+    if (!reason) {
       toast.error("Veuillez indiquer le motif")
       return
     }
 
     setLoading(true)
     try {
-      const token = localStorage.getItem("accessToken")
-      const response = await fetch(`${API_URL}/furniture/change-requests`, {
+      await apiFetch("/furniture/change-requests", {
         method: "POST",
+        auth: true,
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
           ...formData,
+          furnitureName,
+          reason,
+          description,
           ...(isMongoObjectId(contractId) ? { contractId } : {}),
           propertyId: selectedPropertyId,
-        })
+        }),
       })
 
-      if (response.ok) {
-        toast.success("Demande envoyée avec succès")
-        // Reset form
-        setFormData({
-          furnitureId: "",
-          furnitureName: "",
-          type: "Changement",
-          reason: "",
-          description: "",
-          photo: ""
-        })
-        setImagePreview(null)
-        onClose()
-      } else {
-        const errorData = await response.json().catch(() => null)
-        toast.error(errorData?.message || "Erreur lors de l'envoi de la demande")
-      }
+      toast.success("Demande envoyee avec succes")
+      resetForm()
+      onClose()
     } catch (error) {
       console.error("Error submitting change request:", error)
-      toast.error("Erreur de connexion")
+      toast.error(error instanceof Error ? error.message : "Erreur lors de l'envoi de la demande")
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-md bg-white border-primary/20 max-h-[95vh] overflow-y-auto custom-scrollbar">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold flex items-center gap-2">
             Demander un changement
           </DialogTitle>
           <DialogDescription>
-            Si un meuble ne convient pas ou est endommagé, vous pouvez envoyer une demande de changement.
+            Si un meuble ne convient pas ou est endommage, vous pouvez envoyer une demande de changement.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           {properties.length > 0 && (
             <div className="space-y-2">
-              <Label htmlFor="property">Propriété / Logement *</Label>
-              <Select 
-                  onValueChange={setSelectedPropertyId}
-                  value={selectedPropertyId}
-              >
+              <Label htmlFor="property">Propriete / Logement *</Label>
+              <Select onValueChange={setSelectedPropertyId} value={selectedPropertyId}>
                 <SelectTrigger className="rounded-xl border-muted bg-muted/30 font-bold focus:ring-primary/20">
                   <SelectValue placeholder="Choisir un logement" />
                 </SelectTrigger>
                 <SelectContent>
-                  {properties.map(prop => (
+                  {properties.map((prop) => (
                     <SelectItem key={prop.id || prop._id} value={prop.id || prop._id || ""}>
                       {prop.title}
                     </SelectItem>
@@ -177,53 +178,58 @@ export function FurnitureChangeRequestModal({
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="furniture">Meuble concerné *</Label>
-            <Input 
-              id="furniture" 
-              placeholder="Ex: Canapé, Table, Lit..." 
+            <Label htmlFor="furniture">Meuble concerne *</Label>
+            <Input
+              id="furniture"
+              placeholder="Ex: Canape, Table, Lit..."
               value={formData.furnitureName}
-              onChange={(e) => setFormData(prev => ({ ...prev, furnitureName: e.target.value }))}
+              onChange={(e) => setFormData((prev) => ({ ...prev, furnitureName: e.target.value }))}
               className="rounded-xl border-muted bg-muted/30 font-bold focus:ring-primary/20"
             />
+            {furnitureList.length > 0 ? (
+              <p className="text-xs text-slate-500">
+                Meubles disponibles: {furnitureList.slice(0, 5).map((item) => item.name).join(", ")}
+              </p>
+            ) : null}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="reason">Motif *</Label>
-            <Input 
-              id="reason" 
-              placeholder="Ex: Meuble endommagé, trop grand..." 
+            <Input
+              id="reason"
+              placeholder="Ex: Meuble endommage, trop grand..."
               value={formData.reason}
-              onChange={(e) => setFormData(prev => ({ ...prev, reason: e.target.value }))}
+              onChange={(e) => setFormData((prev) => ({ ...prev, reason: e.target.value }))}
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
-            <Textarea 
-              id="description" 
-              placeholder="Plus de détails..." 
+            <Textarea
+              id="description"
+              placeholder="Plus de details..."
               value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              rows={3} 
+              onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+              rows={3}
             />
           </div>
 
           <div className="space-y-2">
             <Label>Photo (optionnelle)</Label>
-            <div 
+            <div
               onClick={() => !imagePreview && fileInputRef.current?.click()}
               className={`border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center gap-2 transition-colors cursor-pointer overflow-hidden min-h-[120px] ${
                 imagePreview ? "border-primary/20 bg-primary/[0.02]" : "border-gray-200 hover:bg-gray-50"
               }`}
             >
-              <input 
-                type="file" 
+              <input
+                type="file"
                 ref={fileInputRef}
                 onChange={handleImageUpload}
                 accept="image/*"
                 className="hidden"
               />
-              
+
               {imagePreview ? (
                 <div className="relative w-full aspect-video rounded-lg overflow-hidden shadow-sm">
                   <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />

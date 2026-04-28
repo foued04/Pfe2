@@ -45,8 +45,8 @@ export function TenantSidebar({ activeSection, onSectionChange, unreadMessageCou
       <div className="flex h-full flex-col">
         {/* Logo */}
         <div className="flex h-16 items-center gap-3 border-b border-white/20 px-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 border border-white/20">
-            <Home className="h-5 w-5 text-white" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+            <Home className="h-5 w-5" />
           </div>
           <div>
             <h1 className="text-xl font-black tracking-tight text-white">ImmoSmart</h1>

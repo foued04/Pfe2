@@ -24,6 +24,7 @@ import {
   TrendingUp,
   Users,
   Heart,
+  HousePlus,
 } from "lucide-react"
 
 type NavItem = { href: string; label: string; icon: ComponentType<{ className?: string }> }
@@ -45,6 +46,7 @@ const tenantItems: NavItem[] = [
   { href: "/dashboard/tenant/requests", label: "Requests", icon: FileText },
   { href: "/dashboard/tenant/reclamations", label: "Reclamation", icon: Megaphone },
   { href: "/dashboard/tenant/favorites", label: "Favorites", icon: Heart },
+  { href: "/dashboard/tenant/housing-needs", label: "Housing Needs", icon: HousePlus },
   { href: "/dashboard/tenant/furniture", label: "Furniture", icon: ShoppingBag },
   { href: "/dashboard/tenant/notifications", label: "Notifications", icon: Bell },
 ]
@@ -124,6 +126,7 @@ export function DashboardSidebar({
                  item.label === "My Home" ? (lang === "fr" ? "Mon logement" : "My Home") :
                  item.label === "Reclamation" ? (lang === "fr" ? "Reclamation" : "Reclamation") :
                  item.label === "Favorites" ? (lang === "fr" ? "Favoris" : "Favorites") :
+                 item.label === "Housing Needs" ? (lang === "fr" ? "Besoin logement" : "Housing Needs") :
                  item.label === "Users" ? (lang === "fr" ? "Utilisateurs" : "Users") :
                  item.label === "Properties" ? (lang === "fr" ? "Proprietes" : "Properties") :
                  item.label === "Verifications" ? (lang === "fr" ? "Verifications" : "Verifications") :

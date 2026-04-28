@@ -12,6 +12,7 @@ import {
 import { RentalRequestList } from "./rental-request-list"
 import { RentalRequestDetail } from "./rental-request-detail"
 import { ContractView } from "./contract-view"
+import { FurnitureRequestDetailModal } from "./furniture-request-detail-modal"
 import { Badge } from "./ui/badge"
 import { 
   FileText,
@@ -23,7 +24,9 @@ import {
   Inbox,
   ShoppingCart,
   Timer,
+  AlertCircle,
   AlertTriangle,
+  Home,
   ChevronRight
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -37,10 +40,14 @@ export function RentalRequestsModule() {
 
   const [requests, setRequests] = useState<RentalRequest[]>([])
   const [furnitureSuggestions, setFurnitureSuggestions] = useState<any[]>([])
+  const [furnitureChangeRequests, setFurnitureChangeRequests] = useState<any[]>([])
   const [contracts, setContracts] = useState<Contract[]>([])
   const [currentView, setCurrentView] = useState<ModuleView>("list")
   const [selectedRequest, setSelectedRequest] = useState<RentalRequest | null>(null)
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null)
+  const [selectedFurniture, setSelectedFurniture] = useState<any>(null)
+  const [furnitureModalType, setFurnitureModalType] = useState<"suggestion" | "change">("suggestion")
+  const [isFurnitureModalOpen, setIsFurnitureModalOpen] = useState(false)
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -107,9 +114,28 @@ export function RentalRequestsModule() {
     }
   }
 
+  const fetchFurnitureChangeRequests = async () => {
+    if (!user) return
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/furniture/owner-change-requests`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setFurnitureChangeRequests(Array.isArray(data) ? data : [])
+      }
+    } catch (err) {
+      console.error("Fetch furniture change requests error:", err)
+    }
+  }
+
   useEffect(() => {
     fetchRequests()
     fetchFurnitureSuggestions()
+    fetchFurnitureChangeRequests()
   }, [user])
 
   // Stats
@@ -120,8 +146,8 @@ export function RentalRequestsModule() {
     rejected: requests.filter(r => r.status === "Refusée").length,
     contractGenerated: requests.filter(r => r.status === "Contrat généré").length,
     active: requests.filter(r => r.status === "Contrat actif").length,
-    furniture: furnitureSuggestions.length,
-  }), [requests, furnitureSuggestions])
+    furniture: furnitureSuggestions.length + furnitureChangeRequests.length,
+  }), [requests, furnitureSuggestions, furnitureChangeRequests])
 
   // Handlers
   const handleViewDetails = async (request: RentalRequest) => {
@@ -436,6 +462,72 @@ export function RentalRequestsModule() {
     )
   }
 
+  const handleOpenFurnitureDetail = (item: any, type: "suggestion" | "change") => {
+    setSelectedFurniture(item)
+    setFurnitureModalType(type)
+    setIsFurnitureModalOpen(true)
+  }
+
+  const handleFurnitureRequestUpdated = (updatedRequest: any) => {
+    setFurnitureChangeRequests((prev) => prev.map((item) => (item._id === updatedRequest._id ? updatedRequest : item)))
+    setSelectedFurniture(updatedRequest)
+  }
+
+  const renderFurnitureChangeRequestsSection = () => (
+    <div className="space-y-4">
+      <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+         <AlertCircle className="w-4 h-4 text-orange-500" />
+         {lang === "fr" ? "Demandes de changement de mobilier" : "Furniture change requests"}
+      </h3>
+      {furnitureChangeRequests.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-10 text-center opacity-40 border border-dashed rounded-2xl">
+           <p className="text-xs font-bold">{lang === "fr" ? "Aucune demande de changement" : "No change requests"}</p>
+        </div>
+      ) : (
+        furnitureChangeRequests.map((item, idx) => (
+          <div key={item._id} className="group border border-border/50 rounded-2xl bg-white overflow-hidden transition-all hover:shadow-lg flex animate-in fade-in slide-in-from-bottom-2" style={{ animationDelay: `${idx * 50}ms` }}>
+            <div className="w-32 h-32 flex-shrink-0 bg-slate-50 flex items-center justify-center">
+              {item.photo ? (
+                <img src={item.photo} className="w-full h-full object-cover" alt={item.furnitureName} />
+              ) : (
+                <AlertCircle className="w-8 h-8 text-slate-200" />
+              )}
+            </div>
+            <div className="flex-1 p-5 flex items-center justify-between">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-black text-slate-900 uppercase tracking-tight">{item.furnitureName}</h3>
+                  <Badge variant="outline" className="text-[9px] uppercase font-bold bg-orange-50 text-orange-600 border-orange-100">{item.type}</Badge>
+                </div>
+                <div className="flex items-center gap-4 text-xs text-slate-500 font-bold">
+                   <span className="flex items-center gap-1"><Timer className="w-3 h-3" /> {new Date(item.date || item.createdAt).toLocaleDateString()}</span>
+                   <span className="flex items-center gap-1 text-slate-600 truncate max-w-[200px]"><Home className="w-3 h-3" /> {item.propertyId?.title || "..."}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="text-right mr-4">
+                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Statut</p>
+                  <div className="flex items-center justify-end gap-2">
+                    <div className={cn(
+                      "h-2 w-2 rounded-full",
+                      item.status === "ApprouvÃ©" || item.status === "TerminÃ©" ? "bg-emerald-500" : item.status === "RefusÃ©" ? "bg-red-500" : "bg-orange-500 animate-pulse"
+                    )} />
+                    <span className="text-xs font-black uppercase tracking-wider text-slate-700">
+                       {item.status}
+                    </span>
+                  </div>
+                </div>
+                <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/10 hover:text-primary transition-colors" onClick={() => handleOpenFurnitureDetail(item, "change")}>
+                  <ChevronRight className="w-5 h-5" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  )
+
   // Default: List view
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-8 pb-20">
@@ -506,55 +598,130 @@ export function RentalRequestsModule() {
         </div>
       ) : error ? (
         <div className="p-10 text-center text-destructive">{error}</div>
+      ) : statusFilter === "all" ? (
+        <div className="space-y-8 pb-10">
+          {renderFurnitureChangeRequestsSection()}
+          <div className="space-y-4">
+            <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+              <FileText className="w-4 h-4 text-primary" />
+              {lang === "fr" ? "Demandes de location" : "Rental requests"}
+            </h3>
+            <RentalRequestList
+              requests={requests}
+              onViewDetails={handleViewDetails}
+              onAccept={handleAccept}
+              onReject={handleReject}
+              statusFilter={statusFilter}
+            />
+          </div>
+        </div>
       ) : statusFilter === "furniture" ? (
-        <div className="space-y-4">
-          {furnitureSuggestions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center opacity-40">
-               <ShoppingCart className="h-12 w-12 mb-4" />
-               <p className="font-bold">{lang === "fr" ? "Aucune suggestion de meuble" : "No furniture suggestions"}</p>
-            </div>
-          ) : (
-            furnitureSuggestions.map((item, idx) => (
-              <div key={item._id} className="group border border-border/50 rounded-2xl bg-white overflow-hidden transition-all hover:shadow-lg flex animate-in fade-in slide-in-from-bottom-2" style={{ animationDelay: `${idx * 50}ms` }}>
-                <div className="w-32 h-32 flex-shrink-0">
-                  <img src={item.image} className="w-full h-full object-cover" alt={item.name} />
-                </div>
-                <div className="flex-1 p-5 flex items-center justify-between">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-black text-slate-900 uppercase tracking-tight">{item.name}</h3>
-                      <Badge variant="outline" className="text-[9px] uppercase font-bold">{item.category}</Badge>
+        <div className="space-y-8 pb-10">
+          {/* Section 1: Suggestions de l'owner */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+               <ShoppingCart className="w-4 h-4 text-primary" />
+               {lang === "fr" ? "Mes suggestions au catalogue" : "My catalog suggestions"}
+            </h3>
+            {furnitureSuggestions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-center opacity-40 border border-dashed rounded-2xl">
+                 <p className="text-xs font-bold">{lang === "fr" ? "Aucune suggestion" : "No suggestions"}</p>
+              </div>
+            ) : (
+              furnitureSuggestions.map((item, idx) => (
+                <div key={item._id} className="group border border-border/50 rounded-2xl bg-white overflow-hidden transition-all hover:shadow-lg flex animate-in fade-in slide-in-from-bottom-2" style={{ animationDelay: `${idx * 50}ms` }}>
+                  <div className="w-32 h-32 flex-shrink-0">
+                    <img src={item.image} className="w-full h-full object-cover" alt={item.name} />
+                  </div>
+                  <div className="flex-1 p-5 flex items-center justify-between">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-black text-slate-900 uppercase tracking-tight">{item.name}</h3>
+                        <Badge variant="outline" className="text-[9px] uppercase font-bold">{item.category}</Badge>
+                      </div>
+                      <div className="flex items-center gap-4 text-xs text-slate-500 font-bold">
+                         <span className="flex items-center gap-1"><Timer className="w-3 h-3" /> {new Date(item.createdAt).toLocaleDateString()}</span>
+                         <span className="text-primary">{item.price} DT</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-4 text-xs text-slate-500 font-bold">
-                       <span className="flex items-center gap-1"><Timer className="w-3 h-3" /> {new Date(item.createdAt).toLocaleDateString()}</span>
-                       <span className="text-primary">{item.price} DT</span>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right mr-4">
+                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Statut Admin</p>
+                        <div className="flex items-center justify-end gap-2">
+                          <div className={cn(
+                            "h-2 w-2 rounded-full",
+                            item.status === "approved" ? "bg-emerald-500" : item.status === "rejected" ? "bg-red-500" : "bg-orange-500 animate-pulse"
+                          )} />
+                          <span className="text-xs font-black uppercase tracking-wider text-slate-700">
+                            {item.status === "approved" ? (lang === "fr" ? "Approuvé" : "Approved") : 
+                             item.status === "rejected" ? (lang === "fr" ? "Rejeté" : "Rejected") : 
+                             (lang === "fr" ? "En attente" : "Pending")}
+                          </span>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/10 hover:text-primary transition-colors" onClick={() => handleOpenFurnitureDetail(item, "suggestion")}>
+                        <ChevronRight className="w-5 h-5" />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right mr-4">
-                      <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Statut Admin</p>
-                      <div className="flex items-center justify-end gap-2">
-                        <div className={cn(
-                          "h-2 w-2 rounded-full",
-                          item.status === "approved" ? "bg-emerald-500" : item.status === "rejected" ? "bg-red-500" : "bg-orange-500 animate-pulse"
-                        )} />
-                        <span className="text-xs font-black uppercase tracking-wider text-slate-700">
-                          {item.status === "approved" ? (lang === "fr" ? "Approuvé" : "Approved") : 
-                           item.status === "rejected" ? (lang === "fr" ? "Rejeté" : "Rejected") : 
-                           (lang === "fr" ? "En attente" : "Pending")}
-                        </span>
-                      </div>
-                    </div>
-                    {item.status === "rejected" && (
-                      <div className="p-2 rounded-full bg-red-50 text-red-500">
-                        <AlertTriangle className="w-4 h-4" />
-                      </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Section 2: Demandes de changement reçues */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+               <AlertCircle className="w-4 h-4 text-orange-500" />
+               {lang === "fr" ? "Demandes de changement de mobilier" : "Furniture change requests"}
+            </h3>
+            {furnitureChangeRequests.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-center opacity-40 border border-dashed rounded-2xl">
+                 <p className="text-xs font-bold">{lang === "fr" ? "Aucune demande de changement" : "No change requests"}</p>
+              </div>
+            ) : (
+              furnitureChangeRequests.map((item, idx) => (
+                <div key={item._id} className="group border border-border/50 rounded-2xl bg-white overflow-hidden transition-all hover:shadow-lg flex animate-in fade-in slide-in-from-bottom-2" style={{ animationDelay: `${idx * 50}ms` }}>
+                  <div className="w-32 h-32 flex-shrink-0 bg-slate-50 flex items-center justify-center">
+                    {item.photo ? (
+                      <img src={item.photo} className="w-full h-full object-cover" alt={item.furnitureName} />
+                    ) : (
+                      <AlertCircle className="w-8 h-8 text-slate-200" />
                     )}
                   </div>
+                  <div className="flex-1 p-5 flex items-center justify-between">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-black text-slate-900 uppercase tracking-tight">{item.furnitureName}</h3>
+                        <Badge variant="outline" className="text-[9px] uppercase font-bold bg-orange-50 text-orange-600 border-orange-100">{item.type}</Badge>
+                      </div>
+                      <div className="flex items-center gap-4 text-xs text-slate-500 font-bold">
+                         <span className="flex items-center gap-1"><Timer className="w-3 h-3" /> {new Date(item.date).toLocaleDateString()}</span>
+                         <span className="flex items-center gap-1 text-slate-600 truncate max-w-[200px]"><Home className="w-3 h-3" /> {item.propertyId?.title || "..."}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right mr-4">
+                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Statut</p>
+                        <div className="flex items-center justify-end gap-2">
+                          <div className={cn(
+                            "h-2 w-2 rounded-full",
+                            item.status === "Approuvé" || item.status === "Terminé" ? "bg-emerald-500" : item.status === "Refusé" ? "bg-red-500" : "bg-orange-500 animate-pulse"
+                          )} />
+                          <span className="text-xs font-black uppercase tracking-wider text-slate-700">
+                             {item.status}
+                          </span>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/10 hover:text-primary transition-colors" onClick={() => handleOpenFurnitureDetail(item, "change")}>
+                        <ChevronRight className="w-5 h-5" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))
-          )}
+              ))
+            )}
+          </div>
         </div>
       ) : (
         <RentalRequestList
@@ -565,6 +732,16 @@ export function RentalRequestsModule() {
           statusFilter={statusFilter}
         />
       )}
+
+      {/* Furniture Detail Modal */}
+      <FurnitureRequestDetailModal
+        isOpen={isFurnitureModalOpen}
+        onClose={() => setIsFurnitureModalOpen(false)}
+        request={selectedFurniture}
+        type={furnitureModalType}
+        lang={lang}
+        onRequestUpdated={handleFurnitureRequestUpdated}
+      />
     </div>
   )
 }

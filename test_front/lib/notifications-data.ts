@@ -1,4 +1,4 @@
-export type NotificationType = "Réclamation" | "Contrat" | "Système"
+export type NotificationType = "Réclamation" | "Contrat" | "Système" | "Mobilier"
 export type NotificationStatus = "Vue par le propriétaire" | "En attente"
 
 export interface NotificationIntervention {
@@ -52,9 +52,19 @@ export interface TenantNotification {
     conversationId?: string
     messageId?: string
     senderId?: string
-    senderName?: string
-    contextId?: string
-  }
+    senderName?: string;
+    contextId?: string;
+  };
+  furnitureMeta?: {
+    furnitureId?: string;
+    furnitureName?: string;
+    category?: string;
+    price?: number;
+    image?: string;
+    ownerName?: string;
+    status?: string;
+    requestId?: string;
+  };
 }
 
 export const mockNotifications: TenantNotification[] = [

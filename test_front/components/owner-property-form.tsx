@@ -138,7 +138,15 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
     e.preventDefault()
     setIsSubmitting(true)
     setSubmitError(null)
+
+    const uploadedImagesCount = Object.values(images).filter(v => v !== null && (typeof v === 'string' ? v.length > 0 : Array.isArray(v) ? v.length > 0 : false)).length
     
+    if (uploadedImagesCount < 3) {
+      setSubmitError("Veuillez uploader au moins 3 images pour votre propriété.")
+      setIsSubmitting(false)
+      return
+    }
+
     const finalData = {
       ...formData,
       rent: Number(formData.rent),
@@ -146,6 +154,7 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
       surface: Number(formData.surface),
       bedrooms: Number(formData.bedrooms),
       bathrooms: Number(formData.bathrooms),
+      livingRooms: Number(formData.livingRooms),
       availability: initialData?.availability || new Date().toISOString().slice(0, 10),
       images: {
         cover: images.cover,
@@ -287,7 +296,7 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
               </h3>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="title">{t("form.title")}</Label>
+                  <Label htmlFor="title">{t("form.title")} <span className="text-destructive">*</span></Label>
                   <Input
                     id="title"
                     value={formData.title}
@@ -297,7 +306,7 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="description">{t("form.description")}</Label>
+                  <Label htmlFor="description">{t("form.description")} <span className="text-destructive">*</span></Label>
                   <Textarea
                     id="description"
                     value={formData.description}
@@ -309,7 +318,7 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>{t("form.type")}</Label>
+                    <Label>{t("form.type")} <span className="text-destructive">*</span></Label>
                     <Select
                       value={formData.type}
                       onValueChange={(value) => updateField("type", value)}
@@ -327,7 +336,7 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Statut</Label>
+                    <Label>Statut <span className="text-destructive">*</span></Label>
                     <Select
                       value={formData.status}
                       onValueChange={(value) => updateField("status", value)}
@@ -354,7 +363,7 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
               </h3>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Gouvernorat</Label>
+                  <Label>Gouvernorat <span className="text-destructive">*</span></Label>
                   <Select
                     value={formData.department}
                     onValueChange={(val) => {
@@ -373,7 +382,7 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Délégation</Label>
+                  <Label>Délégation <span className="text-destructive">*</span></Label>
                   <Select
                     value={formData.city}
                     onValueChange={(val) => updateField("city", val)}
@@ -390,7 +399,7 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
                   </Select>
                 </div>
                 <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="address">{t("form.address")}</Label>
+                  <Label htmlFor="address">{t("form.address")} <span className="text-destructive">*</span></Label>
                   <Input
                     id="address"
                     value={formData.address}
@@ -410,7 +419,7 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
               </h3>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="rent">{t("form.rent")} (TND)</Label>
+                  <Label htmlFor="rent">{t("form.rent")} (TND) <span className="text-destructive">*</span></Label>
                   <Input
                     id="rent"
                     type="number"
@@ -421,7 +430,7 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="deposit">{t("form.deposit")} (TND)</Label>
+                  <Label htmlFor="deposit">{t("form.deposit")} (TND) <span className="text-destructive">*</span></Label>
                   <Input
                     id="deposit"
                     type="number"
@@ -442,7 +451,7 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
               </h3>
               <div className="grid gap-4 sm:grid-cols-4">
                 <div className="space-y-2">
-                  <Label htmlFor="surface">{t("form.surface")}</Label>
+                  <Label htmlFor="surface">{t("form.surface")} <span className="text-destructive">*</span></Label>
                   <Input
                     id="surface"
                     type="number"
@@ -458,7 +467,7 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="bedrooms">{t("form.bedrooms")}</Label>
+                  <Label htmlFor="bedrooms">{t("form.bedrooms")} <span className="text-destructive">*</span></Label>
                   <Input
                     id="bedrooms"
                     type="number"
@@ -474,7 +483,7 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="bathrooms">{t("form.bathrooms")}</Label>
+                  <Label htmlFor="bathrooms">{t("form.bathrooms")} <span className="text-destructive">*</span></Label>
                   <Input
                     id="bathrooms"
                     type="number"
@@ -490,7 +499,7 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="livingRooms">{t("form.livingRooms")}</Label>
+                  <Label htmlFor="livingRooms">{t("form.livingRooms")} <span className="text-destructive">*</span></Label>
                   <Input
                     id="livingRooms"
                     type="number"
@@ -563,7 +572,7 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
                 Images
               </h3>
               <p className="text-sm text-muted-foreground">
-                Ajoutez uniquement les images que vous souhaitez afficher. Les champs image sont optionnels.
+                Ajoutez les images de votre bien. <span className="font-bold text-primary">Au moins 3 images sont obligatoires</span> pour publier l'annonce.
               </p>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <ImageUploadBox type="cover" label={t("form.coverImage")} image={images.cover} />

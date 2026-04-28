@@ -8,9 +8,11 @@ import { DashboardSidebar, getNavItems } from "@/components/dashboard/shared/das
 import { DashboardTopbar } from "@/components/dashboard/shared/dashboard-topbar"
 import { useAuth } from "@/lib/auth-context"
 import { apiFetch } from "@/lib/api/client"
+import { useI18n } from "@/lib/i18n"
 
 export function DashboardShell({ children }: { children: ReactNode }) {
   const { role } = useAuth()
+  const { lang } = useI18n()
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [pendingRequests, setPendingRequests] = useState(0)
@@ -19,6 +21,10 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const activeTitle = useMemo(() => {
     return getNavItems(role).find((item) => pathname === item.href)?.label || "Dashboard"
   }, [pathname, role])
+
+  const isOverview = useMemo(() => {
+    return ["/dashboard/owner", "/dashboard/tenant", "/dashboard/admin"].includes(pathname)
+  }, [pathname])
 
   useEffect(() => {
     if (role !== "owner") {
@@ -91,6 +97,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       <div className="md:pl-72">
         <DashboardTopbar
           title={activeTitle}
+          eyebrow={isOverview ? (lang === "fr" ? "Tableau de bord" : "Dashboard") : undefined}
           onOpenMobileMenu={() => setMobileOpen(true)}
           pendingRequests={pendingRequests}
           unreadNotifications={unreadNotifications}

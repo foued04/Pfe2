@@ -14,6 +14,7 @@ const userRoutes = require('./routes/user.routes');
 const messageRoutes = require('./routes/message.routes');
 const verificationRoutes = require('./routes/verification.routes');
 const chatbotRoutes = require('./routes/chatbot.routes');
+const housingNeedRoutes = require('./routes/housingNeed.routes');
 const { errorHandler } = require('./middlewares/error.middleware');
 
 const app = express();
@@ -44,6 +45,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/verifications', verificationRoutes);
 app.use('/api/chatbot', chatbotRoutes);
+app.use('/api/housing-needs', housingNeedRoutes);
 
 
 // Error Handler

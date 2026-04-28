@@ -1,7 +1,6 @@
 import { IonContent, IonIcon, IonPage } from "@ionic/react"
 import {
   sparklesOutline,
-  homeOutline,
   keyOutline,
   eyeOutline,
   eyeOffOutline,
@@ -181,7 +180,7 @@ const Tab3: React.FC = () => {
           <aside className="auth-hero">
             <div className="auth-hero-overlay">
               <div className="auth-brand">
-                <IonIcon icon={homeOutline} />
+                <img src="/brand-logo.svg" alt="ImmoSmart logo" className="auth-brand-logo" />
                 <span>ImmoSmart</span>
               </div>
 

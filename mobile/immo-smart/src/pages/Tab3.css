@@ -46,13 +46,11 @@
   color: #ffffff;
 }
 
-.auth-brand ion-icon {
+.auth-brand-logo {
   width: 42px;
   height: 42px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, var(--brand-primary-deep), var(--brand-primary));
-  padding: 10px;
-  box-shadow: 0 8px 20px rgba(46, 196, 199, 0.35);
+  display: block;
+  object-fit: contain;
 }
 
 .auth-kicker {

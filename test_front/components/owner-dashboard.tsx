@@ -136,7 +136,17 @@ export function OwnerDashboard({ initialSection = "overview" }: { initialSection
         furniturePending = (Array.isArray(data) ? data : []).filter((f: any) => f.status === "pending").length
       }
 
-      setRequestCount(rentalPending + furniturePending)
+      // Fetch furniture change requests
+      const resChange = await fetch(`${API_URL}/furniture/owner-change-requests`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      let changePending = 0
+      if (resChange.ok) {
+        const data = await resChange.json()
+        changePending = (Array.isArray(data) ? data : []).filter((r: any) => r.status === "En attente").length
+      }
+
+      setRequestCount(rentalPending + furniturePending + changePending)
     } catch (err) {
       console.error("Fetch requests count error:", err)
     }

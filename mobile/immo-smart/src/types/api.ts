@@ -208,15 +208,17 @@ export type BackendFurnitureOrder = {
 
 export type BackendFurnitureChangeRequest = {
   _id: string
-  furnitureId: string | BackendFurniture
+  furnitureId: string | BackendFurniture | null
+  furnitureName?: string
   contractId?: string
-  propertyId?: string
+  propertyId?: string | BackendProperty
   tenantId: string
   type: string
   reason: string
   description?: string
   photo?: string
   status: string
+  date?: string
   createdAt?: string
 }
 

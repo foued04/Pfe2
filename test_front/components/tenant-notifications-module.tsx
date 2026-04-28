@@ -17,7 +17,8 @@ import {
   Wrench,
   Info,
   Mail,
-  Send
+  Send,
+  Armchair
 } from "lucide-react"
 import { ContractView } from "./contract-view"
 import { Contract } from "@/lib/rental-request-data"
@@ -134,7 +135,8 @@ export function TenantNotificationsModule() {
             attachments: n.attachments,
             claimMeta: n.claimMeta,
             contractData: n.contractData,
-            messageMeta: n.messageMeta
+            messageMeta: n.messageMeta,
+            furnitureMeta: n.furnitureMeta
           }))
           setNotifications(prev => [...mapped, ...prev.filter(p => !mapped.some(m => m.id === p.id))])
         }
@@ -189,7 +191,8 @@ export function TenantNotificationsModule() {
             attachments: n.attachments,
             claimMeta: n.claimMeta,
             contractData: n.contractData,
-            messageMeta: n.messageMeta
+            messageMeta: n.messageMeta,
+            furnitureMeta: n.furnitureMeta
           }))
           setNotifications(prev => [...mapped, ...prev.filter(p => !mapped.some(m => m.id === p.id))])
         }
@@ -202,6 +205,56 @@ export function TenantNotificationsModule() {
     const interval = setInterval(fetchNotifications, 30000) // Refresh every 30s
     return () => clearInterval(interval)
   }, [])
+
+  const handleReplyToFurniture = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!activeNotif?.furnitureMeta?.requestId) {
+      setReplyError("Impossible de retrouver la demande.")
+      return
+    }
+
+    const cleanReply = replyText.trim()
+    if (!cleanReply) {
+      setReplyError("Veuillez ecrire une reponse.")
+      return
+    }
+
+    setIsReplying(true)
+    setReplyError(null)
+    setReplySuccess(null)
+
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/furniture/change-requests/${activeNotif.furnitureMeta.requestId}/reply`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          tenantResponse: cleanReply,
+        }),
+      })
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => null)
+        setReplyError(err?.message || "Impossible d'envoyer la reponse.")
+        return
+      }
+
+      setReplyText("")
+      setReplySuccess("Votre reponse a ete envoyee.")
+      
+      setTimeout(() => {
+         window.location.reload()
+      }, 1500)
+    } catch (err) {
+      console.error("Reply to furniture error:", err)
+      setReplyError("Erreur de connexion.")
+    } finally {
+      setIsReplying(false)
+    }
+  }
 
   const filteredNotifs = useMemo(() => {
     return notifications
@@ -284,6 +337,8 @@ export function TenantNotificationsModule() {
 
   const getTypeConfig = (type: NotificationType) => {
     switch (type) {
+      case "Mobilier":
+        return { color: "text-blue-700 bg-blue-50 border-blue-200", icon: Armchair }
       case "Réclamation":
         return { color: "text-orange-700 bg-orange-50 border-orange-200", icon: Wrench }
       case "Contrat":
@@ -331,7 +386,7 @@ export function TenantNotificationsModule() {
           </h2>
           
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            {["Tous", "Réclamation", "Contrat", "Système"].map((type) => (
+            {["Tous", "Réclamation", "Contrat", "Mobilier", "Système"].map((type) => (
               <Button
                 key={type}
                 variant={activeType === type ? "default" : "outline"}
@@ -552,6 +607,82 @@ export function TenantNotificationsModule() {
                     <p className="mt-3 text-sm font-semibold text-destructive">{viewContractError}</p>
                   )}
                 </div>
+              </div>
+            )}
+            
+            {activeNotif.type === "Mobilier" && (
+              <div className="space-y-6">
+                <div className="bg-white border border-blue-100 rounded-[2rem] overflow-hidden shadow-xl shadow-blue-100/50">
+                  <div className="relative h-48 bg-slate-50 flex items-center justify-center overflow-hidden">
+                    {activeNotif.furnitureMeta?.image ? (
+                      <img 
+                        src={activeNotif.furnitureMeta.image} 
+                        alt={activeNotif.furnitureMeta.furnitureName} 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Armchair className="w-16 h-16 text-slate-200" />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-6">
+                      <div className="text-white">
+                        <h4 className="text-2xl font-black mb-1">{activeNotif.furnitureMeta?.furnitureName}</h4>
+                        <p className="text-xs opacity-80 font-bold uppercase tracking-widest">{activeNotif.furnitureMeta?.category}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-8">
+                    <div className="grid grid-cols-2 gap-8 mb-6">
+                      <div>
+                        <p className="text-[10px] font-black text-muted-foreground uppercase mb-2">Statut Actuel</p>
+                        <Badge className={cn(
+                          "px-3 py-1 rounded-full font-black text-[10px] uppercase",
+                          activeNotif.furnitureMeta?.status === "Approuve" ? "bg-emerald-100 text-emerald-700 border-emerald-200" :
+                          activeNotif.furnitureMeta?.status === "Refuse" ? "bg-red-100 text-red-700 border-red-200" :
+                          "bg-orange-100 text-orange-700 border-orange-200"
+                        )}>
+                          {activeNotif.furnitureMeta?.status || "En attente"}
+                        </Badge>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-muted-foreground uppercase mb-2">Propriétaire</p>
+                        <p className="text-sm font-bold text-slate-900">{activeNotif.furnitureMeta?.ownerName || "---"}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reply Form for Furniture Request */}
+                {activeNotif.furnitureMeta?.requestId && (
+                   <form onSubmit={handleReplyToFurniture} className="rounded-3xl border border-blue-100 bg-blue-50/30 p-8 shadow-sm space-y-4">
+                    <div>
+                      <h4 className="text-xl font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
+                        <Send className="w-5 h-5 text-primary" />
+                        Repondre au propriétaire
+                      </h4>
+                      <p className="mt-1 text-xs text-muted-foreground font-medium">
+                        Votre message sera visible par le propriétaire dans les détails de la demande.
+                      </p>
+                    </div>
+                    <Textarea
+                      value={replyText}
+                      onChange={(event) => setReplyText(event.target.value)}
+                      placeholder="Ecrivez votre réponse ici..."
+                      className="min-h-32 resize-none bg-white rounded-2xl border-blue-100 focus:ring-primary/20 text-sm font-medium p-4"
+                    />
+                    {replyError && <p className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-xl border border-red-100">{replyError}</p>}
+                    {replySuccess && <p className="text-xs font-bold text-emerald-600 bg-emerald-50 p-3 rounded-xl border border-emerald-100">{replySuccess}</p>}
+                    <div className="flex justify-end pt-2">
+                      <Button 
+                        type="submit" 
+                        className="rounded-xl h-12 px-8 bg-primary text-white font-black uppercase tracking-widest text-xs gap-2 shadow-lg shadow-primary/20" 
+                        disabled={isReplying || !replyText.trim()}
+                      >
+                        {isReplying ? "Envoi..." : "Envoyer la reponse"}
+                        {!isReplying && <Send className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </form>
+                )}
               </div>
             )}
 

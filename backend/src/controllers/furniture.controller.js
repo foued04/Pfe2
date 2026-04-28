@@ -9,6 +9,12 @@ const mongoose = require('mongoose');
 const asyncHandler = require('../utils/asyncHandler');
 const ApiError = require('../utils/ApiError');
 
+const CHANGE_REQUEST_STATUS = {
+  pending: 'En attente',
+  approved: 'Approuve',
+  refused: 'Refuse',
+};
+
 /**
  * Get all furniture items
  */
@@ -364,8 +370,9 @@ const createChangeRequest = asyncHandler(async (req, res) => {
   }
 
   let finalFurnitureName = furnitureName;
+  let furniture = null;
   if (furnitureId && mongoose.Types.ObjectId.isValid(furnitureId)) {
-    const furniture = await Furniture.findById(furnitureId);
+    furniture = await Furniture.findById(furnitureId);
     if (furniture) {
       finalFurnitureName = furniture.name;
     }
@@ -508,6 +515,210 @@ const getAllFurnitureOrders = asyncHandler(async (req, res) => {
   res.status(200).json(orders);
 });
 
+/**
+ * Get all furniture change requests for an owner's properties
+ */
+const getOwnerChangeRequests = asyncHandler(async (req, res) => {
+  const ownerId = req.user._id;
+
+  // 1. Find all properties owned by this user
+  const properties = await Property.find({ owner: ownerId }).select('_id');
+  const propertyIds = properties.map(p => p._id);
+
+  // 2. Find all change requests for these properties
+  const requests = await FurnitureChangeRequest.find({ propertyId: { $in: propertyIds } })
+    .populate('furnitureId', 'name category image price')
+    .populate('propertyId', 'title address images')
+    .sort({ createdAt: -1 });
+
+  res.status(200).json(requests);
+});
+
+/**
+ * Review a furniture change request as owner
+ */
+const reviewChangeRequest = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { status, ownerResponse } = req.body;
+
+  if (!['Approuvé', 'Refusé'].includes(status)) {
+    throw new ApiError(400, 'Invalid status for review');
+  }
+
+  const changeRequest = await FurnitureChangeRequest.findById(id).populate('propertyId', 'title owner');
+  if (!changeRequest) {
+    throw new ApiError(404, 'Change request not found');
+  }
+
+  const propertyOwnerId = changeRequest.propertyId?.owner?.toString?.() || changeRequest.propertyId?.owner?.toString();
+  if (!propertyOwnerId || propertyOwnerId !== req.user._id.toString()) {
+    throw new ApiError(403, 'You do not have permission to review this change request');
+  }
+
+  changeRequest.status = status;
+  changeRequest.ownerResponse = ownerResponse?.trim() || '';
+  changeRequest.respondedAt = new Date();
+  await changeRequest.save();
+
+  let tenantRecipient = null;
+  if (changeRequest.tenantId) {
+    if (mongoose.Types.ObjectId.isValid(changeRequest.tenantId)) {
+      tenantRecipient = await User.findById(changeRequest.tenantId);
+    }
+    if (!tenantRecipient) {
+      tenantRecipient = await User.findOne({ email: changeRequest.tenantId });
+    }
+  }
+
+  if (tenantRecipient?._id) {
+    await Notification.create({
+      recipient: tenantRecipient._id,
+      type: 'Mobilier',
+      title: `Demande de changement ${status === 'Approuvé' ? 'approuvée' : 'refusée'}`,
+      preview: `Votre demande pour "${changeRequest.furnitureName}" a été ${status === 'Approuvé' ? 'approuvée' : 'refusée'}.`,
+      content: ownerResponse?.trim()
+        ? `Le propriétaire a ${status === 'Approuvé' ? 'approuvé' : 'refusé'} votre demande pour "${changeRequest.furnitureName}".\n\nRéponse: ${ownerResponse.trim()}`
+        : `Le propriétaire a ${status === 'Approuvé' ? 'approuvé' : 'refusé'} votre demande pour "${changeRequest.furnitureName}".`,
+      furnitureMeta: {
+        furnitureId: changeRequest.furnitureId?.toString?.() || null,
+        furnitureName: changeRequest.furnitureName,
+        category: changeRequest.type,
+        image: changeRequest.photo || '',
+        ownerName: req.user.fullName || req.user.email,
+        status,
+      }
+    });
+  }
+
+  const refreshed = await FurnitureChangeRequest.findById(id)
+    .populate('furnitureId', 'name category image price')
+    .populate('propertyId', 'title address images owner');
+
+  res.status(200).json(refreshed);
+});
+
+const reviewChangeRequestV2 = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { status, ownerResponse } = req.body;
+
+  if (![CHANGE_REQUEST_STATUS.approved, CHANGE_REQUEST_STATUS.refused, CHANGE_REQUEST_STATUS.pending].includes(status)) {
+    throw new ApiError(400, 'Invalid status for review');
+  }
+
+  const changeRequest = await FurnitureChangeRequest.findById(id).populate('propertyId', 'title owner');
+  if (!changeRequest) {
+    throw new ApiError(404, 'Change request not found');
+  }
+
+  const propertyOwnerId = changeRequest.propertyId?.owner?.toString?.() || changeRequest.propertyId?.owner?.toString();
+  if (!propertyOwnerId || propertyOwnerId !== req.user._id.toString()) {
+    throw new ApiError(403, 'You do not have permission to review this change request');
+  }
+
+  changeRequest.status = status;
+  changeRequest.ownerResponse = ownerResponse?.trim() || '';
+  changeRequest.lastResponseBy = 'owner';
+  changeRequest.respondedAt = new Date();
+  await changeRequest.save();
+
+  let tenantRecipient = null;
+  if (changeRequest.tenantId) {
+    if (mongoose.Types.ObjectId.isValid(changeRequest.tenantId)) {
+      tenantRecipient = await User.findById(changeRequest.tenantId);
+    }
+    if (!tenantRecipient) {
+      tenantRecipient = await User.findOne({ email: changeRequest.tenantId });
+    }
+  }
+
+  if (tenantRecipient?._id) {
+    const statusLabel = status === CHANGE_REQUEST_STATUS.approved ? 'approuvée' : 
+                      status === CHANGE_REQUEST_STATUS.refused ? 'refusée' : 'reçue';
+    
+    const actionLabel = status === CHANGE_REQUEST_STATUS.approved ? 'approuvé' : 
+                      status === CHANGE_REQUEST_STATUS.refused ? 'refusé' : 'répondu à';
+
+    await Notification.create({
+      recipient: tenantRecipient._id,
+      type: 'Mobilier',
+      title: status === CHANGE_REQUEST_STATUS.pending 
+        ? `Nouveau message pour votre demande`
+        : `Demande de changement ${statusLabel}`,
+      preview: status === CHANGE_REQUEST_STATUS.pending
+        ? `Le propriétaire a répondu à votre demande pour "${changeRequest.furnitureName}".`
+        : `Votre demande pour "${changeRequest.furnitureName}" a été ${statusLabel}.`,
+      content: ownerResponse?.trim()
+        ? `Le propriétaire a ${actionLabel} votre demande pour "${changeRequest.furnitureName}".\n\nRéponse: ${ownerResponse.trim()}`
+        : `Le propriétaire a ${actionLabel} votre demande pour "${changeRequest.furnitureName}".`,
+      furnitureMeta: {
+        furnitureId: changeRequest.furnitureId?.toString?.() || null,
+        furnitureName: changeRequest.furnitureName,
+        category: changeRequest.type,
+        image: changeRequest.photo || '',
+        ownerName: req.user.fullName || req.user.email,
+        status,
+      }
+    });
+  }
+
+  const refreshed = await FurnitureChangeRequest.findById(id)
+    .populate('furnitureId', 'name category image price')
+    .populate('propertyId', 'title address images owner');
+
+  res.status(200).json(refreshed);
+});
+/**
+ * Reply to a furniture change request as tenant
+ */
+const replyToChangeRequest = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { tenantResponse } = req.body;
+
+  if (!tenantResponse?.trim()) {
+    throw new ApiError(400, 'Response content is required');
+  }
+
+  const changeRequest = await FurnitureChangeRequest.findById(id).populate('propertyId', 'title owner');
+  if (!changeRequest) {
+    throw new ApiError(404, 'Change request not found');
+  }
+
+  changeRequest.tenantResponse = tenantResponse.trim();
+  changeRequest.lastResponseBy = 'tenant';
+  await changeRequest.save();
+
+  // Notify the owner
+  const propertyOwnerId = changeRequest.propertyId?.owner?.toString?.() || changeRequest.propertyId?.owner?.toString();
+  if (propertyOwnerId) {
+    let recipientUserId = propertyOwnerId;
+    if (!mongoose.Types.ObjectId.isValid(recipientUserId)) {
+      const ownerUser = await User.findOne({ email: propertyOwnerId });
+      recipientUserId = ownerUser?._id?.toString();
+    }
+
+    if (recipientUserId) {
+      await Notification.create({
+        recipient: recipientUserId,
+        type: 'Mobilier',
+        title: `Nouveau message du locataire`,
+        preview: `Le locataire a répondu concernant "${changeRequest.furnitureName}".`,
+        content: `Le locataire a envoyé une réponse pour sa demande de changement mobilier pour "${changeRequest.furnitureName}".\n\nRéponse: ${tenantResponse.trim()}`,
+        furnitureMeta: {
+          furnitureId: changeRequest.furnitureId?.toString?.() || null,
+          furnitureName: changeRequest.furnitureName,
+          category: changeRequest.type,
+          image: changeRequest.photo || '',
+          ownerName: req.user.fullName || req.user.email,
+          status: changeRequest.status,
+          requestId: changeRequest._id
+        }
+      });
+    }
+  }
+
+  res.status(200).json(changeRequest);
+});
+
 module.exports = {
   getFurniture,
   addFurniture,
@@ -521,7 +732,10 @@ module.exports = {
   getFurnitureOrdersForTenant,
   createChangeRequest,
   getChangeRequestsByContract,
+  getOwnerChangeRequests,
+  reviewChangeRequest: reviewChangeRequestV2,
   getOwnerPendingFurniture,
   getAllChangeRequests,
   getAllFurnitureOrders,
+  replyToChangeRequest,
 };

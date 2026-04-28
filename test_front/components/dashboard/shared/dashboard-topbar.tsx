@@ -13,6 +13,7 @@ export function DashboardTopbar({
   unreadNotifications = 0,
   showOwnerNotifications = false,
   showTenantNotifications = false,
+  eyebrow,
 }: {
   title: string
   onOpenMobileMenu: () => void
@@ -20,6 +21,7 @@ export function DashboardTopbar({
   unreadNotifications?: number
   showOwnerNotifications?: boolean
   showTenantNotifications?: boolean
+  eyebrow?: string
 }) {
   const { lang } = useI18n()
 
@@ -30,9 +32,11 @@ export function DashboardTopbar({
           <Menu className="h-4 w-4" />
         </Button>
         <div>
-          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-            {lang === "fr" ? "Tableau de bord" : "Dashboard"}
-          </div>
+          {eyebrow && (
+            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+              {eyebrow}
+            </div>
+          )}
           <div className="text-lg font-bold text-foreground">{title}</div>
         </div>
       </div>

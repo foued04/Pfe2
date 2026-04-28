@@ -3,6 +3,7 @@
 import { useI18n } from "@/lib/i18n"
 import { CartItem, OrderStatus } from "@/lib/furniture-data"
 import { mockProperties } from "@/lib/property-data"
+import { cn } from "@/lib/utils"
 import { Button } from "./ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "./ui/card"
 import { Input } from "./ui/input"
@@ -57,7 +58,7 @@ export function FurnitureCart({
   }
 
   return (
-    <Card className="border-none shadow-2xl shadow-blue-900/10 bg-white rounded-3xl overflow-hidden sticky top-24">
+    <Card className="border-none shadow-2xl shadow-blue-900/10 bg-white rounded-3xl overflow-hidden sticky top-24 max-h-[calc(100vh-7rem)] flex flex-col">
       <CardHeader className="bg-primary text-white p-6">
         <div className="flex items-center justify-between">
           <CardTitle className="text-xl font-black flex items-center gap-3">
@@ -70,7 +71,7 @@ export function FurnitureCart({
         </div>
       </CardHeader>
 
-      <CardContent className="p-6 space-y-8">
+      <CardContent className="flex-1 overflow-y-auto p-6 space-y-8">
         <div className="overflow-y-auto max-h-[400px] pr-2 -mr-2 space-y-6">
           {items.map((item) => (
             <div key={item.id} className="p-0 flex gap-4 group transition-colors">
@@ -142,17 +143,37 @@ export function FurnitureCart({
               <label className="text-xs font-bold text-muted-foreground flex items-center gap-2 uppercase tracking-widest">
                 <CreditCard className="w-4 h-4 text-secondary" /> {t("furn.payment")}
               </label>
-              <Select value={paymentMethod} onValueChange={onPaymentMethodChange}>
-                <SelectTrigger className="h-11 bg-white border-none rounded-xl shadow-sm text-sm font-medium">
-                  <SelectValue placeholder={t("furn.payment")} />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-none shadow-xl">
-                  <SelectItem value="cash" className="rounded-lg">{t("furn.payment.cash")}</SelectItem>
-                  <SelectItem value="check" className="rounded-lg">{t("furn.payment.check")}</SelectItem>
-                  <SelectItem value="transfer" className="rounded-lg">{t("furn.payment.transfer")}</SelectItem>
-                  <SelectItem value="later" className="rounded-lg">{t("furn.payment.later")}</SelectItem>
-                </SelectContent>
-              </Select>
+              
+              <div className="flex flex-wrap gap-2 mb-3">
+                {[
+                  { id: "cash", label: t("furn.payment.cash") },
+                  { id: "check", label: t("furn.payment.check") },
+                  { id: "transfer", label: t("furn.payment.transfer") }
+                ].map((option) => (
+                  <button
+                    key={option.id}
+                    onClick={() => onPaymentMethodChange(option.label)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-tight transition-all",
+                      paymentMethod === option.label 
+                        ? "bg-primary text-white shadow-md shadow-primary/20 scale-105" 
+                        : "bg-white border border-border/50 text-muted-foreground hover:border-primary/30"
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+
+              <Input 
+                value={paymentMethod}
+                onChange={(e) => onPaymentMethodChange(e.target.value)}
+                placeholder={lang === "fr" ? "Saisir le mode de paiement..." : "Type payment method..."}
+                className="rounded-xl border-none bg-white shadow-sm h-11 font-black text-primary focus:ring-2 focus:ring-primary/20 placeholder:font-medium placeholder:text-muted-foreground/40"
+              />
+              <p className="text-[9px] text-muted-foreground/60 font-bold italic ml-1">
+                {lang === "fr" ? "* Vous pouvez taper manuellement votre mode de règlement" : "* You can manually type your payment method"}
+              </p>
             </div>
           </div>
 
@@ -173,14 +194,18 @@ export function FurnitureCart({
         </div>
       </CardContent>
 
-      <CardFooter className="p-6 bg-background border-t border-border/30">
+      <CardFooter className="sticky bottom-0 p-6 bg-background border-t border-border/30 flex flex-col gap-4">
         <Button 
-          className="w-full h-14 bg-primary hover:opacity-80 text-white text-lg font-black rounded-2xl shadow-lg shadow-blue-900/20 gap-3 group transition-all" 
+          className="w-full h-14 bg-primary hover:bg-primary/90 text-white text-lg font-black rounded-2xl shadow-xl shadow-blue-900/20 gap-3 group transition-all active:scale-95" 
           onClick={onCheckout}
         >
           {t("furn.checkout")}
           <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
         </Button>
+        <div className="flex items-center justify-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-60">
+          <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+          {lang === "fr" ? "Paiement Sécurisé" : "Secure Checkout"}
+        </div>
       </CardFooter>
     </Card>
   )

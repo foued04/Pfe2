@@ -52,13 +52,17 @@
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  background: linear-gradient(135deg, var(--brand-primary), var(--brand-primary-deep));
-  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
-  box-shadow: 0 6px 16px rgba(46, 196, 199, 0.25);
+  overflow: hidden;
+}
+
+.web-home-logo-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
 }
 
 .web-home-links {
@@ -671,12 +675,17 @@
   width: 32px;
   height: 32px;
   border-radius: 10px;
-  background: linear-gradient(135deg, var(--brand-primary), var(--brand-primary-deep));
-  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  overflow: hidden;
+}
+
+.web-footer-logo-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
 }
 
 .web-footer-brand strong {

@@ -24,120 +24,114 @@ export function PdfLayout({
   infoRight,
   children,
   footerNotes,
-  className
+  className,
 }: PdfLayoutProps) {
   return (
-    <div 
+    <div
       id={id}
       className={cn(
-        "bg-white shadow-2xl mx-auto overflow-hidden text-foreground print:shadow-none print:m-0 relative transition-all duration-500",
-        // A4 Dimensions: 210mm x 297mm
-        "w-[210mm] min-h-[297mm] p-[15mm] md:p-[20mm]",
+        "relative mx-auto min-h-[297mm] w-[210mm] overflow-hidden bg-white p-[15mm] text-[#0f172a] shadow-2xl transition-all duration-500 print:m-0 print:shadow-none md:p-[20mm]",
         className
       )}
-      style={{ 
+      style={{
         fontFamily: "'Outfit', 'Inter', system-ui, sans-serif",
         boxSizing: "border-box",
-        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+        backgroundImage:
+          "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E\")",
         backgroundBlendMode: "overlay",
-        backgroundColor: "rgba(255, 255, 255, 0.98)"
+        backgroundColor: "rgba(255, 255, 255, 0.98)",
       }}
     >
-      {/* Official Watermark */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] select-none rotate-[-45deg] z-0">
-        <p className="text-[120px] font-black tracking-tighter uppercase whitespace-nowrap">
+      <div className="pointer-events-none absolute inset-0 z-0 flex rotate-[-45deg] select-none items-center justify-center opacity-[0.03]">
+        <p className="whitespace-nowrap text-[120px] font-black uppercase tracking-tighter">
           ImmoSmart Secure
         </p>
       </div>
 
-      <div className="absolute top-[10mm] right-[10mm] pointer-events-none opacity-[0.05] z-0">
-        <div className="w-[40mm] h-[40mm] border-[2px] border-primary rounded-full flex items-center justify-center flex-col p-4 text-center">
-            <p className="text-[10px] font-black uppercase tracking-tight">Document</p>
-            <p className="text-[14px] font-black uppercase text-primary">Officiel</p>
-            <div className="h-0.5 w-full bg-primary my-1" />
-            <p className="text-[8px] font-bold">Numérisé</p>
+      <div className="pointer-events-none absolute right-[10mm] top-[10mm] z-0 opacity-[0.05]">
+        <div className="flex h-[40mm] w-[40mm] flex-col items-center justify-center rounded-full border-[2px] border-[#2563eb] p-4 text-center">
+          <p className="text-[10px] font-black uppercase tracking-tight">Document</p>
+          <p className="text-[14px] font-black uppercase text-[#2563eb]">Officiel</p>
+          <div className="my-1 h-0.5 w-full bg-[#2563eb]" />
+          <p className="text-[8px] font-bold">Numerise</p>
         </div>
       </div>
-      {/* Header */}
-      <header className="flex justify-between items-start mb-[15mm] border-b-[3px] border-primary pb-[10mm]">
+
+      <header className="mb-[15mm] flex items-start justify-between border-b-[3px] border-[#2563eb] pb-[10mm]">
         <div className="space-y-4">
           <div className="flex items-center gap-4">
-            <div className="h-[14mm] w-[14mm] bg-primary rounded-2xl flex items-center justify-center text-white font-black text-2xl shadow-xl shadow-emerald-900/20">
+            <div className="flex h-[14mm] w-[14mm] items-center justify-center rounded-2xl bg-[#2563eb] text-2xl font-black text-white shadow-xl">
               IS
             </div>
             <div>
-              <h1 className="text-2xl font-black tracking-tight text-primary uppercase leading-none">
-                ImmoSmart<span className="text-secondary">.</span>
+              <h1 className="text-2xl font-black uppercase leading-none tracking-tight text-[#2563eb]">
+                ImmoSmart<span className="text-[#f59e0b]">.</span>
               </h1>
-              <p className="text-[10px] font-black text-[#6B7280] tracking-[0.2em] uppercase mt-1">
-                Excellence Immobilière Premium
+              <p className="mt-1 text-[10px] font-black uppercase tracking-[0.2em] text-[#6b7280]">
+                Excellence Immobiliere Premium
               </p>
             </div>
           </div>
-          <div className="text-[11px] text-[#6B7280] space-y-0.5 mt-4">
-            <p className="font-bold text-primary">ImmoSmart Monastir</p>
+          <div className="mt-4 space-y-0.5 text-[11px] text-[#6b7280]">
+            <p className="font-bold text-[#2563eb]">ImmoSmart Monastir</p>
             <p>Zone Touristique Skanes, 5000 Monastir</p>
             <p>+216 73 000 000 | contact@immosmart.tn</p>
           </div>
         </div>
 
-        <div className="text-right flex flex-col justify-between h-[25mm]">
-          <div className="bg-background px-6 py-4 rounded-2xl border border-secondary/30 inline-block">
-            <h2 className="text-primary font-black text-2xl uppercase tracking-tighter mb-1 leading-none">{title}</h2>
-            <p className="text-[10px] font-black text-secondary uppercase tracking-widest">ID: #{documentId}</p>
+        <div className="flex h-[25mm] flex-col justify-between text-right">
+          <div className="inline-block rounded-2xl border border-[#fcd34d] bg-[#f8fafc] px-6 py-4">
+            <h2 className="mb-1 text-2xl font-black uppercase leading-none tracking-tighter text-[#2563eb]">
+              {title}
+            </h2>
+            <p className="text-[10px] font-black uppercase tracking-widest text-[#f59e0b]">
+              ID: #{documentId}
+            </p>
           </div>
-          <p className="text-[11px] font-black text-[#6B7280] mt-auto">
-            DATE : <span className="text-primary font-black">{date}</span>
+          <p className="mt-auto text-[11px] font-black text-[#6b7280]">
+            DATE : <span className="font-black text-[#2563eb]">{date}</span>
           </p>
         </div>
       </header>
 
-      {/* Info Sections */}
       {(infoLeft || infoRight) && (
-        <div className="grid grid-cols-2 gap-[10mm] mb-[15mm]">
-          {infoLeft && (
-            <div className="bg-background p-6 rounded-2xl border border-secondary/10 h-full">
-              {infoLeft}
-            </div>
-          )}
-          {infoRight && (
-            <div className="bg-background p-6 rounded-2xl border border-secondary/10 h-full text-right flex flex-col items-end">
+        <div className="mb-[15mm] grid grid-cols-2 gap-[10mm]">
+          {infoLeft ? (
+            <div className="h-full rounded-2xl border border-[#fef3c7] bg-[#f8fafc] p-6">{infoLeft}</div>
+          ) : null}
+          {infoRight ? (
+            <div className="flex h-full flex-col items-end rounded-2xl border border-[#fef3c7] bg-[#f8fafc] p-6 text-right">
               {infoRight}
             </div>
-          )}
+          ) : null}
         </div>
       )}
 
-      {/* Main Content */}
-      <main className="flex-1 mb-[20mm]">
-        {children}
-      </main>
+      <main className="mb-[20mm] flex-1">{children}</main>
 
-      {/* Footer */}
-      <footer className="mt-auto pt-[10mm] border-t border-background flex justify-between items-end text-[#9CA3AF]">
+      <footer className="mt-auto flex items-end justify-between border-t border-[#e5e7eb] pt-[10mm] text-[#9ca3af]">
         <div className="max-w-[120mm]">
           {footerNotes ? (
-             <p className="text-[10px] leading-relaxed italic">{footerNotes}</p>
+            <p className="text-[10px] italic leading-relaxed">{footerNotes}</p>
           ) : (
-            <p className="text-[10px] leading-relaxed italic">
-              Ce document est généré électroniquement par le système ImmoSmart Secure v2.0. 
-              Il fait office de document officiel pour le bien référencé.
+            <p className="text-[10px] italic leading-relaxed">
+              Ce document est genere electroniquement par le systeme ImmoSmart Secure v2.0.
+              Il fait office de document officiel pour le bien reference.
             </p>
           )}
-          <p className="text-[9px] font-black uppercase tracking-[0.2em] mt-4 opacity-70">
-            ImmoSmart.tn — Monastir, Tunisie — MF: 1234567/A/B/C/000
+          <p className="mt-4 text-[9px] font-black uppercase tracking-[0.2em] opacity-70">
+            ImmoSmart.tn - Monastir, Tunisie - MF: 1234567/A/B/C/000
           </p>
         </div>
         <div className="text-right">
-          <p className="text-[9px] font-black uppercase tracking-[0.1em] mb-1">Page 1 / 1</p>
-          <div className="flex gap-2 opacity-30 grayscale items-center justify-end">
-            <div className="h-6 w-12 border border-current rounded flex items-center justify-center text-[7px] font-black">VISA</div>
-            <div className="h-6 w-12 border border-current rounded flex items-center justify-center text-[7px] font-black">STRIPE</div>
+          <p className="mb-1 text-[9px] font-black uppercase tracking-[0.1em]">Page 1 / 1</p>
+          <div className="flex items-center justify-end gap-2 opacity-30 grayscale">
+            <div className="flex h-6 w-12 items-center justify-center rounded border border-current text-[7px] font-black">VISA</div>
+            <div className="flex h-6 w-12 items-center justify-center rounded border border-current text-[7px] font-black">STRIPE</div>
           </div>
         </div>
       </footer>
 
-      {/* Global CSS for Print */}
       <style jsx global>{`
         @media print {
           body {
@@ -145,24 +139,6 @@ export function PdfLayout({
             padding: 0 !important;
             margin: 0 !important;
           }
-          /* Hide everything except the PDF container if ID is provided */
-          body > *:not(#${id || 'non-existent'}) {
-            ${id ? 'display: none !important;' : ''}
-          }
-          #${id || 'non-existent'} {
-            display: block !important;
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: 210mm !important;
-            min-height: 297mm !important;
-            margin: 0 !important;
-            padding: 20mm !important;
-            border: none !important;
-            box-shadow: none !important;
-            page-break-after: always;
-          }
-          /* Ensure text colors are preserved */
           * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;

@@ -27,5 +27,8 @@ router.get('/all-change-requests', auth, authorize('admin'), furnitureController
 // Change requests
 router.post('/change-requests', auth, furnitureController.createChangeRequest);
 router.get('/change-requests/:contractId', auth, furnitureController.getChangeRequestsByContract);
+router.get('/owner-change-requests', auth, furnitureController.getOwnerChangeRequests);
+router.put('/change-requests/:id/review', auth, authorize('owner'), furnitureController.reviewChangeRequest);
+router.put('/change-requests/:id/reply', auth, furnitureController.replyToChangeRequest);
 
 module.exports = router;

@@ -12,7 +12,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useAuth } from "../lib/auth-context"
 import { useHistory } from "react-router-dom"
 import { fetchProperties } from "../lib/property-api"
-import type { BackendProperty } from "../types/api"
+import type { BackendFurnitureChangeRequest, BackendProperty, BackendRentalRequest } from "../types/api"
 import { http } from "../lib/api"
 
 type OwnerSection =
@@ -26,9 +26,11 @@ type OwnerSection =
   | "furniture"
   | "profile"
 
-type BackendRequest = { _id: string; status?: string; date?: string; property?: { title?: string } }
 type BackendNotification = { _id: string; title?: string; preview?: string; isRead?: boolean }
 type BackendFurnitureOrder = { _id: string; total?: number; status?: string; createdAt?: string }
+type OwnerRequestItem =
+  | { kind: "rental"; request: BackendRentalRequest }
+  | { kind: "furniture-change"; request: BackendFurnitureChangeRequest }
 
 const navQuick: Array<{ key: string; label: string; icon: string }> = [
   { key: "overview", label: "Aperçu", icon: homeOutline },
@@ -47,9 +49,11 @@ const OwnerDashboard: React.FC = () => {
   const history = useHistory()
   const [activeSection, setActiveSection] = useState<OwnerSection>("overview")
   const [properties, setProperties] = useState<BackendProperty[]>([])
-  const [requests, setRequests] = useState<BackendRequest[]>([])
+  const [requests, setRequests] = useState<BackendRentalRequest[]>([])
+  const [changeRequests, setChangeRequests] = useState<BackendFurnitureChangeRequest[]>([])
   const [notifications, setNotifications] = useState<BackendNotification[]>([])
   const [furnitureOrders, setFurnitureOrders] = useState<BackendFurnitureOrder[]>([])
+  const [selectedRequest, setSelectedRequest] = useState<OwnerRequestItem | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
@@ -61,9 +65,10 @@ const OwnerDashboard: React.FC = () => {
       setLoading(true)
       setError("")
       try {
-        const [propertiesData, requestsData, notificationsData, furnitureData] = await Promise.all([
+        const [propertiesData, requestsData, changeRequestsData, notificationsData, furnitureData] = await Promise.all([
           fetchProperties(token),
-          http.get<BackendRequest[]>("/rental-requests", token),
+          http.get<BackendRentalRequest[]>("/rental-requests", token),
+          http.get<BackendFurnitureChangeRequest[]>("/furniture/owner-change-requests", token),
           http.get<BackendNotification[]>("/notifications", token),
           http.get<BackendFurnitureOrder[]>("/furniture/owner-orders", token),
         ])
@@ -71,6 +76,7 @@ const OwnerDashboard: React.FC = () => {
         if (active) {
           setProperties(propertiesData)
           setRequests(requestsData)
+          setChangeRequests(changeRequestsData)
           setNotifications(notificationsData)
           setFurnitureOrders(furnitureData)
         }
@@ -96,9 +102,9 @@ const OwnerDashboard: React.FC = () => {
       { label: "Disponibles", value: `${available}`, icon: statsChartOutline },
       { label: "Loués", value: `${rented}`, icon: locationOutline },
       { label: "Rev. Estimé", value: `${revenue.toLocaleString("fr-FR")} TND`, icon: statsChartOutline },
-      { label: "Demandes", value: `${requests.length}`, icon: listOutline },
+      { label: "Demandes", value: `${requests.length + changeRequests.length}`, icon: listOutline },
     ]
-  }, [properties, requests.length])
+  }, [properties, requests.length, changeRequests.length])
 
   const handleQuickAction = (key: string) => {
     document.querySelector("ion-menu")?.close()
@@ -113,7 +119,9 @@ const OwnerDashboard: React.FC = () => {
     if (!token) return
     try {
       await http.put(`/rental-requests/${id}/status`, { status }, token)
-      setRequests((prev) => prev.map((r) => (r._id === id ? { ...r, status } : r)))
+      setRequests((prev) =>
+        prev.map((r) => (r._id === id ? { ...r, status: status as BackendRentalRequest["status"] } : r)),
+      )
     } catch (err) {
       setError("Impossible de mettre à jour la demande.")
     }
@@ -129,10 +137,150 @@ const OwnerDashboard: React.FC = () => {
     }
   }
 
+  const ownerRequests = useMemo<OwnerRequestItem[]>(() => {
+    const rentalItems = requests.map((request) => ({ kind: "rental" as const, request }))
+    const furnitureItems = changeRequests.map((request) => ({ kind: "furniture-change" as const, request }))
+
+    return [...rentalItems, ...furnitureItems].sort((a, b) => {
+      const aDate = new Date(
+        a.kind === "rental" ? a.request.createdAt || a.request.date || 0 : a.request.createdAt || a.request.date || 0,
+      ).getTime()
+      const bDate = new Date(
+        b.kind === "rental" ? b.request.createdAt || b.request.date || 0 : b.request.createdAt || b.request.date || 0,
+      ).getTime()
+      return bDate - aDate
+    })
+  }, [requests, changeRequests])
+
+  const formatDate = (date?: string) => {
+    if (!date) return "Date non disponible"
+    return new Date(date).toLocaleDateString("fr-FR", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    })
+  }
+
+  const getRentalPropertyTitle = (request: BackendRentalRequest) => {
+    if (typeof request.property === "string") return "Demande de location"
+    return request.property?.title || "Demande de location"
+  }
+
+  const getChangePropertyTitle = (request: BackendFurnitureChangeRequest) => {
+    if (!request.propertyId || typeof request.propertyId === "string") return "Demande de changement mobilier"
+    return request.propertyId.title || "Demande de changement mobilier"
+  }
+
+  const getChangeFurnitureName = (request: BackendFurnitureChangeRequest) => {
+    if (request.furnitureName) return request.furnitureName
+    if (request.furnitureId && typeof request.furnitureId !== "string") return request.furnitureId.name
+    return "Meuble non precise"
+  }
+
+  const renderRequestsSection = () => (
+    <div style={{ display: 'grid', gap: '12px' }}>
+      {selectedRequest ? (
+        <article style={{ background: 'white', padding: '16px', borderRadius: '12px', border: '1px solid var(--brand-border)', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'flex-start', marginBottom: '12px' }}>
+            <div>
+              <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--brand-primary)', textTransform: 'uppercase', marginBottom: '6px' }}>
+                {selectedRequest.kind === "rental" ? "Demande de location" : "Demande de changement meuble"}
+              </div>
+              <h4 style={{ margin: 0, color: 'var(--brand-primary-deep)', fontWeight: 'bold' }}>
+                {selectedRequest.kind === "rental"
+                  ? getRentalPropertyTitle(selectedRequest.request)
+                  : getChangePropertyTitle(selectedRequest.request)}
+              </h4>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSelectedRequest(null)}
+              style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--brand-border)', background: 'white', color: '#475569', fontWeight: '600' }}
+            >
+              Fermer
+            </button>
+          </div>
+
+          {selectedRequest.kind === "rental" ? (
+            <div style={{ display: 'grid', gap: '8px', color: '#334155' }}>
+              <p style={{ margin: 0 }}><strong>Statut:</strong> {selectedRequest.request.status || "En attente"}</p>
+              <p style={{ margin: 0 }}><strong>Date:</strong> {formatDate(selectedRequest.request.createdAt || selectedRequest.request.date)}</p>
+              <p style={{ margin: 0 }}><strong>Message:</strong> {selectedRequest.request.message || "Demande de location recue."}</p>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gap: '8px', color: '#334155' }}>
+              <p style={{ margin: 0 }}><strong>Meuble:</strong> {getChangeFurnitureName(selectedRequest.request)}</p>
+              <p style={{ margin: 0 }}><strong>Type:</strong> {selectedRequest.request.type}</p>
+              <p style={{ margin: 0 }}><strong>Statut:</strong> {selectedRequest.request.status || "En attente"}</p>
+              <p style={{ margin: 0 }}><strong>Date:</strong> {formatDate(selectedRequest.request.createdAt || selectedRequest.request.date)}</p>
+              <p style={{ margin: 0 }}><strong>Locataire:</strong> {selectedRequest.request.tenantId}</p>
+              <p style={{ margin: 0 }}><strong>Motif:</strong> {selectedRequest.request.reason}</p>
+              {selectedRequest.request.description ? <p style={{ margin: 0 }}><strong>Description:</strong> {selectedRequest.request.description}</p> : null}
+              {selectedRequest.request.photo ? (
+                <img
+                  src={selectedRequest.request.photo}
+                  alt={getChangeFurnitureName(selectedRequest.request)}
+                  style={{ width: '100%', maxHeight: '240px', objectFit: 'cover', borderRadius: '10px', marginTop: '8px', border: '1px solid var(--brand-border)' }}
+                />
+              ) : null}
+            </div>
+          )}
+        </article>
+      ) : null}
+
+      {ownerRequests.length === 0 ? (
+        <div style={{ padding: '24px', textAlign: 'center', background: 'white', borderRadius: '12px', color: '#64748b' }}>
+          Aucune demande pour le moment.
+        </div>
+      ) : (
+        ownerRequests.map((item) => (
+          <article key={`${item.kind}-${item.request._id}`} style={{ background: 'white', padding: '16px', borderRadius: '12px', border: '1px solid var(--brand-border)', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'flex-start' }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--brand-primary)', textTransform: 'uppercase', marginBottom: '6px' }}>
+                  {item.kind === "rental" ? "Location" : "Changement meuble"}
+                </div>
+                <h4 style={{ margin: '0 0 6px', color: 'var(--brand-primary-deep)', fontWeight: 'bold' }}>
+                  {item.kind === "rental" ? getRentalPropertyTitle(item.request) : getChangePropertyTitle(item.request)}
+                </h4>
+                <p style={{ margin: '0 0 4px', color: '#64748b', fontSize: '14px' }}>
+                  {item.kind === "rental"
+                    ? `Statut: ${item.request.status || "En attente"}`
+                    : `${getChangeFurnitureName(item.request)} - ${item.request.type}`}
+                </p>
+                <small style={{ color: '#94a3b8' }}>
+                  {formatDate(item.kind === "rental" ? item.request.createdAt || item.request.date : item.request.createdAt || item.request.date)}
+                </small>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedRequest(item)}
+                style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--brand-primary)', background: 'white', color: 'var(--brand-primary-deep)', fontWeight: '600', whiteSpace: 'nowrap' }}
+              >
+                Consulter
+              </button>
+            </div>
+
+            {item.kind === "rental" && item.request.status === "En attente" ? (
+              <div style={{ marginTop: "16px", display: "flex", gap: "8px" }}>
+                <button style={{ flex: 1, padding: '8px', background: 'var(--brand-primary-deep)', color: 'white', borderRadius: '6px', fontWeight: '600' }} onClick={() => handleUpdateRequest(item.request._id, "Contrat actif")}>Accepter</button>
+                <button style={{ flex: 1, padding: '8px', background: 'transparent', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '6px', fontWeight: '600' }} onClick={() => handleUpdateRequest(item.request._id, "RefusÃ©")}>Refuser</button>
+              </div>
+            ) : null}
+          </article>
+        ))
+      )}
+    </div>
+  )
+
   const visibleProperties = activeSection === "properties" ? properties : properties.slice(0, 3)
 
   const renderDynamicSection = () => {
     if (activeSection === "requests") {
+      return renderRequestsSection()
+    }
+
+    if (false) {
       return (
         <div style={{ display: 'grid', gap: '12px' }}>
           {requests.length === 0 ? (
@@ -142,7 +290,7 @@ const OwnerDashboard: React.FC = () => {
           ) : (
             requests.map((request) => (
               <article key={request._id} style={{ background: 'white', padding: '16px', borderRadius: '12px', border: '1px solid var(--brand-border)', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                <h4 style={{ margin: '0 0 6px', color: 'var(--brand-primary-deep)', fontWeight: 'bold' }}>{request.property?.title || "Demande de location"}</h4>
+                <h4 style={{ margin: '0 0 6px', color: 'var(--brand-primary-deep)', fontWeight: 'bold' }}>{getRentalPropertyTitle(request)}</h4>
                 <p style={{ margin: '0 0 4px', color: '#64748b', fontSize: '14px' }}>Status: {request.status || "En attente"}</p>
                 <small style={{ color: '#94a3b8' }}>{request.date || "Date non disponible"}</small>
                 {request.status === "En attente" && (

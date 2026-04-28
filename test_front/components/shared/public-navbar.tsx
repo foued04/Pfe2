@@ -16,6 +16,8 @@ import { cn } from "@/lib/utils"
 import { useAuth } from "@/lib/auth-context"
 import { useI18n } from "@/lib/i18n"
 
+import { AppLogo } from "@/components/shared/app-logo"
+
 export function PublicNavbar() {
   const pathname = usePathname()
   const { isAuthenticated, isLoading, role } = useAuth()
@@ -41,12 +43,8 @@ export function PublicNavbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-border/70 bg-background/90 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-4 md:px-6">
-        <Link href={homeHref} className="inline-flex items-center gap-3 text-foreground no-underline">
-          <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-            <Home className="h-4 w-4" />
-          </span>
-          <span className="text-lg font-black tracking-tight">ImmoSmart</span>
-        </Link>
+        <AppLogo />
+
 
         <nav className="hidden flex-1 items-center justify-center gap-2 md:flex">
           {navItems.map((item) => (

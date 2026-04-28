@@ -83,7 +83,8 @@ const NotificationSchema = new mongoose.Schema({
     price: Number,
     image: String,
     ownerName: String,
-    status: String
+    status: String,
+    requestId: String
   },
   createdAt: {
     type: Date,

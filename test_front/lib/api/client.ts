@@ -33,5 +33,15 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     throw new Error(errorBody?.message || `Request failed with status ${response.status}`)
   }
 
-  return response.json() as Promise<T>
+  if (response.status === 204) {
+    return null as T
+  }
+
+  const rawBody = await response.text()
+
+  if (!rawBody.trim()) {
+    return null as T
+  }
+
+  return JSON.parse(rawBody) as T
 }

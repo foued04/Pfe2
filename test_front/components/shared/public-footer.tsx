@@ -1,12 +1,17 @@
 import Link from "next/link"
-import { Mail, MapPin, Phone } from "lucide-react"
+import { Home, Mail, MapPin, Phone } from "lucide-react"
 
 export function PublicFooter() {
   return (
     <footer className="border-t border-border bg-card/60">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 md:grid-cols-3 md:px-6">
         <div>
-          <h3 className="text-xl font-black text-foreground">ImmoSmart</h3>
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+              <Home className="h-4 w-4" />
+            </div>
+            <h3 className="text-xl font-black text-foreground">ImmoSmart</h3>
+          </div>
           <p className="mt-4 max-w-sm text-sm leading-7 text-muted-foreground">
             Une plateforme SaaS immobiliere moderne pour rechercher, gerer et suivre le cycle de location entre locataires, proprietaires et administrateurs.
           </p>

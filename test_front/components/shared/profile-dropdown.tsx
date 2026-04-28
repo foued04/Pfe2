@@ -36,8 +36,12 @@ export function ProfileDropdown() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="h-auto rounded-full px-2 py-2">
           <span className="flex items-center gap-3 rounded-full border border-border bg-card px-2 py-1 shadow-sm">
-            <span className="grid h-9 w-9 place-items-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
-              {initial}
+            <span className="grid h-9 w-9 overflow-hidden place-items-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+              {user?.avatar ? (
+                <img src={user.avatar} alt="Profile" className="h-full w-full object-cover" />
+              ) : (
+                initial
+              )}
             </span>
             <span className="hidden text-left sm:block">
               <span className="block text-xs text-muted-foreground">Compte</span>

@@ -1,52 +1,68 @@
 const mongoose = require('mongoose');
 
+const CHANGE_REQUEST_TYPES = ['Remplacement', 'Echange', 'Reparation', 'Suppression', 'Ajout', 'Changement'];
+const CHANGE_REQUEST_STATUSES = ['En attente', 'Approuve', 'Refuse', 'En cours', 'Termine'];
+
 const furnitureChangeRequestSchema = new mongoose.Schema({
-  furnitureId: { 
-    type: mongoose.Schema.Types.ObjectId, 
+  furnitureId: {
+    type: mongoose.Schema.Types.ObjectId,
     ref: 'Furniture',
-    required: false 
+    required: false
   },
   furnitureName: {
     type: String,
     required: false
   },
-  contractId: { 
-    type: mongoose.Schema.Types.ObjectId, 
+  contractId: {
+    type: mongoose.Schema.Types.ObjectId,
     ref: 'Contract',
-    required: false 
+    required: false
   },
   propertyId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Property',
     required: false
   },
-  tenantId: { 
-    type: String, // Tenant email or ID
-    required: true 
+  tenantId: {
+    type: String,
+    required: true
   },
-  type: { 
-    type: String, 
-    enum: ['Remplacement', 'Échange', 'Réparation', 'Suppression', 'Ajout', 'Changement'],
-    required: true 
+  type: {
+    type: String,
+    enum: CHANGE_REQUEST_TYPES,
+    required: true
   },
-  reason: { 
-    type: String, 
-    required: true 
+  reason: {
+    type: String,
+    required: true
   },
-  description: { 
-    type: String 
+  description: {
+    type: String
   },
-  photo: { 
-    type: String // URL or base64
+  photo: {
+    type: String
   },
-  status: { 
-    type: String, 
-    enum: ['En attente', 'Approuvé', 'Refusé', 'En cours', 'Terminé'],
-    default: 'En attente' 
+  ownerResponse: {
+    type: String
   },
-  date: { 
-    type: Date, 
-    default: Date.now 
+  tenantResponse: {
+    type: String
+  },
+  lastResponseBy: {
+    type: String,
+    enum: ['owner', 'tenant']
+  },
+  respondedAt: {
+    type: Date
+  },
+  status: {
+    type: String,
+    enum: CHANGE_REQUEST_STATUSES,
+    default: 'En attente'
+  },
+  date: {
+    type: Date,
+    default: Date.now
   }
 }, { timestamps: true });
 

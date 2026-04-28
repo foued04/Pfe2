@@ -57,7 +57,7 @@ const Tab1: React.FC = () => {
           <nav className="web-home-nav">
             <div className="web-home-brand">
               <div className="web-home-logo-box">
-                <IonIcon icon={homeOutline} />
+                <img src="/brand-logo.svg" alt="ImmoSmart logo" className="web-home-logo-image" />
               </div>
               <span>ImmoSmart</span>
             </div>
@@ -357,7 +357,7 @@ const Tab1: React.FC = () => {
               <div>
                 <div className="web-footer-brand">
                   <div className="web-footer-logo">
-                    <IonIcon icon={homeOutline} />
+                    <img src="/brand-logo.svg" alt="ImmoSmart logo" className="web-footer-logo-image" />
                   </div>
                   <strong>ImmoSmart</strong>
                 </div>

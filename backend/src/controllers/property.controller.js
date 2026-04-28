@@ -3,6 +3,7 @@ const propertyService = require('../services/property.service');
 const ApiError = require('../utils/ApiError');
 const Contract = require('../models/Contract.model');
 const User = require('../models/User.model');
+const housingNeedService = require('../services/housingNeed.service');
 
 const createProperty = asyncHandler(async (req, res) => {
   const propertyBody = {
@@ -11,6 +12,11 @@ const createProperty = asyncHandler(async (req, res) => {
     moderationStatus: 'pending',
   };
   const property = await propertyService.createProperty(propertyBody);
+  try {
+    await housingNeedService.notifyMatchingHousingNeedsForProperty(property);
+  } catch (error) {
+    console.error('Housing need notification failed after property creation:', error);
+  }
   res.status(201).send(property);
 });
 
@@ -129,6 +135,11 @@ const updateProperty = asyncHandler(async (req, res) => {
   }
 
   const updatedProperty = await propertyService.updatePropertyById(req.params.propertyId, req.body);
+  try {
+    await housingNeedService.notifyMatchingHousingNeedsForProperty(updatedProperty);
+  } catch (error) {
+    console.error('Housing need notification failed after property update:', error);
+  }
   res.send(updatedProperty);
 });
 

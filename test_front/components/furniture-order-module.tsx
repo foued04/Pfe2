@@ -60,7 +60,13 @@ export function FurnitureOrderModule({ initialPropertyId }: FurnitureOrderModule
     }
     fetchProperties()
   }, [])
-  const [paymentMethod, setPaymentMethod] = useState<string>("cash")
+  const [paymentMethod, setPaymentMethod] = useState<string>("")
+  
+  useEffect(() => {
+    if (!paymentMethod && lang) {
+      setPaymentMethod(t("furn.payment.cash"))
+    }
+  }, [lang])
   const [validatedOrder, setValidatedOrder] = useState<FurnitureOrder | null>(null)
   const [existingFurniture, setExistingFurniture] = useState<any[]>([])
   const [isExistingLoading, setIsExistingLoading] = useState(false)
@@ -253,6 +259,11 @@ export function FurnitureOrderModule({ initialPropertyId }: FurnitureOrderModule
   const handleCheckout = async () => {
     if (cartItems.length === 0) return
     
+    if (!paymentMethod || paymentMethod.trim() === "") {
+      alert(lang === "fr" ? "Veuillez sélectionner ou saisir un mode de paiement." : "Please select or type a payment method.")
+      return
+    }
+    
     try {
       const property = properties.find(p => (p.id || p._id) === selectedPropertyId)
       
@@ -342,8 +353,8 @@ export function FurnitureOrderModule({ initialPropertyId }: FurnitureOrderModule
                 Équipez vos propriétés avec des meubles de haute qualité. Un design raffiné pour des intérieurs d'exception.
               </p>
               
-              {user?.role === 'owner' ? (
-                <div className="pt-2">
+              <div className="flex flex-wrap gap-4 pt-2">
+                {user?.role === 'owner' && (
                   <Dialog>
                     <DialogTrigger asChild>
                       <Button className="bg-white text-primary hover:bg-white/90 rounded-xl gap-2 font-bold px-6 shadow-xl shadow-black/10">
@@ -492,17 +503,15 @@ export function FurnitureOrderModule({ initialPropertyId }: FurnitureOrderModule
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
-                </div>
-              ) : (
-                <div className="pt-2">
-                  <Button 
-                    onClick={() => setIsChangeModalOpen(true)}
-                    className="bg-white text-blue-700 hover:bg-white/90 rounded-xl gap-2 font-bold px-6 shadow-xl shadow-black/10 transition-all active:scale-95"
-                  >
-                    <Plus className="w-5 h-5" /> Changer un meuble
-                  </Button>
-                </div>
-              )}
+                )}
+
+                <Button 
+                  onClick={() => setIsChangeModalOpen(true)}
+                  className="bg-white text-blue-700 hover:bg-white/90 rounded-xl gap-2 font-bold px-6 shadow-xl shadow-black/10 transition-all active:scale-95 border border-blue-100"
+                >
+                  <Plus className="w-5 h-5" /> {lang === "fr" ? "Changer un meuble" : "Change Furniture"}
+                </Button>
+              </div>
             </div>
             
             <div className="flex flex-col sm:flex-row gap-4 items-center shrink-0">
@@ -690,7 +699,7 @@ export function FurnitureOrderModule({ initialPropertyId }: FurnitureOrderModule
         onClose={() => setIsChangeModalOpen(false)}
         furnitureList={existingFurniture}
         propertyId={selectedPropertyId}
-        properties={rentals}
+        properties={user?.role === 'owner' ? properties : rentals}
       />
     </div>
   )
