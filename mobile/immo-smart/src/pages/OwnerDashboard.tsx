@@ -27,7 +27,7 @@ import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet"
 import { useAuth } from "../lib/auth-context"
 import { http } from "../lib/api"
 import { fetchUnreadMessagesCount } from "../lib/messages-api"
-import { deleteProperty, fetchProperties } from "../lib/property-api"
+import { deleteProperty, fetchOwnerDashboardProperties } from "../lib/property-api"
 import type { BackendProperty, BackendRentalRequest } from "../types/api"
 import "./OwnerDashboard.css"
 
@@ -61,7 +61,7 @@ const statusTone: Record<string, string> = {
 
 const ownerNavItems: NavItem[] = [
   { key: "overview", label: "Dashboard", icon: homeOutline, type: "section", section: "overview" },
-  { key: "properties", label: "My Properties", icon: businessOutline, type: "section", section: "properties" },
+  { key: "properties", label: "All Properties", icon: businessOutline, type: "section", section: "properties" },
   { key: "add-property", label: "Add Property", icon: addOutline, type: "route", href: "/property-form" },
   { key: "map", label: "Map", icon: mapOutline, type: "section", section: "map" },
   { key: "requests", label: "Requests", icon: documentTextOutline, type: "route", href: "/rental-requests" },
@@ -87,6 +87,7 @@ const OwnerDashboard: React.FC = () => {
   const [error, setError] = useState("")
   const [openActionsFor, setOpenActionsFor] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const currentOwnerId = user?.id || ""
 
   const activeSection = getSectionFromSearch(location.search)
 
@@ -98,7 +99,7 @@ const OwnerDashboard: React.FC = () => {
       try {
         setLoading(true)
         const [propertiesData, requestsData, notificationsData, messagesCountData] = await Promise.all([
-          fetchProperties(token),
+          fetchOwnerDashboardProperties(token),
           http.get<BackendRentalRequest[]>("/rental-requests", token),
           http.get<{ count: number }>("/notifications/unread-count", token),
           fetchUnreadMessagesCount(token),
@@ -145,15 +146,20 @@ const OwnerDashboard: React.FC = () => {
   }, [token])
 
   const stats = useMemo<DashboardStats>(() => {
-    const total = properties.length
-    const available = properties.filter((property) => property.status === "available").length
-    const rented = properties.filter((property) => property.status === "rented").length
-    const revenue = properties
+    const ownedProperties = properties.filter((property) => {
+      const ownerId = typeof property.owner === "string" ? property.owner : property.owner?._id || ""
+      return Boolean(ownerId && currentOwnerId && String(ownerId) === String(currentOwnerId))
+    })
+
+    const total = ownedProperties.length
+    const available = ownedProperties.filter((property) => property.status === "available").length
+    const rented = ownedProperties.filter((property) => property.status === "rented").length
+    const revenue = ownedProperties
       .filter((property) => property.status === "rented")
       .reduce((sum, property) => sum + (property.rent || 0), 0)
 
     return { total, available, rented, revenue, requestCount }
-  }, [properties, requestCount])
+  }, [currentOwnerId, properties, requestCount])
 
   const statsCards = [
     { label: "Total properties", value: stats.total, icon: businessOutline },
@@ -226,7 +232,12 @@ const OwnerDashboard: React.FC = () => {
 
   const displayName = user?.name || user?.firstName || "Owner"
   const activeTitle =
-    activeSection === "properties" ? "My Properties" : activeSection === "map" ? "Map" : "Owner Dashboard"
+    activeSection === "properties" ? "All Properties" : activeSection === "map" ? "Map" : "Owner Dashboard"
+
+  const isOwnedByCurrentUser = (property: BackendProperty) => {
+    const ownerId = typeof property.owner === "string" ? property.owner : property.owner?._id || ""
+    return Boolean(ownerId && currentOwnerId && String(ownerId) === String(currentOwnerId))
+  }
 
   const renderPropertyCard = (property: BackendProperty) => {
     const isMenuOpen = openActionsFor === property._id
@@ -235,6 +246,10 @@ const OwnerDashboard: React.FC = () => {
     const locationLabel = [property.city, property.address].filter(Boolean).join(" - ") || "Adresse non specifiee"
     const propertyType = property.type ? property.type.toUpperCase() : "BIEN"
     const isFurnished = Boolean(property.meuble || property.furnishing?.type)
+    const ownerName = property.ownerName || (typeof property.owner === "object" && property.owner !== null ? property.owner.fullName : "") || "Proprietaire"
+    const ownerPhone = property.ownerPhone || (typeof property.owner === "object" && property.owner !== null ? property.owner.phone : "") || ""
+    const ownerEmail = property.ownerEmail || (typeof property.owner === "object" && property.owner !== null ? property.owner.email : "") || ""
+    const isOwnProperty = isOwnedByCurrentUser(property)
 
     return (
       <article key={property._id} className="owner-property-card">
@@ -244,6 +259,9 @@ const OwnerDashboard: React.FC = () => {
           <div className="owner-property-overlay">
             <div className="owner-property-badges">
               <span className={`owner-property-badge ${statusTone[property.status] || "neutral"}`}>{statusLabel}</span>
+              <span className={`owner-property-badge ${isOwnProperty ? "ownership-self" : "ownership-other"}`}>
+                {isOwnProperty ? "My property" : "Other owner"}
+              </span>
               {isFurnished ? <span className="owner-property-badge furnished">Meuble</span> : null}
             </div>
             <div className="owner-property-menu">
@@ -257,18 +275,27 @@ const OwnerDashboard: React.FC = () => {
                     <IonIcon icon={eyeOutline} />
                     Voir details
                   </button>
-                  <button type="button" onClick={() => history.push(`/property-form/${property._id}`)}>
-                    <IonIcon icon={pencilOutline} />
-                    Modifier
-                  </button>
-                  <button type="button" onClick={() => history.push(`/furniture?property=${property._id}`)}>
-                    <IonIcon icon={bedOutline} />
-                    Gerer les meubles
-                  </button>
-                  <button type="button" className="danger" onClick={() => handleDelete(property._id)}>
-                    <IonIcon icon={trashOutline} />
-                    Supprimer le bien
-                  </button>
+                  {isOwnProperty ? (
+                    <>
+                      <button type="button" onClick={() => history.push(`/property-form/${property._id}`)}>
+                        <IonIcon icon={pencilOutline} />
+                        Modifier
+                      </button>
+                      <button type="button" onClick={() => history.push(`/furniture?property=${property._id}`)}>
+                        <IonIcon icon={bedOutline} />
+                        Gerer les meubles
+                      </button>
+                      <button type="button" className="danger" onClick={() => handleDelete(property._id)}>
+                        <IonIcon icon={trashOutline} />
+                        Supprimer le bien
+                      </button>
+                    </>
+                  ) : (
+                    <button type="button" className="readonly">
+                      <IonIcon icon={businessOutline} />
+                      Lecture seule
+                    </button>
+                  )}
                 </div>
               ) : null}
             </div>
@@ -292,6 +319,11 @@ const OwnerDashboard: React.FC = () => {
             <span className="owner-property-type">{propertyType}</span>
             {property.deposit ? <span className="owner-property-deposit">Depot {property.deposit.toLocaleString("fr-TN")} TND</span> : null}
           </div>
+          <div className="owner-property-owner">
+            <span>{ownerName}</span>
+            {ownerPhone ? <span>{ownerPhone}</span> : null}
+            {ownerEmail ? <span className="owner-email">{ownerEmail}</span> : null}
+          </div>
           <div className="owner-property-meta">
             <span>{property.surface || 0} m2</span>
             <span>{property.bedrooms || 0} ch.</span>
@@ -308,11 +340,14 @@ const OwnerDashboard: React.FC = () => {
               <IonIcon icon={eyeOutline} />
               Voir details
             </button>
-            <button type="button" className="owner-outline-btn compact" onClick={() => history.push(`/property-form/${property._id}`)}>
-              <IonIcon icon={pencilOutline} />
-              Modifier
-            </button>
+            {isOwnProperty ? (
+              <button type="button" className="owner-outline-btn compact" onClick={() => history.push(`/property-form/${property._id}`)}>
+                <IonIcon icon={pencilOutline} />
+                Modifier
+              </button>
+            ) : null}
           </div>
+          {!isOwnProperty ? <div className="owner-readonly-note">Ce bien appartient a un autre proprietaire. Visible uniquement.</div> : null}
         </div>
       </article>
     )
@@ -396,13 +431,13 @@ const OwnerDashboard: React.FC = () => {
               <section className="owner-page-header">
                 <div>
                   <div className="owner-eyebrow">Owner</div>
-                  <h2>{activeSection === "properties" ? "My Properties" : activeSection === "map" ? "Map" : "Owner Dashboard"}</h2>
+                  <h2>{activeSection === "properties" ? "All Properties" : activeSection === "map" ? "Map" : "Owner Dashboard"}</h2>
                   <p>
                     {activeSection === "properties"
-                      ? "Retrouvez l'ensemble de vos annonces avec toutes les actions de gestion disponibles sur mobile."
+                      ? "Consultez toutes les proprietes de l'application. Vos biens restent modifiables, ceux des autres proprietaires sont visibles en lecture seule."
                       : activeSection === "map"
-                        ? "Visualisez vos biens sur la carte et controlez rapidement leur localisation."
-                        : "Suivez vos indicateurs, accedez rapidement a vos biens et gardez le controle sur vos demandes."}
+                        ? "Visualisez l'ensemble des proprietes sur la carte et reperez rapidement vos propres biens."
+                        : "Suivez vos indicateurs personnels, accedez a toutes les proprietes et gardez le controle sur vos demandes."}
                   </p>
                 </div>
                 <button type="button" className="owner-primary-btn" onClick={() => history.push("/property-form")}>
@@ -446,8 +481,8 @@ const OwnerDashboard: React.FC = () => {
 
                       <section className="owner-preview-section">
                         <div className="owner-section-copy">
-                          <h3>My Properties</h3>
-                          <p>Retrouvez l'ensemble de vos annonces dans une page dediee, avec des actions SaaS claires.</p>
+                          <h3>All Properties</h3>
+                          <p>Parcourez vos biens et ceux des autres proprietaires avec des indicateurs clairs sur les droits de gestion.</p>
                         </div>
                         {previewProperties.length === 0 ? (
                           <div className="owner-panel muted">No properties yet</div>
@@ -491,6 +526,9 @@ const OwnerDashboard: React.FC = () => {
                           <Marker key={property._id} position={[property.lat, property.lng]}>
                             <Popup>
                               <div className="owner-map-popup">
+                                <div className="popup-ownership">
+                                  {isOwnedByCurrentUser(property) ? "My property" : "Other owner"}
+                                </div>
                                 <div className="popup-badge" style={{
                                   background: property.status === 'available' ? '#22c55e' : property.status === 'rented' ? '#3b82f6' : '#eab308',
                                   color: 'white',
@@ -553,6 +591,9 @@ const OwnerDashboard: React.FC = () => {
                           >
                             <div className="item-info">
                               <strong>{property.title}</strong>
+                              <span className={`item-ownership ${isOwnedByCurrentUser(property) ? "self" : "other"}`}>
+                                {isOwnedByCurrentUser(property) ? "My property" : "Other owner"}
+                              </span>
                               <p>{property.address || property.city || "Monastir"}</p>
                             </div>
                             <div className="item-price">

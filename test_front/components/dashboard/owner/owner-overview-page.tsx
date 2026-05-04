@@ -1,7 +1,9 @@
 "use client"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Building2, FileText, Map, Plus, TrendingUp } from "lucide-react"
+import { apiFetch } from "@/lib/api/client"
 import { useOwnerDashboard } from "@/hooks/api/use-owner-dashboard"
 import { PageHeader } from "@/components/dashboard/shared/page-header"
 import { StatsGrid } from "@/components/dashboard/shared/stats-grid"
@@ -10,14 +12,24 @@ import { Button } from "@/components/ui/button"
 import { OwnerPropertiesGrid } from "@/components/owner-properties-grid"
 
 export function OwnerOverviewPage() {
-  const { properties, stats, isLoading, error } = useOwnerDashboard()
+  const router = useRouter()
+  const { properties, setProperties, stats, isLoading, error } = useOwnerDashboard()
+
+  const handleDelete = async (id: string) => {
+    try {
+      await apiFetch(`/properties/${id}`, { auth: true, method: "DELETE" })
+      setProperties((prev) => prev.filter((property) => property.id !== id))
+    } catch (err) {
+      console.error("Delete property failed:", err)
+    }
+  }
 
   return (
     <div className="space-y-8">
       <PageHeader
         eyebrow="Owner"
         title="Owner Dashboard"
-        description="Suivez vos indicateurs, accedez rapidement a vos biens et gardez le controle sur vos demandes."
+        description="Suivez vos indicateurs personnels et parcourez toutes les proprietes de la plateforme sans perdre vos droits de gestion."
         actions={
           <Button asChild>
             <Link href="/dashboard/owner/properties/new"><Plus className="mr-2 h-4 w-4" />Add Property</Link>
@@ -50,9 +62,9 @@ export function OwnerOverviewPage() {
           </Card>
           <OwnerPropertiesGrid
             properties={properties.slice(0, 3)}
-            onManageFurniture={() => {}}
-            onEdit={() => {}}
-            onDelete={() => {}}
+            onManageFurniture={(id) => router.push(`/dashboard/owner/furniture?property=${id}`)}
+            onEdit={(property) => router.push(`/dashboard/owner/properties/new?edit=${property.id || property._id}`)}
+            onDelete={handleDelete}
           />
         </div>
       )}

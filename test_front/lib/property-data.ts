@@ -36,6 +36,7 @@ export interface Property {
     email?: string
     phone?: string
   }
+  ownerId?: string
   ownerName: string
   ownerEmail: string
   ownerPhone: string
@@ -145,6 +146,7 @@ export function mapBackendProperty(p: any): Property {
       exterior: p.images?.exterior || ""
     },
     owner: p.owner && typeof p.owner === 'object' ? p.owner : undefined,
+    ownerId: typeof p.owner === "string" ? p.owner : p.owner?._id,
     ownerName: p.owner?.fullName || p.ownerName || "Propriétaire",
     ownerEmail: p.owner?.email || p.ownerEmail || "-",
     ownerPhone: p.owner?.phone || p.ownerPhone || "-",

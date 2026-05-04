@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { apiFetch } from "@/lib/api/client"
+import { useAuth } from "@/lib/auth-context"
 import { mapBackendProperty, type Property } from "@/lib/property-data"
 
 export function useOwnerDashboard() {
+  const { user } = useAuth()
   const [properties, setProperties] = useState<Property[]>([])
   const [requestCount, setRequestCount] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
@@ -51,16 +53,21 @@ export function useOwnerDashboard() {
   }, [])
 
   const stats = useMemo(() => {
-    const total = properties.length
-    const available = properties.filter((property) => property.status === "available").length
-    const rented = properties.filter((property) => property.status === "rented").length
-    const maintenance = properties.filter((property) => property.status === "maintenance").length
-    const revenue = properties
+    const ownedProperties = properties.filter((property) => {
+      const ownerId = property.ownerId || property.owner?._id
+      return Boolean(ownerId && user?.id && String(ownerId) === String(user.id))
+    })
+
+    const total = ownedProperties.length
+    const available = ownedProperties.filter((property) => property.status === "available").length
+    const rented = ownedProperties.filter((property) => property.status === "rented").length
+    const maintenance = ownedProperties.filter((property) => property.status === "maintenance").length
+    const revenue = ownedProperties
       .filter((property) => property.status === "rented")
       .reduce((sum, property) => sum + (property.rent || 0), 0)
 
     return { total, available, rented, maintenance, revenue, requestCount }
-  }, [properties, requestCount])
+  }, [properties, requestCount, user?.id])
 
   return { properties, setProperties, stats, requestCount, isLoading, error }
 }

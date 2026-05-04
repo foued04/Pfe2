@@ -28,8 +28,8 @@ export function OwnerPropertiesPage() {
     <div className="space-y-8">
       <PageHeader
         eyebrow="Owner"
-        title="My Properties"
-        description="Retrouvez l'ensemble de vos annonces dans une page dediee, avec des actions SaaS claires."
+        title="All Properties"
+        description="Consultez toutes les proprietes de l'application. Vos biens restent entierement gerables, ceux des autres proprietaires sont en lecture seule."
         actions={
           <Button asChild>
             <Link href="/dashboard/owner/properties/new"><Plus className="mr-2 h-4 w-4" />Add Property</Link>
@@ -54,4 +54,3 @@ export function OwnerPropertiesPage() {
     </div>
   )
 }
-

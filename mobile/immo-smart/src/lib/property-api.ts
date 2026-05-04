@@ -5,6 +5,10 @@ export const fetchProperties = (token?: string) => {
   return http.get<BackendProperty[]>("/properties", token)
 }
 
+export const fetchOwnerDashboardProperties = (token: string) => {
+  return http.get<BackendProperty[]>("/properties", token)
+}
+
 export const fetchProperty = (propertyId: string, token?: string) => {
   return http.get<BackendProperty>(`/properties/${propertyId}`, token)
 }

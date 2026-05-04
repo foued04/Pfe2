@@ -3,6 +3,7 @@ import {
   arrowBackOutline,
   bedOutline,
   carOutline,
+  callOutline,
   closeOutline,
   createOutline,
   expandOutline,
@@ -10,6 +11,8 @@ import {
   heartOutline,
   leafOutline,
   locationOutline,
+  mailOutline,
+  personOutline,
   restaurantOutline,
   sendOutline,
   trashOutline,
@@ -121,6 +124,11 @@ const PropertyDetailPage: React.FC = () => {
   const isTenant = user?.role === "tenant"
   const ownerId = typeof property?.owner === "string" ? property.owner : property?.owner?._id
   const isMyProperty = isOwner && ownerId === user?.id
+
+  const ownerInfo = property?.owner && typeof property.owner === "object" ? property.owner : null
+  const ownerName = property?.ownerName || ownerInfo?.fullName || "Proprietaire"
+  const ownerPhone = property?.ownerPhone || ownerInfo?.phone || "-"
+  const ownerEmail = property?.ownerEmail || ownerInfo?.email || "-"
 
   const requestDuration = useMemo(() => calculateDurationLabel(startDate, endDate), [startDate, endDate])
 
@@ -320,6 +328,31 @@ const PropertyDetailPage: React.FC = () => {
             <h3>Description</h3>
             <p>{property.description}</p>
           </div>
+
+          {isOwner ? (
+            <div className="detail-owner-info">
+              <h3>Informations Proprietaire</h3>
+              <div className="owner-info-grid">
+                <div className="owner-info-item">
+                  <IonIcon icon={personOutline} />
+                  <span>{ownerName}</span>
+                </div>
+                <div className="owner-info-item">
+                  <IonIcon icon={callOutline} />
+                  <span>{ownerPhone}</span>
+                </div>
+                <div className="owner-info-item">
+                  <IonIcon icon={mailOutline} />
+                  <span>{ownerEmail}</span>
+                </div>
+              </div>
+              {!isMyProperty && (
+                <div className="owner-readonly-tag">
+                  Visible uniquement (Lecture seule)
+                </div>
+              )}
+            </div>
+          ) : null}
 
           {actionMsg ? (
             <p className={`auth-status ${requestSuccess || actionMsg.includes("envoyee") ? "success" : "error"}`}>

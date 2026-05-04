@@ -400,6 +400,16 @@
   color: #0f172a;
 }
 
+.owner-property-badge.ownership-self {
+  background: rgba(37, 99, 235, 0.92);
+  color: #fff;
+}
+
+.owner-property-badge.ownership-other {
+  background: rgba(255, 255, 255, 0.94);
+  color: #0f172a;
+}
+
 .owner-property-price {
   position: absolute;
   bottom: 14px;
@@ -476,6 +486,15 @@
   gap: 8px;
 }
 
+.owner-property-owner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
 .owner-property-type,
 .owner-property-deposit {
   display: inline-flex;
@@ -502,6 +521,16 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.owner-readonly-note {
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px dashed rgba(148, 163, 184, 0.36);
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 
 .owner-property-menu {
@@ -554,6 +583,10 @@
 
 .owner-dropdown-menu button.danger {
   color: #dc2626;
+}
+
+.owner-dropdown-menu button.readonly {
+  color: #64748b;
 }
 
 .owner-map-card {
@@ -1026,6 +1059,26 @@
   text-overflow: ellipsis;
 }
 
+.item-ownership {
+  display: inline-flex;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.item-ownership.self {
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
+}
+
+.item-ownership.other {
+  background: #f1f5f9;
+  color: #475569;
+}
+
 .item-info p {
   margin: 2px 0 0;
   font-size: 11px;
@@ -1075,4 +1128,16 @@
 
 .owner-map-popup {
   padding: 12px;
+}
+
+.popup-ownership {
+  display: inline-flex;
+  margin-bottom: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
 }

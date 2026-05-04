@@ -31,7 +31,7 @@ type NavItem = { href: string; label: string; icon: ComponentType<{ className?: 
 
 const ownerItems: NavItem[] = [
   { href: "/dashboard/owner", label: "Dashboard", icon: Home },
-  { href: "/dashboard/owner/properties", label: "My Properties", icon: Building2 },
+  { href: "/dashboard/owner/properties", label: "All Properties", icon: Building2 },
   { href: "/dashboard/owner/properties/new", label: "Add Property", icon: Plus },
   { href: "/dashboard/owner/map", label: "Map", icon: Map },
   { href: "/dashboard/owner/requests", label: "Requests", icon: FileText },
@@ -117,7 +117,7 @@ export function DashboardSidebar({
               <item.icon className="h-4 w-4" />
               <span className="flex-1">
                 {item.label === "Dashboard" ? (lang === "fr" ? "Tableau de bord" : "Dashboard") :
-                 item.label === "My Properties" ? (lang === "fr" ? "Mes proprietes" : "My Properties") :
+                 item.label === "All Properties" ? (lang === "fr" ? "Toutes les proprietes" : "All Properties") :
                  item.label === "Add Property" ? (lang === "fr" ? "Ajouter un bien" : "Add Property") :
                  item.label === "Map" ? (lang === "fr" ? "Carte" : "Map") :
                  item.label === "Requests" ? (lang === "fr" ? "Demandes" : "Requests") :
