@@ -1,12 +1,16 @@
 import { http } from "./api"
 import type { BackendProperty, CreatePropertyPayload } from "../types/api"
 
-export const fetchProperties = (token: string) => {
+export const fetchProperties = (token?: string) => {
   return http.get<BackendProperty[]>("/properties", token)
 }
 
 export const fetchProperty = (propertyId: string, token?: string) => {
   return http.get<BackendProperty>(`/properties/${propertyId}`, token)
+}
+
+export const fetchMyRentals = (token: string) => {
+  return http.get<BackendProperty[]>("/properties/my-rentals", token)
 }
 
 export const createProperty = (data: CreatePropertyPayload, token: string) => {

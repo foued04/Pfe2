@@ -1,20 +1,30 @@
 "use client"
 
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { AdminDashboard } from "@/components/admin-dashboard"
-import { OwnerDashboard } from "@/components/owner-dashboard"
-import { TenantDashboard } from "@/components/tenant-dashboard"
 
 export function ProfilePage() {
   const { role } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (role === "owner") {
+      router.replace("/dashboard/owner/profile")
+    }
+    if (role === "tenant") {
+      router.replace("/dashboard/tenant/profile")
+    }
+  }, [role, router])
 
   switch (role) {
     case "admin":
       return <AdminDashboard initialSection="profil" />
     case "owner":
-      return <OwnerDashboard initialSection="profile" />
+      return <div className="p-6 text-sm text-muted-foreground">Redirection vers votre profil proprietaire...</div>
     case "tenant":
-      return <TenantDashboard initialSection="profile" />
+      return <div className="p-6 text-sm text-muted-foreground">Redirection vers votre profil locataire...</div>
     default:
       return null
   }

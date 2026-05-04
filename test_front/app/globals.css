@@ -119,6 +119,11 @@
 }
 
 @layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
   * {
     @apply border-border outline-ring/50;
   }
@@ -127,9 +132,17 @@
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
     line-height: 1.6;
+    overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+  }
+
+  img,
+  video,
+  canvas,
+  svg {
+    max-width: 100%;
   }
 
   h1 {
@@ -156,7 +169,8 @@
   li,
   input,
   textarea,
-  select {
+  select,
+  button {
     line-height: 1.65;
   }
 
@@ -167,6 +181,13 @@
 
   button {
     font-weight: 500;
+  }
+
+  input,
+  textarea,
+  select,
+  button {
+    font: inherit;
   }
 }
 

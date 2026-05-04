@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react"
 import { useI18n } from "@/lib/i18n"
+import { resolveApiUrl } from "@/lib/api/client"
 import { Badge } from "./ui/badge"
 import { Button } from "./ui/button"
 import { ScrollArea } from "./ui/scroll-area"
@@ -24,8 +25,12 @@ import {
   Home,
   MapPin,
   User,
-  AlertTriangle
+  AlertTriangle,
+  Send,
+  ArrowLeft
 } from "lucide-react"
+import { RentalRequestDetail } from "./rental-request-detail"
+import { RentalRequest, RequestStatus } from "@/lib/rental-request-data"
 
 export interface Notification {
   _id: string;
@@ -75,6 +80,20 @@ export interface Notification {
     ownerName?: string;
     status?: string;
   };
+  messageMeta?: {
+    conversationId?: string;
+    messageId?: string;
+    senderId?: string;
+    senderName?: string;
+    contextId?: string;
+  };
+  requestMeta?: {
+    requestId: string;
+    tenantId: string;
+    tenantName: string;
+    propertyId: string;
+    propertyTitle: string;
+  };
 }
 
 export function NotificationsModule() {
@@ -88,17 +107,20 @@ export function NotificationsModule() {
   const [contractToView, setContractToView] = useState<Contract | null>(null)
   const [viewContractError, setViewContractError] = useState<string | null>(null)
   const [reclamationReply, setReclamationReply] = useState("")
+  const [messageReply, setMessageReply] = useState("")
   const [isSendingReply, setIsSendingReply] = useState(false)
   const [replyStatus, setReplyStatus] = useState<{ type: "success" | "error"; message: string } | null>(null)
+  const [selectedRequest, setSelectedRequest] = useState<RentalRequest | null>(null)
+  const [isLoadingRequest, setIsLoadingRequest] = useState(false)
   const [isModerating, setIsModerating] = useState(false)
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+  const API_URL = resolveApiUrl()
   const normalizeType = (type: string) =>
-    type === "RÃ©clamation"
+    type === "RÃ©clamation" || type === "Reclamation"
       ? "Réclamation"
-      : type === "SystÃ¨me"
+      : type === "SystÃ¨me" || type === "Systeme"
         ? "Système"
-        : type === "VÃ©rification"
+        : type === "VÃ©rification" || type === "Verification"
           ? "Vérification"
           : type
   const isReclamation = (type: string) => normalizeType(type) === "Réclamation"
@@ -178,6 +200,112 @@ export function NotificationsModule() {
     } catch (err) {
       console.error("Fetch contract error:", err)
       setViewContractError(isFr ? "Erreur de connexion." : "Connection error.")
+    }
+  }
+
+  const handleViewRequest = async (requestId: string) => {
+    setIsLoadingRequest(true)
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/rental-requests/${requestId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.ok) {
+        const r = await response.json()
+        const mapped: RentalRequest = {
+          id: r._id,
+          propertyId: r.property?._id,
+          propertyTitle: r.property?.title || "Propriété inconnue",
+          propertyAddress: r.property?.address || "Adresse inconnue",
+          propertyRent: r.property?.rent || 0,
+          tenantName: r.tenant?.fullName || "Utilisateur inconnu",
+          tenantEmail: r.tenant?.email || "",
+          tenantPhone: r.tenant?.phone || "",
+          tenantAvatar: r.tenant?.avatar,
+          propertyImage: r.property?.images?.cover || "/placeholder-property.jpg",
+          date: r.date,
+          status: r.status as RequestStatus,
+          message: r.message || "",
+          duration: r.duration || "12 mois"
+        }
+        setSelectedRequest(mapped)
+      }
+    } catch (err) {
+      console.error("Fetch request error:", err)
+    } finally {
+      setIsLoadingRequest(false)
+    }
+  }
+
+  const handleAcceptRequest = async (requestId: string) => {
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/rental-requests/${requestId}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: "Acceptée" }),
+      })
+      if (response.ok) {
+        handleViewRequest(requestId)
+      }
+    } catch (err) {
+      console.error("Accept request error:", err)
+    }
+  }
+
+  const handleRejectRequest = async (requestId: string) => {
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/rental-requests/${requestId}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: "Refusée" }),
+      })
+      if (response.ok) {
+        handleViewRequest(requestId)
+      }
+    } catch (err) {
+      console.error("Reject request error:", err)
+    }
+  }
+
+  const handleGenerateContract = async (requestId: string) => {
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/contracts`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ requestId }),
+      })
+      if (response.ok) {
+        handleViewRequest(requestId)
+      }
+    } catch (err) {
+      console.error("Generate contract error:", err)
+    }
+  }
+
+  const handleActivateContract = async (contractId: string) => {
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/contracts/${contractId}/activate`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.ok) {
+        if (selectedRequest) handleViewRequest(selectedRequest.id)
+      }
+    } catch (err) {
+      console.error("Activate contract error:", err)
     }
   }
 
@@ -302,6 +430,50 @@ export function NotificationsModule() {
     }
   }
 
+  const handleReplyToMessage = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!activeNotif?.messageMeta?.conversationId) return
+
+    const cleanReply = messageReply.trim()
+    if (!cleanReply) {
+      setReplyStatus({ type: "error", message: "Veuillez ecrire une reponse." })
+      return
+    }
+
+    setIsSendingReply(true)
+    setReplyStatus(null)
+
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          conversationId: activeNotif.messageMeta.conversationId,
+          content: cleanReply,
+        }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null)
+        throw new Error(data?.message || "Erreur lors de l'envoi de la reponse.")
+      }
+
+      setMessageReply("")
+      setReplyStatus({ type: "success", message: "Reponse envoyee au locataire." })
+    } catch (err) {
+      setReplyStatus({
+        type: "error",
+        message: err instanceof Error ? err.message : "Erreur lors de l'envoi de la reponse.",
+      })
+    } finally {
+      setIsSendingReply(false)
+    }
+  }
+
   const handleModerateFurniture = async (id: string, status: "approved" | "rejected") => {
     setIsModerating(true)
     try {
@@ -352,6 +524,7 @@ export function NotificationsModule() {
       }
     }
     setReclamationReply("")
+    setMessageReply("")
     setReplyStatus(null)
   }, [activeNotifId])
 
@@ -417,10 +590,31 @@ export function NotificationsModule() {
     )
   }
 
+  if (selectedRequest) {
+    return (
+      <div className="p-6 bg-slate-50 min-h-screen">
+        <RentalRequestDetail
+          request={selectedRequest}
+          onBack={() => setSelectedRequest(null)}
+          onAccept={handleAcceptRequest}
+          onReject={handleRejectRequest}
+          onGenerateContract={handleGenerateContract}
+          onViewContract={(reqId) => handleViewContract(undefined, reqId)}
+          onActivateContract={handleActivateContract}
+        />
+      </div>
+    )
+  }
+
   return (
-    <div className="h-[calc(100vh-140px)] flex bg-white rounded-3xl border border-border/10 overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-500">
+    <div className="flex min-h-[calc(100vh-140px)] flex-col overflow-hidden rounded-3xl border border-border/10 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-500 lg:h-[calc(100vh-140px)] lg:flex-row">
       {/* List Column */}
-      <div className="w-full md:w-[400px] flex-shrink-0 border-r border-border/10 flex flex-col bg-slate-50/30">
+      <div
+        className={cn(
+          "w-full flex-shrink-0 flex-col bg-slate-50/30 lg:w-[400px] lg:border-r lg:border-border/10",
+          activeNotifId ? "hidden lg:flex" : "flex"
+        )}
+      >
         <div className="p-6 space-y-4 border-b border-border/10 bg-white">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-black text-foreground flex items-center gap-2">
@@ -509,7 +703,12 @@ export function NotificationsModule() {
                             )}
                           </div>
                           {!n.isRead && (
-                            <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
+                            <div className="flex items-center gap-2">
+                              <span className="rounded-full bg-red-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-red-600">
+                                Nouveau
+                              </span>
+                              <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                            </div>
                           )}
                         </div>
                       </div>
@@ -523,7 +722,12 @@ export function NotificationsModule() {
       </div>
 
       {/* Detail Column */}
-      <div className="flex-1 overflow-y-auto bg-slate-50/10">
+      <div
+        className={cn(
+          "flex-1 overflow-y-auto bg-slate-50/10",
+          activeNotifId ? "block" : "hidden lg:block"
+        )}
+      >
         {!activeNotif ? (
           <div className="h-full flex flex-col items-center justify-center p-8 text-center text-muted-foreground opacity-40">
             <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-6">
@@ -537,7 +741,17 @@ export function NotificationsModule() {
             </p>
           </div>
         ) : (
-          <div className="p-8 md:p-12 max-w-3xl mx-auto space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+          <div className="mx-auto max-w-3xl space-y-8 p-5 animate-in fade-in slide-in-from-right-4 duration-500 sm:p-8 md:p-12">
+            <div className="lg:hidden">
+              <Button
+                variant="outline"
+                className="rounded-xl"
+                onClick={() => setActiveNotifId(null)}
+              >
+                <ChevronRight className="mr-2 h-4 w-4 rotate-180" />
+                {isFr ? "Retour aux notifications" : "Back to notifications"}
+              </Button>
+            </div>
             <div className="flex items-center justify-between">
               <Badge className={cn("px-4 py-1 text-[10px] uppercase font-black border-transparent shadow-sm", getTypeConfig(activeNotif.type).color)}>
                 {normalizeType(activeNotif.type)}
@@ -573,7 +787,7 @@ export function NotificationsModule() {
                     </Badge>
                   </div>
                 </div>
-                <div className="grid gap-4 p-6 md:grid-cols-2">
+                <div className="grid gap-4 p-4 sm:p-6 md:grid-cols-2">
                   <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
                     <p className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-500">
                       <User className="h-4 w-4 text-primary" />
@@ -621,6 +835,40 @@ export function NotificationsModule() {
               </div>
             )}
 
+            {activeNotif.messageMeta?.conversationId && !isReclamation(activeNotif.type) && (
+              <form onSubmit={handleReplyToMessage} className="rounded-3xl border border-blue-100 bg-blue-50/60 p-5 shadow-sm sm:p-6">
+                <div className="mb-4 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+                  <div>
+                    <h4 className="text-lg font-black text-slate-950">Repondre au locataire</h4>
+                    <p className="text-sm font-medium text-slate-500">
+                      Votre message sera envoye dans la conversation avec {activeNotif.messageMeta.senderName || "le locataire"}.
+                    </p>
+                  </div>
+                  <Send className="h-5 w-5 text-primary" />
+                </div>
+                <textarea
+                  value={messageReply}
+                  onChange={(event) => setMessageReply(event.target.value)}
+                  className="min-h-28 w-full resize-none rounded-2xl border border-blue-100 bg-white p-4 text-sm font-medium outline-none ring-primary/20 transition focus:ring-4"
+                  placeholder="Ecrivez votre reponse au locataire..."
+                />
+                {replyStatus && (
+                  <p className={cn(
+                    "mt-3 text-sm font-bold",
+                    replyStatus.type === "success" ? "text-emerald-600" : "text-destructive"
+                  )}>
+                    {replyStatus.message}
+                  </p>
+                )}
+                <div className="mt-4 flex justify-end">
+                  <Button type="submit" disabled={isSendingReply} className="w-full rounded-2xl px-6 font-black sm:w-auto">
+                    {isSendingReply ? "Envoi..." : "Envoyer la reponse"}
+                    {!isSendingReply && <ChevronRight className="ml-2 h-4 w-4" />}
+                  </Button>
+                </div>
+              </form>
+            )}
+
             {activeNotif.furnitureMeta && (
               <div className="overflow-hidden rounded-[2.5rem] border border-slate-200 bg-white shadow-2xl shadow-slate-200/50">
                 <div className="relative h-64 w-full">
@@ -642,8 +890,8 @@ export function NotificationsModule() {
                   </div>
                 </div>
                 
-                <div className="p-10 space-y-8">
-                  <div className="grid grid-cols-2 gap-8 py-8 border-y border-slate-100">
+                <div className="space-y-8 p-6 sm:p-10">
+                  <div className="grid grid-cols-1 gap-6 border-y border-slate-100 py-8 sm:grid-cols-2 sm:gap-8">
                     <div>
                       <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-2">
                         {activeNotif.title.includes("changement") ? "Type de Changement" : "Prix Suggéré"}
@@ -684,7 +932,7 @@ export function NotificationsModule() {
                   </div>
 
                   {activeNotif.furnitureMeta.status === "pending" && (
-                    <div className="flex gap-4 pt-4">
+                    <div className="flex flex-col gap-4 pt-4 sm:flex-row">
                       <Button 
                         disabled={isModerating}
                         onClick={() => activeNotif.furnitureMeta?.furnitureId && handleModerateFurniture(activeNotif.furnitureMeta.furnitureId, "approved")}
@@ -720,7 +968,7 @@ export function NotificationsModule() {
                 <h4 className="text-sm font-black uppercase tracking-wider text-slate-700 mb-4">
                   {isFr ? "Photos de la Réclamation" : "Reclamation Photos"}
                 </h4>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
                   {activeNotifPhotos.map((url, idx) => (
                     <a
                       key={`${activeNotif._id}-photo-${idx}`}
@@ -741,8 +989,8 @@ export function NotificationsModule() {
             )}
 
             {isReclamation(activeNotif.type) && (
-              <form onSubmit={handleReplyToReclamation} className="rounded-3xl border border-blue-100 bg-blue-50/60 p-6 shadow-sm">
-                <div className="mb-4 flex items-center justify-between gap-4">
+              <form onSubmit={handleReplyToReclamation} className="rounded-3xl border border-blue-100 bg-blue-50/60 p-5 shadow-sm sm:p-6">
+                <div className="mb-4 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                   <div>
                     <h4 className="text-lg font-black text-slate-950">Répondre au locataire</h4>
                     <p className="text-sm font-medium text-slate-500">
@@ -766,7 +1014,7 @@ export function NotificationsModule() {
                   </p>
                 )}
                 <div className="mt-4 flex justify-end">
-                  <Button type="submit" disabled={isSendingReply} className="rounded-2xl px-6 font-black">
+                  <Button type="submit" disabled={isSendingReply} className="w-full rounded-2xl px-6 font-black sm:w-auto">
                     {isSendingReply ? "Envoi..." : "Envoyer la réponse"}
                     {!isSendingReply && <ChevronRight className="ml-2 h-4 w-4" />}
                   </Button>
@@ -774,7 +1022,7 @@ export function NotificationsModule() {
               </form>
             )}
 
-            {activeNotif.type === "Contrat" && activeNotif.contractData && (
+            {activeNotif.contractData && (
               <div className="bg-white border border-blue-200 rounded-3xl overflow-hidden shadow-xl shadow-blue-100">
                 <div className="relative h-44">
                   <img
@@ -789,9 +1037,9 @@ export function NotificationsModule() {
                     </div>
                   </div>
                 </div>
-                <div className="p-6">
+                <div className="p-5 sm:p-6">
                   <Button
-                    className="w-full h-12 rounded-2xl bg-blue-600 hover:bg-blue-700 text-base font-black"
+                    className="w-full h-12 rounded-2xl bg-blue-600 hover:bg-blue-700 text-base font-black shadow-lg shadow-blue-200"
                     onClick={() => handleViewContract(activeNotif.contractData?.contractId, activeNotif.contractData?.requestId)}
                   >
                     <FileSignature className="w-5 h-5 mr-2" />
@@ -800,6 +1048,36 @@ export function NotificationsModule() {
                   {viewContractError && (
                     <p className="mt-3 text-sm font-semibold text-destructive">{viewContractError}</p>
                   )}
+                </div>
+              </div>
+            )}
+
+            {activeNotif.requestMeta && (
+              <div className="bg-white border border-emerald-200 rounded-3xl overflow-hidden shadow-xl shadow-emerald-100">
+                <div className="p-6 sm:p-8">
+                   <div className="flex items-center gap-4 mb-6">
+                      <div className="h-14 w-14 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-600">
+                         <Home className="h-7 w-7" />
+                      </div>
+                      <div>
+                         <h4 className="text-xl font-black text-slate-900">{activeNotif.requestMeta.propertyTitle}</h4>
+                         <p className="text-sm font-bold text-slate-500">Demande de {activeNotif.requestMeta.tenantName}</p>
+                      </div>
+                   </div>
+                   <Button
+                    className="w-full h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-base font-black shadow-lg shadow-emerald-200 transition-all hover:scale-[1.02]"
+                    disabled={isLoadingRequest}
+                    onClick={() => handleViewRequest(activeNotif.requestMeta!.requestId)}
+                  >
+                    {isLoadingRequest ? (
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
+                    ) : (
+                      <>
+                        <FileText className="w-5 h-5 mr-2" />
+                        {isFr ? "Consulter la Demande" : "View Request"}
+                      </>
+                    )}
+                  </Button>
                 </div>
               </div>
             )}
@@ -828,14 +1106,16 @@ export function NotificationsModule() {
               </div>
             )}
 
-            <div className="pt-8 border-t border-slate-100 flex justify-between items-center text-slate-400">
+            <div className="flex flex-col gap-4 border-t border-slate-100 pt-8 text-slate-400 sm:flex-row sm:items-center sm:justify-between">
                <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 font-black">
-                    A
+                    {(activeNotif.messageMeta?.senderName || "A").charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <p className="text-xs font-black text-foreground">Administrateur</p>
-                    <p className="text-[10px] font-bold">ImmoSmart Team</p>
+                    <p className="text-xs font-black text-foreground">{activeNotif.messageMeta?.senderName || "Administrateur"}</p>
+                    <p className="text-[10px] font-bold">
+                      {activeNotif.messageMeta?.conversationId ? "Conversation locataire" : "ImmoSmart Team"}
+                    </p>
                   </div>
                </div>
                <p className="text-[10px] font-bold italic">Réf: {activeNotif._id.substring(activeNotif._id.length - 8).toUpperCase()}</p>

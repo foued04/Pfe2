@@ -35,27 +35,17 @@ export function FurnitureRequestDetailModal({
   const handleReview = async (status: "Approuve" | "Refuse" | "En attente") => {
     setIsSubmitting(true)
     try {
-      const token = localStorage.getItem("accessToken")
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
-      
-      const response = await fetch(`${API_URL}/furniture/change-requests/${request._id}/review`, {
+      const updated = await apiFetch<any>(`/furniture/change-requests/${request._id}/review`, {
+        auth: true,
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           status,
           ownerResponse: replyMessage,
         }),
       })
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.message || `Request failed with status ${response.status}`)
-      }
-
-      const updated = await response.json()
       onRequestUpdated?.(updated)
       setReplyMessage("")
     } catch (error: any) {

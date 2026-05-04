@@ -24,7 +24,7 @@ type NotificationPrefs = {
 const roleLabels = {
   fr: {
     tenant: "Locataire",
-    owner: "Proprietaire",
+    owner: "Locateur",
     admin: "Administrateur",
   },
   en: {

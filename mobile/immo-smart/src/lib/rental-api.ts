@@ -6,7 +6,7 @@ export const fetchRentalRequests = (token: string) => {
 }
 
 export const createRentalRequest = (
-  data: { property: string; message?: string },
+  data: { property: string; duration: string; message?: string },
   token: string,
 ) => {
   return http.post<BackendRentalRequest>("/rental-requests", data, token)

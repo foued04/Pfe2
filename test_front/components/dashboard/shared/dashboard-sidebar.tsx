@@ -138,6 +138,11 @@ export function DashboardSidebar({
                   {pendingRequests > 99 ? "99+" : pendingRequests}
                 </span>
               )}
+              {role === "owner" && item.href === "/dashboard/owner/notifications" && unreadNotifications > 0 && (
+                <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white shadow-sm">
+                  {unreadNotifications > 99 ? "99+" : unreadNotifications}
+                </span>
+              )}
               {role === "tenant" && item.href === "/dashboard/tenant/notifications" && unreadNotifications > 0 && (
                 <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white shadow-sm">
                   {unreadNotifications > 99 ? "99+" : unreadNotifications}

@@ -176,7 +176,7 @@ export function FurnitureReceipt({ order, onBack }: FurnitureReceiptProps) {
                 <span>{t("furn.subtotal")}</span>
                 <span>{order.total.toLocaleString()} DT</span>
               </div>
-              <div className="flex items-center justify-between text-[12px] font-bold uppercase tracking-tighter text-emerald-600">
+              <div className="flex items-center justify-between text-[12px] font-bold uppercase tracking-tighter text-[#059669]">
                 <span>Livraison (0%)</span>
                 <span>OFFERTE</span>
               </div>

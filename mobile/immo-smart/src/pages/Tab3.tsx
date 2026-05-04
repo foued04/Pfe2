@@ -1,485 +1,654 @@
-import { IonContent, IonIcon, IonPage } from "@ionic/react"
-import {
-  sparklesOutline,
-  keyOutline,
-  eyeOutline,
-  eyeOffOutline,
-  checkmarkCircleOutline,
-  personOutline,
-  mailOutline,
-  callOutline,
-  arrowForwardOutline,
-  shieldCheckmarkOutline,
-} from "ionicons/icons"
-import { useMemo, useState, useEffect } from "react"
-import { http } from "../lib/api"
+import { IonContent, IonPage } from "@ionic/react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
+import { useHistory, useLocation } from "react-router-dom"
+import { ImageCaptcha } from "../components/ImageCaptcha"
 import { useAuth } from "../lib/auth-context"
+import { http } from "../lib/api"
+import { requestGoogleAccessToken } from "../lib/google-oauth"
+import type { UserRole } from "../types/api"
 import "./Tab3.css"
 
-type AuthMode = "login" | "register" | "verify-email" | "forgot-password" | "verify-reset-code" | "reset-password"
+type View = "login" | "register" | "forgot-password" | "verify-code" | "reset-password"
 
 const ADMIN_EMAIL = "admin@immosmart.tn"
 const ADMIN_PASSWORD = "admin123"
 
+function Field({
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  icon,
+  action,
+  autoComplete = "off",
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  placeholder: string
+  type?: string
+  icon?: ReactNode
+  action?: ReactNode
+  autoComplete?: string
+}) {
+  return (
+    <label className="auth-field">
+      <span className="auth-label">{label}</span>
+      <span className="auth-input-wrap">
+        {icon ? <span className="auth-icon">{icon}</span> : null}
+        <input
+          className={`auth-input ${icon ? "with-icon" : ""} ${action ? "with-action" : ""}`}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          type={type}
+          autoComplete={autoComplete}
+          required
+        />
+        {action ? <span className="auth-action">{action}</span> : null}
+      </span>
+    </label>
+  )
+}
+
+function CodeInput({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const refs = useRef<Array<HTMLInputElement | null>>([])
+  const digits = Array.from({ length: 6 }, (_, i) => value[i] ?? "")
+
+  return (
+    <label className="auth-field">
+      <span className="auth-label">Code de verification</span>
+      <div
+        className="auth-code-row"
+        onPaste={(e) => {
+          e.preventDefault()
+          onChange(e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6))
+        }}
+      >
+        {digits.map((digit, i) => (
+          <input
+            key={i}
+            ref={(node) => {
+              refs.current[i] = node
+            }}
+            className="auth-code"
+            value={digit}
+            inputMode="numeric"
+            maxLength={1}
+            onChange={(e) => {
+              const nextDigit = e.target.value.replace(/\D/g, "").slice(-1)
+              const next = digits.slice()
+              next[i] = nextDigit
+              onChange(next.join(""))
+              if (nextDigit && i < 5) refs.current[i + 1]?.focus()
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Backspace" && !digits[i] && i > 0) refs.current[i - 1]?.focus()
+            }}
+          />
+        ))}
+      </div>
+    </label>
+  )
+}
+
+function GoogleButton({ view, onClick }: { view: View; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="google-button">
+      <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+      </svg>
+      <span>{view === "register" ? "S'inscrire avec Google" : "Se connecter avec Google"}</span>
+    </button>
+  )
+}
+
+const getDashboardPath = (userRole?: UserRole | null) => {
+  if (userRole === "owner" || userRole === "tenant") return "/tab3"
+  if (userRole === "admin") return "/account"
+  return "/tab3"
+}
+
 const Tab3: React.FC = () => {
-  const { user, isAuthenticated, login, register, verifyEmail, logout, loading } = useAuth()
-  const [mode, setMode] = useState<AuthMode>("login")
-  const [fullName, setFullName] = useState("")
+  const { isAuthenticated, loading, user, login, register, loginWithGoogle } = useAuth()
+  const history = useHistory()
+  const location = useLocation()
+  const [view, setView] = useState<View>("login")
+  const [role, setRole] = useState<Extract<UserRole, "owner" | "tenant">>("tenant")
+  const [isAdminLogin, setIsAdminLogin] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [agreesToTerms, setAgreesToTerms] = useState(false)
+  const [wantsMarketing, setWantsMarketing] = useState(false)
+  const [error, setError] = useState("")
+  const [successMsg, setSuccessMsg] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false)
+  const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
-  const [verificationCode, setVerificationCode] = useState("")
   const [resetCode, setResetCode] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [confirmNewPassword, setConfirmNewPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [role, setRole] = useState<"tenant" | "owner">("tenant")
-  const [isAdminLogin, setIsAdminLogin] = useState(false)
-  const [acceptTerms, setAcceptTerms] = useState(false)
-  const [acceptNews, setAcceptNews] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState("")
-  const [success, setSuccess] = useState("")
+  const [isCaptchaVerified, setIsCaptchaVerified] = useState(false)
+  const [showCaptchaOverlay, setShowCaptchaOverlay] = useState(false)
 
-  const title = useMemo(() => {
-    if (loading) return "Connexion en cours"
-    if (!isAuthenticated) return "Connexion"
-    return `Bienvenue ${user?.name}`
-  }, [loading, isAuthenticated, user])
+  const heroMetrics = [
+    { value: "150+", label: "Biens verifies" },
+    { value: "98%", label: "Clients satisfaits" },
+    { value: "24h", label: "Reponse moyenne" },
+  ]
+
+  const handleFieldChange = (setter: (val: string) => void) => (val: string) => {
+    setter(val)
+    if (error) setError("")
+  }
+
+  const resolveRedirect = (fallbackRole?: UserRole | null) => {
+    const redirect = new URLSearchParams(location.search).get("redirect")
+    return redirect || getDashboardPath(fallbackRole)
+  }
+
+  const navigateToAuthRoute = (nextView: Extract<View, "login" | "register">) => {
+    const targetPath = nextView === "register" ? "/register" : "/login"
+    history.replace(`${targetPath}${location.search}`)
+  }
+
+  const resetFields = () => {
+    setName("")
+    setEmail("")
+    setPhone("")
+    setPassword("")
+    setConfirmPassword("")
+    setResetCode("")
+    setNewPassword("")
+    setConfirmNewPassword("")
+    setError("")
+    setSuccessMsg("")
+    setShowPassword(false)
+    setShowConfirmPassword(false)
+    setShowConfirmNewPassword(false)
+  }
 
   useEffect(() => {
-    if (!isAuthenticated || !user) return
+    if (location.pathname === "/register") {
+      setView("register")
+      return
+    }
 
-    // When the user is authenticated, stay on the auth page and show the logged-in status.
-    // This app is intentionally limited to authentication only.
-  }, [isAuthenticated, user])
+    setView("login")
+  }, [location.pathname])
 
-  const switchMode = (nextMode: AuthMode) => {
-    setMode(nextMode)
+  useEffect(() => {
+    resetFields()
+    setIsCaptchaVerified(false)
+  }, [view])
+
+  useEffect(() => {
+    if (loading || !isAuthenticated) return
+
+    if (location.pathname === "/account") {
+      history.replace("/profile")
+      return
+    }
+
+    if (location.pathname === "/login" || location.pathname === "/register") {
+      history.replace(resolveRedirect(user?.role))
+    }
+  }, [history, isAuthenticated, loading, location.pathname, location.search, user?.role])
+
+  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
     setError("")
-    setSuccess("")
-  }
-
-  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setBusy(true)
-    setError("")
-    setSuccess("")
+    setSuccessMsg("")
+    setIsLoading(true)
 
     try {
-      if (mode === "login") {
+      if (view === "login") {
         const result = await login(email, password, isAdminLogin ? "admin" : undefined)
         if (!result.success) {
-          throw new Error(result.message || "Email ou mot de passe incorrect")
-        }
-        setPassword("")
-        setSuccess("Connexion reussie.")
-      } else if (mode === "register") {
-        if (password.trim() !== confirmPassword.trim()) {
-          console.warn("Mismatch:", password, confirmPassword);
-          throw new Error("Les deux mots de passe ne correspondent pas.")
-        }
-        if (!acceptTerms) {
-          throw new Error("Veuillez accepter les conditions d'utilisation")
+          setError(result.message || "Email ou mot de passe incorrect")
+          return
         }
 
-        const result = await register({
-          fullName,
-          email,
-          password,
-          role,
-          phone,
-        })
-
-        if (!result.success) {
-          throw new Error(result.message || "Erreur inscription")
-        }
-
-        setVerificationCode("")
-        switchMode("verify-email")
-        setSuccess(result.devCode ? `Code de verification (dev): ${result.devCode}` : "Code envoye par email.")
-      } else if (mode === "verify-email") {
-        if (!verificationCode.trim()) {
-          throw new Error("Saisissez le code de verification recu par email")
-        }
-
-        const result = await verifyEmail(email, verificationCode)
-        if (!result.success) {
-          throw new Error(result.message || "Verification impossible")
-        }
-
-        setSuccess(result.message || "Email verifie avec succes.")
-      } else if (mode === "forgot-password") {
-        await http.post<{ message: string }>("/auth/forgot-password", { email: email.trim().toLowerCase() })
-        switchMode("verify-reset-code")
-        setSuccess("Code de reinitialisation envoye. Verifiez votre email.")
-      } else if (mode === "verify-reset-code") {
-        await http.post<{ message: string }>("/auth/verify-reset-code", {
-          email: email.trim().toLowerCase(),
-          code: resetCode.trim(),
-        })
-        switchMode("reset-password")
-        setSuccess("Code valide. Definissez votre nouveau mot de passe.")
-      } else {
-        if (newPassword !== confirmNewPassword) {
-          throw new Error("Les nouveaux mots de passe ne correspondent pas")
-        }
-
-        await http.post<{ message: string }>("/auth/reset-password", {
-          email: email.trim().toLowerCase(),
-          code: resetCode.trim(),
-          newPassword: newPassword.trim(),
-        })
-
-        setNewPassword("")
-        setConfirmNewPassword("")
-        setResetCode("")
-        switchMode("login")
-        setSuccess("Mot de passe reinitialise avec succes. Vous pouvez vous connecter.")
+        history.replace(resolveRedirect(result.role))
+        return
       }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Operation impossible";
-      console.error("Auth Error:", msg);
-      setError(msg);
+
+      if (view === "register") {
+        if (password.length < 6) {
+          setError("Le mot de passe doit contenir au moins 6 caracteres.")
+          return
+        }
+        if (password !== confirmPassword) {
+          setError("Les deux mots de passe ne correspondent pas.")
+          return
+        }
+        if (!agreesToTerms) {
+          setError("Veuillez accepter les conditions d'utilisation.")
+          return
+        }
+        if (!isCaptchaVerified) {
+          setShowCaptchaOverlay(true)
+          return
+        }
+
+        const result = await register({ name, email, phone, password, role })
+        if (!result.success) {
+          setError(result.message || "Erreur lors de l'inscription")
+          setIsCaptchaVerified(false)
+          return
+        }
+
+        history.replace({
+          pathname: "/verify-email",
+          search: `?email=${encodeURIComponent(email)}`,
+          state: {
+            info: result.message,
+            emailDelivered: result.emailDelivered,
+          },
+        })
+        return
+      }
+
+      if (view === "forgot-password") {
+        const data = await http.post<{ message: string }>("/auth/forgot-password", { email })
+        setSuccessMsg(data.message)
+        setView("verify-code")
+        return
+      }
+
+      if (view === "verify-code") {
+        await http.post<{ message: string }>("/auth/verify-reset-code", { email, code: resetCode })
+        setSuccessMsg("Code verifie avec succes.")
+        setView("reset-password")
+        return
+      }
+
+      if (newPassword !== confirmNewPassword) {
+        setError("Les nouveaux mots de passe ne correspondent pas.")
+        return
+      }
+
+      await http.post<{ message: string }>("/auth/reset-password", {
+        email,
+        code: resetCode,
+        newPassword,
+      })
+      setSuccessMsg("Mot de passe mis a jour. Vous pouvez vous connecter.")
+      navigateToAuthRoute("login")
+    } catch {
+      setError("Une erreur de connexion est survenue")
     } finally {
-      setBusy(false)
+      setIsLoading(false)
     }
   }
 
-  const startForgotPassword = () => {
+  const handleGoogleAuthClick = async () => {
     setError("")
-    setSuccess("")
-    if (!email.trim()) {
-      setError("Saisissez votre email avant de demander la reinitialisation")
-      return
-    }
+    setIsLoading(true)
 
-    switchMode("forgot-password")
+    try {
+      const token = await requestGoogleAccessToken()
+      const googleMode = view === "register" ? "register" : "login"
+      const result = await loginWithGoogle(token, googleMode, googleMode === "register" ? role : undefined)
+
+      if (!result.success) {
+        setError(result.message || "Echec de la connexion Google")
+        return
+      }
+
+      history.replace(resolveRedirect(result.role))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur lors de la connexion Google")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const toggleAdmin = () => {
-    const next = !isAdminLogin
-    setIsAdminLogin(next)
-    switchMode("login")
+  const title =
+    view === "login"
+      ? isAdminLogin
+        ? "Acces administrateur"
+        : "Connexion"
+      : view === "register"
+        ? "Creer un compte"
+        : view === "forgot-password"
+          ? "Mot de passe oublie"
+          : view === "verify-code"
+            ? "Verification du code"
+            : "Nouveau mot de passe"
 
-    if (next) {
-      setEmail(ADMIN_EMAIL)
-      setPassword(ADMIN_PASSWORD)
-      return
-    }
-
-    setEmail("")
-    setPassword("")
-  }
+  const text =
+    view === "login"
+      ? isAdminLogin
+        ? "Acces reserve a l'administration ImmoSmart."
+        : "Connectez-vous a votre espace immobilier."
+      : view === "register"
+        ? "Creez votre compte pour gerer vos locations et vos biens."
+        : view === "forgot-password"
+          ? "Recevez un code par email pour recuperer votre acces."
+          : view === "verify-code"
+            ? "Entrez le code recu par email."
+            : "Choisissez un nouveau mot de passe securise."
 
   return (
     <IonPage>
       <IonContent fullscreen className="auth-content">
-        <div className="auth-page-shell">
-          <aside className="auth-hero">
-            <div className="auth-hero-overlay">
-              <div className="auth-brand">
-                <img src="/brand-logo.svg" alt="ImmoSmart logo" className="auth-brand-logo" />
-                <span>ImmoSmart</span>
-              </div>
-
-              <p className="auth-kicker">Plateforme immobiliere</p>
-              <h2>
-                Trouvez votre bien
-                <br />
-                avec une
-                <br />
-                <span>experience premium</span>
-              </h2>
-              <p className="auth-copy">
-                Locations, annonces et contrats dans une interface claire, moderne et inspiree de l'univers ImmoSmart.
-              </p>
-
-              <div className="auth-metrics">
-                <div>
-                  <strong>150+</strong>
-                  <small>Biens verifies</small>
-                </div>
-                <div>
-                  <strong>98%</strong>
-                  <small>Clients satisfaits</small>
-                </div>
-                <div>
-                  <strong>24h</strong>
-                  <small>Reponse moyenne</small>
-                </div>
-              </div>
-            </div>
-          </aside>
-
-          <section className="auth-form-side">
-            {isAuthenticated ? (
-              <div className="auth-card logged-card">
-                <div className="welcome-badge">
-                  <IonIcon icon={checkmarkCircleOutline} />
-                  Session active
-                </div>
-                <h1>{title}</h1>
-                <p className="subtitle">Connexion reussie sur le meme backend que la version web.</p>
-                <div className="logged-grid">
-                  <div>
-                    <span>Nom</span>
-                    <strong>{user?.name}</strong>
-                  </div>
-                  <div>
-                    <span>Email</span>
-                    <strong>{user?.email}</strong>
-                  </div>
-                  <div>
-                    <span>Role</span>
-                    <strong>{user?.role}</strong>
-                  </div>
-                </div>
-                <button type="button" className="submit-btn" onClick={logout}>
-                  Se deconnecter
+        <div className="auth-page">
+          <div className="auth-shell">
+            <aside className="auth-left">
+              <div className="auth-left-overlay">
+                <button type="button" className="auth-badge" onClick={() => history.push("/")}>
+                  <span className="auth-badge-icon">IS</span>
+                  <span className="auth-badge-text">ImmoSmart</span>
                 </button>
+
+                <div className="auth-hero">
+                  <p className="auth-kicker">Plateforme immobiliere</p>
+                  <h2>
+                    Trouvez votre bien
+                    <br />
+                    avec une
+                    <br />
+                    <span className="auth-highlight">experience premium</span>
+                  </h2>
+                  <p className="auth-copy">
+                    Locations, annonces et contrats dans une interface claire, moderne et inspiree de l'univers ImmoSmart.
+                  </p>
+
+                  <div className="auth-metrics">
+                    {heroMetrics.map((metric) => (
+                      <div key={metric.label} className="auth-metric">
+                        <strong>{metric.value}</strong>
+                        <span>{metric.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-            ) : (
-              <form className="auth-card" onSubmit={submit}>
-                <div className="welcome-badge">
-                  <IonIcon icon={sparklesOutline} />
-                  {isAdminLogin ? "Espace securise" : "Bienvenue"}
+            </aside>
+
+            <section className="auth-right">
+              <div className="auth-card">
+                <div className="auth-header">
+                  <div className="auth-eyebrow">{isAdminLogin ? "Espace securise" : "Bienvenue"}</div>
+                  <h1>{title}</h1>
+                  <p>{text}</p>
                 </div>
 
-                <h1>
-                  {mode === "login" && (isAdminLogin ? "Acces administrateur" : "Connexion")}
-                  {mode === "register" && "Inscription"}
-                  {mode === "verify-email" && "Verifier votre email"}
-                  {mode === "forgot-password" && "Mot de passe oublie"}
-                  {mode === "verify-reset-code" && "Verifier le code"}
-                  {mode === "reset-password" && "Nouveau mot de passe"}
-                </h1>
-                <p className="subtitle">
-                  {mode === "login"
-                    ? isAdminLogin
-                      ? "Acces reserve a l'administration ImmoSmart."
-                      : "Connectez-vous a votre espace immobilier."
-                    : mode === "register"
-                      ? "Creez votre compte pour commencer."
-                      : mode === "verify-email"
-                        ? "Entrez le code recu pour activer votre compte."
-                        : mode === "forgot-password"
-                          ? "Recevez un code par email pour recuperer votre acces."
-                          : mode === "verify-reset-code"
-                            ? "Entrez le code envoye a votre adresse email."
-                            : "Choisissez un nouveau mot de passe securise."}
-                </p>
-
-                {(mode === "login" || mode === "register") && (
+                {(view === "login" || view === "register") && (
                   <div className="auth-tabs">
-                    <button type="button" className={mode === "login" ? "active" : ""} onClick={() => switchMode("login")}>
+                    <button type="button" className={view === "login" ? "auth-tab active" : "auth-tab"} onClick={() => navigateToAuthRoute("login")}>
                       Connexion
                     </button>
-                    {!isAdminLogin && (
-                      <button type="button" className={mode === "register" ? "active" : ""} onClick={() => switchMode("register")}>
+                    {!isAdminLogin ? (
+                      <button
+                        type="button"
+                        className={view === "register" ? "auth-tab active" : "auth-tab"}
+                        onClick={() => navigateToAuthRoute("register")}
+                      >
                         Inscription
                       </button>
-                    )}
+                    ) : null}
                   </div>
                 )}
 
-                {mode === "register" && (
-                  <label className="auth-field">
-                    <span>Nom complet</span>
-                    <div className="auth-field-input">
-                      <IonIcon icon={personOutline} />
-                      <input value={fullName} onChange={(event) => setFullName(event.target.value)} placeholder="Ex: Mohamed Ben Ali" />
-                    </div>
-                  </label>
-                )}
+                <form className="auth-form" onSubmit={submit}>
+                  {view === "register" ? (
+                    <Field label="Nom complet" value={name} onChange={handleFieldChange(setName)} placeholder="Ex: Mohamed Ben Ali" icon="N" autoComplete="name" />
+                  ) : null}
 
-                <label className="auth-field">
-                  <span>Email</span>
-                  <div className="auth-field-input">
-                    <IonIcon icon={mailOutline} />
-                    <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="votre@email.tn" />
-                  </div>
-                </label>
+                  {(view === "login" || view === "register" || view === "forgot-password") ? (
+                    <Field
+                      label="Email"
+                      value={email}
+                      onChange={handleFieldChange(setEmail)}
+                      placeholder={isAdminLogin ? ADMIN_EMAIL : "votre@email.tn"}
+                      type="email"
+                      icon="@"
+                      autoComplete="email"
+                    />
+                  ) : null}
 
-                {(mode === "login" || mode === "register" || mode === "reset-password") && (
-                  <label className="auth-field">
-                    <span>{mode === "reset-password" ? "Nouveau mot de passe" : "Mot de passe"}</span>
-                    <div className="auth-field-input">
-                      <IonIcon icon={keyOutline} />
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={mode === "reset-password" ? newPassword : password}
-                        onChange={(event) => {
-                          const val = event.target.value;
-                          if (mode === "reset-password") setNewPassword(val);
-                          else setPassword(val);
-                          if (error) setError("");
+                  {(view === "login" || view === "register") ? (
+                    <Field
+                      label="Mot de passe"
+                      value={password}
+                      onChange={handleFieldChange(setPassword)}
+                      placeholder="6 caracteres minimum"
+                      type={showPassword ? "text" : "password"}
+                      icon="*"
+                      autoComplete={view === "login" ? "current-password" : "new-password"}
+                      action={
+                        <button type="button" className="auth-eye" onClick={() => setShowPassword(!showPassword)}>
+                          {showPassword ? "Masquer" : "Afficher"}
+                        </button>
+                      }
+                    />
+                  ) : null}
+
+                  {view === "register" ? (
+                    <Field
+                      label="Confirmer le mot de passe"
+                      value={confirmPassword}
+                      onChange={handleFieldChange(setConfirmPassword)}
+                      placeholder="Repetez le mot de passe"
+                      type={showConfirmPassword ? "text" : "password"}
+                      icon="*"
+                      autoComplete="new-password"
+                      action={
+                        <button type="button" className="auth-eye" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
+                          {showConfirmPassword ? "Masquer" : "Afficher"}
+                        </button>
+                      }
+                    />
+                  ) : null}
+
+                  {view === "register" ? (
+                    <Field
+                      label="Telephone"
+                      value={phone}
+                      onChange={(val) => handleFieldChange(setPhone)(val.replace(/\D/g, "").slice(0, 8))}
+                      placeholder="Ex: 22 333 444"
+                      type="tel"
+                      icon="Tel"
+                      autoComplete="tel"
+                    />
+                  ) : null}
+
+                  {view === "login" && !isAdminLogin ? (
+                    <div className="auth-row-right">
+                      <button
+                        type="button"
+                        className="auth-link"
+                        onClick={() => {
+                          setView("forgot-password")
+                          setError("")
+                          setSuccessMsg("")
                         }}
-                        placeholder={mode === "reset-password" ? "Nouveau mot de passe" : "6 caracteres minimum"}
-                      />
-                      <button type="button" className="eye-btn" onClick={() => setShowPassword((prev) => !prev)}>
-                        <IonIcon icon={showPassword ? eyeOffOutline : eyeOutline} />
+                      >
+                        Mot de passe oublie ?
                       </button>
                     </div>
-                  </label>
-                )}
+                  ) : null}
 
-                {mode === "register" && (
-                  <>
+                  {view === "verify-code" ? <CodeInput value={resetCode} onChange={handleFieldChange(setResetCode)} /> : null}
+
+                  {view === "reset-password" ? (
+                    <Field
+                      label="Nouveau mot de passe"
+                      value={newPassword}
+                      onChange={handleFieldChange(setNewPassword)}
+                      placeholder="Nouveau mot de passe"
+                      type={showPassword ? "text" : "password"}
+                      icon="*"
+                      autoComplete="new-password"
+                      action={
+                        <button type="button" className="auth-eye" onClick={() => setShowPassword(!showPassword)}>
+                          {showPassword ? "Masquer" : "Afficher"}
+                        </button>
+                      }
+                    />
+                  ) : null}
+
+                  {view === "reset-password" ? (
+                    <Field
+                      label="Confirmer le nouveau mot de passe"
+                      value={confirmNewPassword}
+                      onChange={handleFieldChange(setConfirmNewPassword)}
+                      placeholder="Confirmez le mot de passe"
+                      type={showConfirmNewPassword ? "text" : "password"}
+                      icon="*"
+                      autoComplete="new-password"
+                      action={
+                        <button type="button" className="auth-eye" onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}>
+                          {showConfirmNewPassword ? "Masquer" : "Afficher"}
+                        </button>
+                      }
+                    />
+                  ) : null}
+
+                  {view === "register" && !isAdminLogin ? (
                     <label className="auth-field">
-                      <span>Confirmer le mot de passe</span>
-                      <div className="auth-field-input">
-                        <IonIcon icon={keyOutline} />
-                        <input
-                          type={showPassword ? "text" : "password"}
-                          value={confirmPassword}
-                          onChange={(event) => {
-                            setConfirmPassword(event.target.value);
-                            if (error) setError("");
-                          }}
-                          placeholder="Repetez le mot de passe"
-                        />
-                      </div>
+                      <span className="auth-label">Type de compte</span>
+                      <select className="auth-input" value={role} onChange={(e) => setRole(e.target.value as Extract<UserRole, "owner" | "tenant">)}>
+                        <option value="tenant">Locataire</option>
+                        <option value="owner">Locateur</option>
+                      </select>
                     </label>
+                  ) : null}
 
-                    <label className="auth-field">
-                      <span>Telephone</span>
-                      <div className="auth-field-input">
-                        <IonIcon icon={callOutline} />
-                        <input type="tel" maxLength={8} value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, "").slice(0, 8))} placeholder="Ex: 22 333 444" />
-                      </div>
-                    </label>
+                  {error ? <div className="auth-notice auth-error">{error}</div> : null}
+                  {successMsg ? <div className="auth-notice auth-success">{successMsg}</div> : null}
 
-                    <label className="auth-field">
-                      <span>Type de compte</span>
-                      <div className="auth-field-input no-icon">
-                        <select value={role} onChange={(event) => setRole(event.target.value as "tenant" | "owner")}>
-                          <option value="tenant">Locataire</option>
-                          <option value="owner">Proprietaire</option>
-                        </select>
-                      </div>
-                    </label>
-
-                    <label className="check-row">
-                      <input type="checkbox" checked={acceptTerms} onChange={(event) => setAcceptTerms(event.target.checked)} />
-                      <span>J'accepte les conditions d'utilisation et la politique de confidentialite.</span>
-                    </label>
-                    <label className="check-row">
-                      <input type="checkbox" checked={acceptNews} onChange={(event) => setAcceptNews(event.target.checked)} />
-                      <span>Je souhaite recevoir les nouveautes et offres d'ImmoSmart.</span>
-                    </label>
-                  </>
-                )}
-                {mode === "verify-email" && (
-                  <label className="auth-field">
-                    <span>Code de verification</span>
-                    <div className="auth-field-input">
-                      <IonIcon icon={mailOutline} />
-                      <input
-                        value={verificationCode}
-                        onChange={(event) => setVerificationCode(event.target.value)}
-                        placeholder="Ex: 123456"
-                        inputMode="numeric"
-                      />
+                  {view === "register" ? (
+                    <div className="auth-checks">
+                      <label>
+                        <input type="checkbox" checked={agreesToTerms} onChange={(e) => setAgreesToTerms(e.target.checked)} />
+                        <span>J'accepte les conditions d'utilisation et la politique de confidentialite.</span>
+                      </label>
+                      <label>
+                        <input type="checkbox" checked={wantsMarketing} onChange={(e) => setWantsMarketing(e.target.checked)} />
+                        <span>Je souhaite recevoir les nouveautes et offres d'ImmoSmart.</span>
+                      </label>
                     </div>
-                  </label>
-                )}
+                  ) : null}
 
-                {mode === "forgot-password" && (
-                  <p className="panel-copy">
-                    Nous allons envoyer un code a votre email pour reinitialiser votre mot de passe.
-                  </p>
-                )}
-
-                {mode === "verify-reset-code" && (
-                  <label className="auth-field">
-                    <span>Code de reinitialisation</span>
-                    <div className="auth-field-input">
-                      <IonIcon icon={mailOutline} />
-                      <input
-                        value={resetCode}
-                        onChange={(event) => setResetCode(event.target.value)}
-                        placeholder="Ex: 654321"
-                        inputMode="numeric"
-                      />
-                    </div>
-                  </label>
-                )}
-
-                {mode === "reset-password" ? (
-                  <label className="auth-field">
-                    <span>Confirmer le nouveau mot de passe</span>
-                    <div className="auth-field-input">
-                      <IonIcon icon={keyOutline} />
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={confirmNewPassword}
-                        onChange={(event) => setConfirmNewPassword(event.target.value)}
-                        placeholder="Repetez le nouveau mot de passe"
-                      />
-                    </div>
-                  </label>
-                ) : null}
-
-                {mode === "login" ? (
-                  <button type="button" className="forgot-link" onClick={startForgotPassword}>
-                    Mot de passe oublie ?
-                  </button>
-                ) : null}
-
-                {error && <div className="auth-status error" key={error} style={{ display: 'block' }}>{error}</div>}
-                {success && <div className="auth-status success" key={success} style={{ display: 'block' }}>{success}</div>}
-
-                <button type="submit" className="submit-btn" disabled={busy || loading}>
-                  {busy
-                    ? "Traitement..."
-                    : mode === "login"
-                      ? "Se connecter"
-                      : mode === "register"
-                        ? "Creer mon compte"
-                        : mode === "verify-email"
-                          ? "Verifier mon email"
-                          : mode === "forgot-password"
+                  <button type="submit" className={`auth-submit ${isAdminLogin ? "admin" : ""}`} disabled={isLoading || (view === "register" && !agreesToTerms)}>
+                    {isLoading
+                      ? "Traitement..."
+                      : view === "login"
+                        ? "Se connecter"
+                        : view === "register"
+                          ? "Creer mon compte"
+                          : view === "forgot-password"
                             ? "Envoyer le code"
-                            : mode === "verify-reset-code"
+                            : view === "verify-code"
                               ? "Verifier le code"
-                              : "Confirmer le nouveau mot de passe"}
-                  {(mode === "login" || mode === "register") && <IonIcon icon={arrowForwardOutline} />}
-                </button>
+                              : "Confirmer"}
+                  </button>
 
-                {(mode === "login" || mode === "register") && (
-                  <>
-                    <div className="separator">
-                      <span>OU</span>
-                    </div>
+                  {(view === "login" || view === "register") && !isAdminLogin ? (
+                    <>
+                      <div className="auth-divider">
+                        <span>ou</span>
+                      </div>
+                      <GoogleButton view={view} onClick={handleGoogleAuthClick} />
+                    </>
+                  ) : null}
 
+                  <div className="auth-footer">
+                    {view === "login" && !isAdminLogin ? (
+                      <p>
+                        Pas encore inscrit ?{" "}
+                        <button type="button" className="auth-link-accent" onClick={() => navigateToAuthRoute("register")}>
+                          Creer un compte
+                        </button>
+                      </p>
+                    ) : null}
+
+                    {view === "register" ? (
+                      <p>
+                        Vous avez deja un compte ?{" "}
+                        <button type="button" className="auth-link-accent" onClick={() => navigateToAuthRoute("login")}>
+                          Se connecter
+                        </button>
+                      </p>
+                    ) : null}
+
+                    {(view === "forgot-password" || view === "verify-code" || view === "reset-password") ? (
+                      <button
+                        type="button"
+                        className="auth-back"
+                        onClick={() => {
+                          navigateToAuthRoute("login")
+                          setError("")
+                          setSuccessMsg("")
+                        }}
+                      >
+                        Retour a la connexion
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {(view === "login" || view === "register") ? (
                     <button
                       type="button"
-                      className="google-btn"
-                      onClick={() => setError("Connexion Google disponible sur la version web actuellement.")}
+                      className="auth-admin"
+                      onClick={() => {
+                        const next = !isAdminLogin
+                        setIsAdminLogin(next)
+                        history.replace(`/login${location.search}`)
+                        setError("")
+                        setSuccessMsg("")
+                        if (next) {
+                          setEmail(ADMIN_EMAIL)
+                          setPassword(ADMIN_PASSWORD)
+                        } else {
+                          setEmail("")
+                          setPassword("")
+                        }
+                      }}
                     >
-                      <span className="google-icon">G</span>
-                      {mode === "register" ? "S'inscrire avec Google" : "Se connecter avec Google"}
+                      {isAdminLogin ? "Retour au portail public" : "Acces reserve a l'administration"}
                     </button>
-                  </>
-                )}
+                  ) : null}
+                </form>
+              </div>
+            </section>
+          </div>
 
-                {mode !== "login" && mode !== "register" && (
-                  <button type="button" className="link-btn" onClick={() => switchMode("login")}>
-                    Retour a la connexion
-                  </button>
-                )}
-
-                {(mode === "login" || mode === "register") && (
-                  <button type="button" className="link-btn" onClick={toggleAdmin}>
-                    <IonIcon icon={shieldCheckmarkOutline} />
-                    {isAdminLogin ? "Retour au portail public" : "Acces reserve a l'administration"}
-                  </button>
-                )}
-              </form>
-            )}
-          </section>
+          {showCaptchaOverlay ? (
+            <div className="auth-overlay">
+              <div className="auth-overlay-bg" onClick={() => setShowCaptchaOverlay(false)} />
+              <div className="auth-overlay-card">
+                <div className="auth-overlay-head">
+                  <p>Verification finale</p>
+                  <h3>Confirmez que vous etes une personne reelle</h3>
+                </div>
+                <ImageCaptcha
+                  onVerify={(ok) => {
+                    if (!ok) return
+                    setIsCaptchaVerified(true)
+                    window.setTimeout(() => {
+                      setShowCaptchaOverlay(false)
+                      window.setTimeout(() => {
+                        const form = document.querySelector("form")
+                        if (form) form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }))
+                      }, 120)
+                    }, 500)
+                  }}
+                />
+              </div>
+            </div>
+          ) : null}
         </div>
       </IonContent>
     </IonPage>

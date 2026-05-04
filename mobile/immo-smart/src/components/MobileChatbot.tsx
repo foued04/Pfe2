@@ -20,6 +20,7 @@ import {
 } from '@ionic/react';
 import { chatbubbleEllipsesOutline, closeOutline, sendOutline, sparklesOutline } from 'ionicons/icons';
 import { useAuth } from '../lib/auth-context';
+import { API_URL } from '../lib/api';
 import './MobileChatbot.css';
 
 interface Message {
@@ -77,7 +78,7 @@ const MobileChatbot: React.FC = () => {
           parts: [{ text: m.content }]
         }));
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/chatbot/ask`, {
+      const response = await fetch(`${API_URL}/chatbot/ask`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

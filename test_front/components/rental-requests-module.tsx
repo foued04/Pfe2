@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react"
 import { useI18n } from "@/lib/i18n"
 import { useAuth } from "@/lib/auth-context"
+import { resolveApiUrl } from "@/lib/api/client"
 import { 
   RentalRequest, 
   Contract,
@@ -52,7 +53,7 @@ export function RentalRequestsModule() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+  const API_URL = resolveApiUrl()
 
   const fetchRequests = async () => {
     if (!user) return
@@ -250,6 +251,7 @@ export function RentalRequestsModule() {
   }
 
   const handleAccept = async (requestId: string) => {
+    setIsLoading(true)
     try {
       const token = localStorage.getItem("accessToken")
       const response = await fetch(`${API_URL}/rental-requests/${requestId}/status`, {
@@ -264,10 +266,21 @@ export function RentalRequestsModule() {
       if (response.ok) {
         setRequests(prev => prev.map(r => r.id === requestId ? { ...r, status: "Acceptée" as RequestStatus } : r))
         if (selectedRequest?.id === requestId) setSelectedRequest(prev => prev ? { ...prev, status: "Acceptée" as RequestStatus } : null)
-        handleGenerateContract(requestId)
+        const contractGenerated = await handleGenerateContract(requestId)
+        if (!contractGenerated) {
+          alert(lang === "fr"
+            ? "La demande a ete acceptee, mais le contrat n'a pas pu etre genere automatiquement."
+            : "The request was accepted, but the contract could not be generated automatically.")
+        }
+      } else {
+        const errorData = await response.json().catch(() => null)
+        alert(errorData?.message || (lang === "fr" ? "Erreur lors de l'acceptation de la demande." : "Error while accepting the request."))
       }
     } catch (err) {
       console.error("Update status error:", err)
+      alert(lang === "fr" ? "Erreur de connexion pendant l'acceptation." : "Connection error while accepting the request.")
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -293,6 +306,7 @@ export function RentalRequestsModule() {
   }
 
   const handleGenerateContract = async (requestId: string) => {
+    setIsLoading(true)
     try {
       const token = localStorage.getItem("accessToken")
       const response = await fetch(`${API_URL}/contracts/generate`, {
@@ -337,12 +351,23 @@ export function RentalRequestsModule() {
           }
           setContracts(prev => [...prev.filter(c => c.id !== finalContract.id), finalContract])
           setSelectedContract(finalContract)
+          if (selectedRequest?.id === requestId) setSelectedRequest(prev => prev ? { ...prev, status: fullData.status as RequestStatus } : null)
           setRequests(prev => prev.map(r => r.id === requestId ? { ...r, status: "Contrat généré" as RequestStatus } : r))
           setCurrentView("contract")
+          return true
         }
+        alert(lang === "fr" ? "Le contrat a ete genere, mais il n'a pas pu etre charge." : "The contract was generated, but it could not be loaded.")
+        return false
       }
+      const errorData = await response.json().catch(() => null)
+      alert(errorData?.message || (lang === "fr" ? "Erreur lors de la generation du contrat." : "Error while generating the contract."))
+      return false
     } catch (err) {
       console.error("Generate contract error:", err)
+      alert(lang === "fr" ? "Erreur de connexion pendant la generation du contrat." : "Connection error while generating the contract.")
+      return false
+    } finally {
+      setIsLoading(false)
     }
   }
 

@@ -13,10 +13,11 @@ interface ChatModuleProps {
   contextId: string
   contextTitle: string
   recipientId: string
+  recipientName?: string
   category: "Demandes" | "Contrats" | "Maintenance"
 }
 
-export function ChatModule({ contextId, contextTitle, recipientId, category }: ChatModuleProps) {
+export function ChatModule({ contextId, contextTitle, recipientId, recipientName, category }: ChatModuleProps) {
   const { lang } = useI18n()
   const { user } = useAuth()
   const currentUserId = String(user?.id || "")
@@ -98,16 +99,20 @@ export function ChatModule({ contextId, contextTitle, recipientId, category }: C
     }
   }
 
+  const otherParticipant = messages.find(m => String(m.sender?._id || m.sender) !== currentUserId)?.sender
+  const displayName = otherParticipant?.fullName || recipientName || (lang === "fr" ? "Discussion" : "Chat")
+  const displayInitial = displayName.charAt(0) || "?"
+
   return (
     <div className="bg-card border border-border/50 rounded-2xl flex flex-col h-[400px]">
       <div className="flex items-center justify-between p-4 border-b border-border/40 bg-white/80 backdrop-blur-md sticky top-0 z-30">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black shadow-inner">
-             {messages.find(m => String(m.sender?._id || m.sender) !== currentUserId)?.sender?.fullName?.charAt(0) || "?"}
+             {displayInitial}
           </div>
           <div>
             <h3 className="font-black text-sm text-[#050505]">
-              {messages.find(m => String(m.sender?._id || m.sender) !== currentUserId)?.sender?.fullName || (lang === "fr" ? "Discussion" : "Chat")}
+              {displayName}
             </h3>
             <div className="flex items-center gap-1.5">
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />

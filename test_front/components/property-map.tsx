@@ -44,7 +44,7 @@ export function PropertyMap({
         />
         
         {/* Legend overlay - Professional Design */}
-        <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm rounded-xl p-4 border border-gray-200 shadow-xl z-40 min-w-max">
+        <div className="absolute left-4 top-4 z-40 hidden min-w-max rounded-xl border border-gray-200 bg-white/95 p-4 shadow-xl backdrop-blur-sm sm:block">
           <div className="font-semibold mb-3 text-gray-900 text-sm">
             {lang === "fr" ? "Légende des Statuts" : "Status Legend"}
           </div>
@@ -81,7 +81,7 @@ export function PropertyMap({
         </div>
 
         {/* Monastir badge - bottom right */}
-        <div className="absolute bottom-4 right-4 bg-primary text-primary-foreground rounded-full px-3 py-1 text-xs font-semibold shadow-lg z-40 flex items-center gap-1">
+        <div className="absolute bottom-4 right-4 z-40 flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-[10px] font-semibold text-primary-foreground shadow-lg sm:text-xs">
           <MapPin className="w-3 h-3" />
           Monastir
         </div>

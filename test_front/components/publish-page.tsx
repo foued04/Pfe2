@@ -1,16 +1,22 @@
 "use client"
 
+import { useEffect } from "react"
 import { ArrowRight, ShieldAlert } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
-import { OwnerDashboard } from "@/components/owner-dashboard"
 
 export function PublishPage() {
   const router = useRouter()
   const { role } = useAuth()
 
+  useEffect(() => {
+    if (role === "owner") {
+      router.replace("/dashboard/owner/properties/new")
+    }
+  }, [role, router])
+
   if (role === "owner") {
-    return <OwnerDashboard initialSection="addProperty" />
+    return <div className="p-6 text-sm text-muted-foreground">Redirection vers le formulaire de publication...</div>
   }
 
   return (

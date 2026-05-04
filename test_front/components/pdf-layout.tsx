@@ -30,7 +30,7 @@ export function PdfLayout({
     <div
       id={id}
       className={cn(
-        "relative mx-auto min-h-[297mm] w-[210mm] overflow-hidden bg-white p-[15mm] text-[#0f172a] shadow-2xl transition-all duration-500 print:m-0 print:shadow-none md:p-[20mm]",
+        "relative mx-auto w-full max-w-[210mm] overflow-hidden bg-white p-4 text-[#0f172a] shadow-2xl transition-all duration-500 print:m-0 print:min-h-[297mm] print:max-w-none print:p-[20mm] print:shadow-none sm:p-6 md:min-h-[297mm] md:p-[20mm]",
         className
       )}
       style={{
@@ -57,7 +57,7 @@ export function PdfLayout({
         </div>
       </div>
 
-      <header className="mb-[15mm] flex items-start justify-between border-b-[3px] border-[#2563eb] pb-[10mm]">
+      <header className="mb-[15mm] flex flex-col gap-6 border-b-[3px] border-[#2563eb] pb-[10mm] md:flex-row md:items-start md:justify-between">
         <div className="space-y-4">
           <div className="flex items-center gap-4">
             <div className="flex h-[14mm] w-[14mm] items-center justify-center rounded-2xl bg-[#2563eb] text-2xl font-black text-white shadow-xl">
@@ -95,7 +95,7 @@ export function PdfLayout({
       </header>
 
       {(infoLeft || infoRight) && (
-        <div className="mb-[15mm] grid grid-cols-2 gap-[10mm]">
+        <div className="mb-[15mm] grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-[10mm]">
           {infoLeft ? (
             <div className="h-full rounded-2xl border border-[#fef3c7] bg-[#f8fafc] p-6">{infoLeft}</div>
           ) : null}
@@ -109,7 +109,7 @@ export function PdfLayout({
 
       <main className="mb-[20mm] flex-1">{children}</main>
 
-      <footer className="mt-auto flex items-end justify-between border-t border-[#e5e7eb] pt-[10mm] text-[#9ca3af]">
+      <footer className="mt-auto flex flex-col gap-4 border-t border-[#e5e7eb] pt-[10mm] text-[#9ca3af] md:flex-row md:items-end md:justify-between">
         <div className="max-w-[120mm]">
           {footerNotes ? (
             <p className="text-[10px] italic leading-relaxed">{footerNotes}</p>

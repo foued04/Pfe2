@@ -33,7 +33,9 @@ import FavoritesPage from "./pages/FavoritesPage"
 import FurniturePage from "./pages/FurniturePage"
 import MaintenancePage from "./pages/MaintenancePage"
 import HousingNeedsPage from "./pages/HousingNeedsPage"
+import MessagesPage from "./pages/MessagesPage"
 import MobileChatbot from "./components/MobileChatbot"
+import VerifyEmailPage from "./pages/VerifyEmailPage"
 
 import "@ionic/react/css/core.css"
 
@@ -56,7 +58,7 @@ const DashboardRoute: React.FC = () => {
   const { isAuthenticated, user } = useAuth()
 
   if (!isAuthenticated) {
-    return <Tab3 />
+    return <Redirect to="/login" />
   }
 
   switch (user?.role) {
@@ -64,14 +66,16 @@ const DashboardRoute: React.FC = () => {
       return <OwnerDashboard />
     case "tenant":
       return <TenantDashboard />
+    case "admin":
+      return <Redirect to="/account" />
     default:
-      return <Tab3 />
+      return <Redirect to="/login" />
   }
 }
 
 const ProtectedRoute: React.FC<{ component: React.FC }> = ({ component: Component }) => {
   const { isAuthenticated } = useAuth()
-  return isAuthenticated ? <Component /> : <Tab3 />
+  return isAuthenticated ? <Component /> : <Redirect to="/login" />
 }
 
 const AppTabs: React.FC = () => (
@@ -82,6 +86,9 @@ const AppTabs: React.FC = () => (
       <Route exact path="/tab3">
         <DashboardRoute />
       </Route>
+      <Route exact path="/login" component={Tab3} />
+      <Route exact path="/register" component={Tab3} />
+      <Route exact path="/verify-email" component={VerifyEmailPage} />
       <Route exact path="/notifications">
         <ProtectedRoute component={NotificationsPage} />
       </Route>
@@ -102,6 +109,9 @@ const AppTabs: React.FC = () => (
       </Route>
       <Route exact path="/furniture">
         <ProtectedRoute component={FurniturePage} />
+      </Route>
+      <Route exact path="/messages">
+        <ProtectedRoute component={MessagesPage} />
       </Route>
       <Route exact path="/maintenance">
         <ProtectedRoute component={MaintenancePage} />

@@ -179,13 +179,24 @@ export function RentalRequestDetailsModal({
 
           <hr className="border-border/50" />
 
+          <hr className="border-border/50" />
+
           {/* Messaging Section */}
-          <ChatModule 
-            contextId={request.id}
-            contextTitle={`Demande ${request.property.title}`}
-            recipientId={(request.property as any).owner?._id || (request.property as any).owner}
-            category="Demandes"
-          />
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                <MessageSquare className="h-3.5 w-3.5 text-primary" />
+              </div>
+              <h4 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">{lang === "fr" ? "Discuter avec le propriétaire" : "Chat with Owner"}</h4>
+            </div>
+            <ChatModule 
+              contextId={request.id}
+              contextTitle={`Demande ${request.property.title}`}
+              recipientId={(request.property as any).owner?._id || (request.property as any).owner}
+              recipientName={(request.property as any).owner?.fullName}
+              category="Demandes"
+            />
+          </div>
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">

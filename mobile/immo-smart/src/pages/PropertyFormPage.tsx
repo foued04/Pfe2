@@ -7,6 +7,7 @@ import { createProperty, updateProperty, fetchProperty } from "../lib/property-a
 import type { PropertyType, CreatePropertyPayload } from "../types/api"
 import LoadingSpinner from "../components/LoadingSpinner"
 import SectionHeader from "../components/SectionHeader"
+import { TUNISIA_GOVERNORATES } from "../data/tunisia-locations"
 
 const typeOptions: { value: PropertyType; label: string }[] = [
   { value: "s0", label: "S+0 (Studio)" },
@@ -31,6 +32,7 @@ const PropertyFormPage: React.FC = () => {
   // Form fields
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
+  const [department, setDepartment] = useState("")
   const [city, setCity] = useState("")
   const [address, setAddress] = useState("")
   const [rent, setRent] = useState("")
@@ -60,6 +62,7 @@ const PropertyFormPage: React.FC = () => {
         if (!active) return
         setTitle(p.title)
         setDescription(p.description)
+        setDepartment(p.department || "")
         setCity(p.city)
         setAddress(p.address)
         setRent(String(p.rent))
@@ -93,7 +96,7 @@ const PropertyFormPage: React.FC = () => {
     e.preventDefault()
     if (!token) return
 
-    if (!title.trim() || !city.trim() || !address.trim() || !rent) {
+    if (!title.trim() || !department.trim() || !city.trim() || !address.trim() || !rent) {
       setError("Veuillez remplir tous les champs obligatoires")
       return
     }
@@ -105,6 +108,7 @@ const PropertyFormPage: React.FC = () => {
     const payload: CreatePropertyPayload = {
       title: title.trim(),
       description: description.trim(),
+      department: department.trim(),
       city: city.trim(),
       address: address.trim(),
       rent: Number(rent) || 0,
@@ -209,6 +213,10 @@ const PropertyFormPage: React.FC = () => {
     )
   }
 
+  // Find current governorate delegations
+  const currentGov = TUNISIA_GOVERNORATES.find(g => g.name === department)
+  const delegationOptions = currentGov ? currentGov.delegations : []
+
   if (loading) {
     return (
       <IonPage>
@@ -270,8 +278,32 @@ const PropertyFormPage: React.FC = () => {
             <div className="form-section">
               <h3>Localisation</h3>
               <div className="form-group">
-                <label>Ville *</label>
-                <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ex: Monastir" />
+                <label>Gouvernorat *</label>
+                <select 
+                  value={department} 
+                  onChange={(e) => {
+                    setDepartment(e.target.value)
+                    setCity("")
+                  }}
+                >
+                  <option value="">Sélectionner le gouvernorat</option>
+                  {TUNISIA_GOVERNORATES.map((gov) => (
+                    <option key={gov.name} value={gov.name}>{gov.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Délégation *</label>
+                <select 
+                  value={city} 
+                  onChange={(e) => setCity(e.target.value)}
+                  disabled={!department}
+                >
+                  <option value="">{department ? "Sélectionner la délégation" : "Choisir d'abord un gouvernorat"}</option>
+                  {delegationOptions.map((del) => (
+                    <option key={del} value={del}>{del}</option>
+                  ))}
+                </select>
               </div>
               <div className="form-group">
                 <label>Adresse *</label>

@@ -1,527 +1,606 @@
-import { 
-  IonContent, IonIcon, IonPage, IonMenu, IonHeader, 
-  IonToolbar, IonTitle, IonList, IonItem, IonButtons, IonMenuButton 
-} from "@ionic/react"
+import { IonContent, IonIcon, IonPage } from "@ionic/react"
 import {
-  homeOutline, statsChartOutline, listOutline, logOutOutline,
-  locationOutline, globeOutline, addOutline, bedOutline,
-  waterOutline, expandOutline, mailOutline, personOutline,
-  cartOutline, mapOutline
+  addOutline,
+  bedOutline,
+  businessOutline,
+  carOutline,
+  chatbubblesOutline,
+  closeOutline,
+  documentTextOutline,
+  ellipsisVerticalOutline,
+  eyeOutline,
+  homeOutline,
+  locationOutline,
+  mapOutline,
+  menuOutline,
+  notificationsOutline,
+  pencilOutline,
+  personCircleOutline,
+  searchOutline,
+  settingsOutline,
+  statsChartOutline,
+  trashOutline,
 } from "ionicons/icons"
 import { useEffect, useMemo, useState } from "react"
+import { useHistory, useLocation } from "react-router-dom"
+import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet"
 import { useAuth } from "../lib/auth-context"
-import { useHistory } from "react-router-dom"
-import { fetchProperties } from "../lib/property-api"
-import type { BackendFurnitureChangeRequest, BackendProperty, BackendRentalRequest } from "../types/api"
 import { http } from "../lib/api"
+import { fetchUnreadMessagesCount } from "../lib/messages-api"
+import { deleteProperty, fetchProperties } from "../lib/property-api"
+import type { BackendProperty, BackendRentalRequest } from "../types/api"
+import "./OwnerDashboard.css"
 
-type OwnerSection =
-  | "overview"
-  | "properties"
-  | "add"
-  | "map"
-  | "requests"
-  | "messages"
-  | "analytics"
-  | "furniture"
-  | "profile"
+type OwnerSection = "overview" | "properties" | "map"
 
-type BackendNotification = { _id: string; title?: string; preview?: string; isRead?: boolean }
-type BackendFurnitureOrder = { _id: string; total?: number; status?: string; createdAt?: string }
-type OwnerRequestItem =
-  | { kind: "rental"; request: BackendRentalRequest }
-  | { kind: "furniture-change"; request: BackendFurnitureChangeRequest }
+type DashboardStats = {
+  total: number
+  available: number
+  rented: number
+  revenue: number
+  requestCount: number
+}
 
-const navQuick: Array<{ key: string; label: string; icon: string }> = [
-  { key: "overview", label: "Aperçu", icon: homeOutline },
-  { key: "properties", label: "Mes Propriétés", icon: listOutline },
-  { key: "add", label: "Ajouter", icon: addOutline },
-  { key: "map", label: "Carte", icon: mapOutline },
-  { key: "requests", label: "Demandes", icon: listOutline },
-  { key: "messages", label: "Messages", icon: mailOutline },
-  { key: "analytics", label: "Analytiques", icon: statsChartOutline },
-  { key: "furniture", label: "Mobilier", icon: cartOutline },
-  { key: "profile", label: "Profil", icon: personOutline },
+type NavItem =
+  | { key: string; label: string; icon: string; type: "section"; section: OwnerSection }
+  | { key: string; label: string; icon: string; type: "route"; href: string }
+
+type MappableProperty = BackendProperty & { lat: number; lng: number }
+
+const statusLabels: Record<string, string> = {
+  available: "Disponible",
+  rented: "Loue",
+  maintenance: "Maintenance",
+}
+
+const statusTone: Record<string, string> = {
+  available: "success",
+  rented: "neutral",
+  maintenance: "warning",
+}
+
+const ownerNavItems: NavItem[] = [
+  { key: "overview", label: "Dashboard", icon: homeOutline, type: "section", section: "overview" },
+  { key: "properties", label: "My Properties", icon: businessOutline, type: "section", section: "properties" },
+  { key: "add-property", label: "Add Property", icon: addOutline, type: "route", href: "/property-form" },
+  { key: "map", label: "Map", icon: mapOutline, type: "section", section: "map" },
+  { key: "requests", label: "Requests", icon: documentTextOutline, type: "route", href: "/rental-requests" },
+  { key: "notifications", label: "Notifications", icon: notificationsOutline, type: "route", href: "/notifications" },
+  { key: "furniture", label: "Furniture", icon: bedOutline, type: "route", href: "/furniture" },
 ]
 
+const getSectionFromSearch = (search: string): OwnerSection => {
+  const section = new URLSearchParams(search).get("section")
+  if (section === "overview" || section === "properties" || section === "map") return section
+  return "properties"
+}
+
 const OwnerDashboard: React.FC = () => {
-  const { user, token, logout } = useAuth()
   const history = useHistory()
-  const [activeSection, setActiveSection] = useState<OwnerSection>("overview")
+  const location = useLocation()
+  const { token, user } = useAuth()
   const [properties, setProperties] = useState<BackendProperty[]>([])
-  const [requests, setRequests] = useState<BackendRentalRequest[]>([])
-  const [changeRequests, setChangeRequests] = useState<BackendFurnitureChangeRequest[]>([])
-  const [notifications, setNotifications] = useState<BackendNotification[]>([])
-  const [furnitureOrders, setFurnitureOrders] = useState<BackendFurnitureOrder[]>([])
-  const [selectedRequest, setSelectedRequest] = useState<OwnerRequestItem | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [requestCount, setRequestCount] = useState(0)
+  const [unreadNotifications, setUnreadNotifications] = useState(0)
+  const [unreadMessages, setUnreadMessages] = useState(0)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [openActionsFor, setOpenActionsFor] = useState<string | null>(null)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  const activeSection = getSectionFromSearch(location.search)
 
   useEffect(() => {
     if (!token) return
 
     let active = true
-    const load = async () => {
-      setLoading(true)
-      setError("")
+    const loadDashboard = async () => {
       try {
-        const [propertiesData, requestsData, changeRequestsData, notificationsData, furnitureData] = await Promise.all([
+        setLoading(true)
+        const [propertiesData, requestsData, notificationsData, messagesCountData] = await Promise.all([
           fetchProperties(token),
           http.get<BackendRentalRequest[]>("/rental-requests", token),
-          http.get<BackendFurnitureChangeRequest[]>("/furniture/owner-change-requests", token),
-          http.get<BackendNotification[]>("/notifications", token),
-          http.get<BackendFurnitureOrder[]>("/furniture/owner-orders", token),
+          http.get<{ count: number }>("/notifications/unread-count", token),
+          fetchUnreadMessagesCount(token),
         ])
 
-        if (active) {
-          setProperties(propertiesData)
-          setRequests(requestsData)
-          setChangeRequests(changeRequestsData)
-          setNotifications(notificationsData)
-          setFurnitureOrders(furnitureData)
-        }
+        if (!active) return
+
+        const requests = Array.isArray(requestsData) ? requestsData : []
+        const rentedPropertyIds = new Set(
+          requests
+            .filter((request) => request.status === "Contrat actif")
+            .map((request) => {
+              if (typeof request.property === "string") return request.property
+              return request.property?._id || ""
+            })
+            .filter(Boolean)
+            .map(String),
+        )
+
+        const normalizedProperties = (Array.isArray(propertiesData) ? propertiesData : []).map((property) =>
+          rentedPropertyIds.has(String(property._id)) ? { ...property, status: "rented" as const } : property,
+        )
+
+        setProperties(normalizedProperties)
+        setRequestCount(requests.filter((request) => request.status === "En attente").length)
+        setUnreadNotifications(Number(notificationsData?.count || 0))
+        setUnreadMessages(Number(messagesCountData?.count || 0))
+        setError("")
       } catch (err) {
-        if (active) setError(err instanceof Error ? err.message : "Erreur chargement tableau de bord")
+        if (!active) return
+        setError(err instanceof Error ? err.message : "Erreur lors du chargement du tableau de bord.")
       } finally {
         if (active) setLoading(false)
       }
     }
 
-    load()
-    return () => { active = false }
+    loadDashboard()
+    const interval = window.setInterval(loadDashboard, 30000)
+
+    return () => {
+      active = false
+      window.clearInterval(interval)
+    }
   }, [token])
 
-  const stats = useMemo(() => {
+  const stats = useMemo<DashboardStats>(() => {
     const total = properties.length
-    const available = properties.filter((p) => p.status === "available").length
-    const rented = properties.filter((p) => p.status === "rented").length
-    const revenue = properties.reduce((sum, p) => sum + (Number(p.rent) || 0), 0)
+    const available = properties.filter((property) => property.status === "available").length
+    const rented = properties.filter((property) => property.status === "rented").length
+    const revenue = properties
+      .filter((property) => property.status === "rented")
+      .reduce((sum, property) => sum + (property.rent || 0), 0)
 
-    return [
-      { label: "Total Propriétés", value: `${total}`, icon: homeOutline },
-      { label: "Disponibles", value: `${available}`, icon: statsChartOutline },
-      { label: "Loués", value: `${rented}`, icon: locationOutline },
-      { label: "Rev. Estimé", value: `${revenue.toLocaleString("fr-FR")} TND`, icon: statsChartOutline },
-      { label: "Demandes", value: `${requests.length + changeRequests.length}`, icon: listOutline },
-    ]
-  }, [properties, requests.length, changeRequests.length])
+    return { total, available, rented, revenue, requestCount }
+  }, [properties, requestCount])
 
-  const handleQuickAction = (key: string) => {
-    document.querySelector("ion-menu")?.close()
-    if (key === "add") { history.push("/property-form"); return; }
-    if (key === "profile") { history.push("/profile"); return; }
-    if (key === "map") { history.push("/tab2?view=map"); return; }
-    
-    setActiveSection(key as OwnerSection)
-  }
+  const statsCards = [
+    { label: "Total properties", value: stats.total, icon: businessOutline },
+    { label: "Pending requests", value: stats.requestCount, icon: documentTextOutline },
+    { label: "Monthly revenue", value: `${stats.revenue.toLocaleString("fr-TN")} TND`, icon: statsChartOutline },
+    { label: "Available", value: stats.available, icon: homeOutline },
+  ]
 
-  const handleUpdateRequest = async (id: string, status: string) => {
-    if (!token) return
-    try {
-      await http.put(`/rental-requests/${id}/status`, { status }, token)
-      setRequests((prev) =>
-        prev.map((r) => (r._id === id ? { ...r, status: status as BackendRentalRequest["status"] } : r)),
-      )
-    } catch (err) {
-      setError("Impossible de mettre à jour la demande.")
-    }
-  }
+  const quickActions = [
+    { label: "View all properties", action: () => changeSection("properties"), icon: businessOutline },
+    { label: "Review requests", action: () => history.push("/rental-requests"), icon: documentTextOutline },
+    { label: "Open map", action: () => changeSection("map"), icon: mapOutline },
+    { label: "Manage furniture", action: () => history.push("/furniture"), icon: bedOutline },
+    { label: "Messages", action: () => history.push("/messages"), icon: chatbubblesOutline },
+  ]
 
-  const handleMarkAsRead = async (id: string) => {
-    if (!token) return
-    try {
-      await http.patch(`/notifications/${id}/read`, {}, token)
-      setNotifications((prev) => prev.map((n) => (n._id === id ? { ...n, isRead: true } : n)))
-    } catch (err) {
-      console.error(err)
-    }
-  }
+  const previewProperties = useMemo(() => properties.slice(0, 3), [properties])
 
-  const ownerRequests = useMemo<OwnerRequestItem[]>(() => {
-    const rentalItems = requests.map((request) => ({ kind: "rental" as const, request }))
-    const furnitureItems = changeRequests.map((request) => ({ kind: "furniture-change" as const, request }))
+  const mappableProperties = useMemo(
+    () =>
+      properties.map((property) => {
+        const hasLat = typeof property.lat === "number" && !Number.isNaN(property.lat)
+        const hasLng = typeof property.lng === "number" && !Number.isNaN(property.lng)
 
-    return [...rentalItems, ...furnitureItems].sort((a, b) => {
-      const aDate = new Date(
-        a.kind === "rental" ? a.request.createdAt || a.request.date || 0 : a.request.createdAt || a.request.date || 0,
-      ).getTime()
-      const bDate = new Date(
-        b.kind === "rental" ? b.request.createdAt || b.request.date || 0 : b.request.createdAt || b.request.date || 0,
-      ).getTime()
-      return bDate - aDate
-    })
-  }, [requests, changeRequests])
+        if (hasLat && hasLng) {
+          return property as MappableProperty
+        }
 
-  const formatDate = (date?: string) => {
-    if (!date) return "Date non disponible"
-    return new Date(date).toLocaleDateString("fr-FR", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    })
-  }
+        // Fallback to Monastir center with slight random offset to avoid overlapping
+        const seed = property._id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+        const offsetLat = ((seed % 100) - 50) / 5000
+        const offsetLng = (((seed * 1.5) % 100) - 50) / 5000
 
-  const getRentalPropertyTitle = (request: BackendRentalRequest) => {
-    if (typeof request.property === "string") return "Demande de location"
-    return request.property?.title || "Demande de location"
-  }
-
-  const getChangePropertyTitle = (request: BackendFurnitureChangeRequest) => {
-    if (!request.propertyId || typeof request.propertyId === "string") return "Demande de changement mobilier"
-    return request.propertyId.title || "Demande de changement mobilier"
-  }
-
-  const getChangeFurnitureName = (request: BackendFurnitureChangeRequest) => {
-    if (request.furnitureName) return request.furnitureName
-    if (request.furnitureId && typeof request.furnitureId !== "string") return request.furnitureId.name
-    return "Meuble non precise"
-  }
-
-  const renderRequestsSection = () => (
-    <div style={{ display: 'grid', gap: '12px' }}>
-      {selectedRequest ? (
-        <article style={{ background: 'white', padding: '16px', borderRadius: '12px', border: '1px solid var(--brand-border)', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'flex-start', marginBottom: '12px' }}>
-            <div>
-              <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--brand-primary)', textTransform: 'uppercase', marginBottom: '6px' }}>
-                {selectedRequest.kind === "rental" ? "Demande de location" : "Demande de changement meuble"}
-              </div>
-              <h4 style={{ margin: 0, color: 'var(--brand-primary-deep)', fontWeight: 'bold' }}>
-                {selectedRequest.kind === "rental"
-                  ? getRentalPropertyTitle(selectedRequest.request)
-                  : getChangePropertyTitle(selectedRequest.request)}
-              </h4>
-            </div>
-            <button
-              type="button"
-              onClick={() => setSelectedRequest(null)}
-              style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--brand-border)', background: 'white', color: '#475569', fontWeight: '600' }}
-            >
-              Fermer
-            </button>
-          </div>
-
-          {selectedRequest.kind === "rental" ? (
-            <div style={{ display: 'grid', gap: '8px', color: '#334155' }}>
-              <p style={{ margin: 0 }}><strong>Statut:</strong> {selectedRequest.request.status || "En attente"}</p>
-              <p style={{ margin: 0 }}><strong>Date:</strong> {formatDate(selectedRequest.request.createdAt || selectedRequest.request.date)}</p>
-              <p style={{ margin: 0 }}><strong>Message:</strong> {selectedRequest.request.message || "Demande de location recue."}</p>
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gap: '8px', color: '#334155' }}>
-              <p style={{ margin: 0 }}><strong>Meuble:</strong> {getChangeFurnitureName(selectedRequest.request)}</p>
-              <p style={{ margin: 0 }}><strong>Type:</strong> {selectedRequest.request.type}</p>
-              <p style={{ margin: 0 }}><strong>Statut:</strong> {selectedRequest.request.status || "En attente"}</p>
-              <p style={{ margin: 0 }}><strong>Date:</strong> {formatDate(selectedRequest.request.createdAt || selectedRequest.request.date)}</p>
-              <p style={{ margin: 0 }}><strong>Locataire:</strong> {selectedRequest.request.tenantId}</p>
-              <p style={{ margin: 0 }}><strong>Motif:</strong> {selectedRequest.request.reason}</p>
-              {selectedRequest.request.description ? <p style={{ margin: 0 }}><strong>Description:</strong> {selectedRequest.request.description}</p> : null}
-              {selectedRequest.request.photo ? (
-                <img
-                  src={selectedRequest.request.photo}
-                  alt={getChangeFurnitureName(selectedRequest.request)}
-                  style={{ width: '100%', maxHeight: '240px', objectFit: 'cover', borderRadius: '10px', marginTop: '8px', border: '1px solid var(--brand-border)' }}
-                />
-              ) : null}
-            </div>
-          )}
-        </article>
-      ) : null}
-
-      {ownerRequests.length === 0 ? (
-        <div style={{ padding: '24px', textAlign: 'center', background: 'white', borderRadius: '12px', color: '#64748b' }}>
-          Aucune demande pour le moment.
-        </div>
-      ) : (
-        ownerRequests.map((item) => (
-          <article key={`${item.kind}-${item.request._id}`} style={{ background: 'white', padding: '16px', borderRadius: '12px', border: '1px solid var(--brand-border)', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'flex-start' }}>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--brand-primary)', textTransform: 'uppercase', marginBottom: '6px' }}>
-                  {item.kind === "rental" ? "Location" : "Changement meuble"}
-                </div>
-                <h4 style={{ margin: '0 0 6px', color: 'var(--brand-primary-deep)', fontWeight: 'bold' }}>
-                  {item.kind === "rental" ? getRentalPropertyTitle(item.request) : getChangePropertyTitle(item.request)}
-                </h4>
-                <p style={{ margin: '0 0 4px', color: '#64748b', fontSize: '14px' }}>
-                  {item.kind === "rental"
-                    ? `Statut: ${item.request.status || "En attente"}`
-                    : `${getChangeFurnitureName(item.request)} - ${item.request.type}`}
-                </p>
-                <small style={{ color: '#94a3b8' }}>
-                  {formatDate(item.kind === "rental" ? item.request.createdAt || item.request.date : item.request.createdAt || item.request.date)}
-                </small>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedRequest(item)}
-                style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--brand-primary)', background: 'white', color: 'var(--brand-primary-deep)', fontWeight: '600', whiteSpace: 'nowrap' }}
-              >
-                Consulter
-              </button>
-            </div>
-
-            {item.kind === "rental" && item.request.status === "En attente" ? (
-              <div style={{ marginTop: "16px", display: "flex", gap: "8px" }}>
-                <button style={{ flex: 1, padding: '8px', background: 'var(--brand-primary-deep)', color: 'white', borderRadius: '6px', fontWeight: '600' }} onClick={() => handleUpdateRequest(item.request._id, "Contrat actif")}>Accepter</button>
-                <button style={{ flex: 1, padding: '8px', background: 'transparent', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '6px', fontWeight: '600' }} onClick={() => handleUpdateRequest(item.request._id, "RefusÃ©")}>Refuser</button>
-              </div>
-            ) : null}
-          </article>
-        ))
-      )}
-    </div>
+        return {
+          ...property,
+          lat: 35.7768 + offsetLat,
+          lng: 10.8108 + offsetLng
+        } as MappableProperty
+      }),
+    [properties],
   )
 
-  const visibleProperties = activeSection === "properties" ? properties : properties.slice(0, 3)
+  const changeSection = (section: OwnerSection) => {
+    history.replace({ pathname: "/tab3", search: `?section=${section}` })
+    setSidebarOpen(false)
+  }
 
-  const renderDynamicSection = () => {
-    if (activeSection === "requests") {
-      return renderRequestsSection()
+  const handleNavClick = (item: NavItem) => {
+    setOpenActionsFor(null)
+    if (item.type === "section") {
+      changeSection(item.section)
+      return
     }
+    setSidebarOpen(false)
+    history.push(item.href)
+  }
 
-    if (false) {
-      return (
-        <div style={{ display: 'grid', gap: '12px' }}>
-          {requests.length === 0 ? (
-            <div style={{ padding: '24px', textAlign: 'center', background: 'white', borderRadius: '12px', color: '#64748b' }}>
-              Aucune demande pour le moment.
+  const handleDelete = async (propertyId: string) => {
+    if (!token) return
+    if (!window.confirm("Etes-vous sur de vouloir supprimer ce bien ?")) return
+
+    try {
+      await deleteProperty(propertyId, token)
+      setProperties((current) => current.filter((property) => property._id !== propertyId))
+      setOpenActionsFor(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Delete property failed")
+    }
+  }
+
+  const displayName = user?.name || user?.firstName || "Owner"
+  const activeTitle =
+    activeSection === "properties" ? "My Properties" : activeSection === "map" ? "Map" : "Owner Dashboard"
+
+  const renderPropertyCard = (property: BackendProperty) => {
+    const isMenuOpen = openActionsFor === property._id
+    const displayImage = property.images?.cover
+    const statusLabel = statusLabels[property.status] || property.status || "Disponible"
+    const locationLabel = [property.city, property.address].filter(Boolean).join(" - ") || "Adresse non specifiee"
+    const propertyType = property.type ? property.type.toUpperCase() : "BIEN"
+    const isFurnished = Boolean(property.meuble || property.furnishing?.type)
+
+    return (
+      <article key={property._id} className="owner-property-card">
+        <div className="owner-property-media">
+          {displayImage ? <img src={displayImage} alt={property.title} /> : <div className="owner-property-placeholder">ImmoSmart</div>}
+
+          <div className="owner-property-overlay">
+            <div className="owner-property-badges">
+              <span className={`owner-property-badge ${statusTone[property.status] || "neutral"}`}>{statusLabel}</span>
+              {isFurnished ? <span className="owner-property-badge furnished">Meuble</span> : null}
             </div>
-          ) : (
-            requests.map((request) => (
-              <article key={request._id} style={{ background: 'white', padding: '16px', borderRadius: '12px', border: '1px solid var(--brand-border)', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                <h4 style={{ margin: '0 0 6px', color: 'var(--brand-primary-deep)', fontWeight: 'bold' }}>{getRentalPropertyTitle(request)}</h4>
-                <p style={{ margin: '0 0 4px', color: '#64748b', fontSize: '14px' }}>Status: {request.status || "En attente"}</p>
-                <small style={{ color: '#94a3b8' }}>{request.date || "Date non disponible"}</small>
-                {request.status === "En attente" && (
-                  <div style={{ marginTop: "16px", display: "flex", gap: "8px" }}>
-                    <button style={{ flex: 1, padding: '8px', background: 'var(--brand-primary-deep)', color: 'white', borderRadius: '6px', fontWeight: '600' }} onClick={() => handleUpdateRequest(request._id, "Contrat actif")}>Accepter</button>
-                    <button style={{ flex: 1, padding: '8px', background: 'transparent', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '6px', fontWeight: '600' }} onClick={() => handleUpdateRequest(request._id, "Refusé")}>Refuser</button>
-                  </div>
-                )}
-              </article>
-            ))
-          )}
-        </div>
-      )
-    }
+            <div className="owner-property-menu">
+              <button type="button" className="owner-icon-btn floating" onClick={() => setOpenActionsFor(isMenuOpen ? null : property._id)}>
+                <IonIcon icon={ellipsisVerticalOutline} />
+              </button>
 
-    if (activeSection === "messages") {
-      return (
-        <div style={{ display: 'grid', gap: '12px' }}>
-          {notifications.length === 0 ? (
-            <div style={{ padding: '24px', textAlign: 'center', background: 'white', borderRadius: '12px', color: '#64748b' }}>Aucun message pour le moment.</div>
-          ) : (
-            notifications.map((n) => (
-              <article key={n._id} style={{ background: 'white', padding: '16px', borderRadius: '12px', border: '1px solid var(--brand-border)', borderLeft: !n.isRead ? '4px solid var(--brand-primary-deep)' : '1px solid var(--brand-border)', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                <h4 style={{ margin: '0 0 4px', color: 'var(--brand-primary-deep)', fontWeight: 'bold' }}>{n.title || "Notification"}</h4>
-                <p style={{ margin: '0 0 4px', color: '#64748b', fontSize: '14px' }}>{n.preview || "Sans aperçu"}</p>
-                <small style={{ color: '#94a3b8' }}>{n.isRead ? "Lue" : "Non lue"}</small>
-                {!n.isRead && (
-                  <button style={{ marginTop: '12px', display: 'block', padding: '6px 12px', background: 'var(--brand-bg)', color: 'var(--brand-primary-deep)', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold' }} onClick={() => handleMarkAsRead(n._id)}>Marquer comme lu</button>
-                )}
-              </article>
-            ))
-          )}
-        </div>
-      )
-    }
+              {isMenuOpen ? (
+                <div className="owner-dropdown-menu">
+                  <button type="button" onClick={() => history.push(`/property/${property._id}`)}>
+                    <IonIcon icon={eyeOutline} />
+                    Voir details
+                  </button>
+                  <button type="button" onClick={() => history.push(`/property-form/${property._id}`)}>
+                    <IonIcon icon={pencilOutline} />
+                    Modifier
+                  </button>
+                  <button type="button" onClick={() => history.push(`/furniture?property=${property._id}`)}>
+                    <IonIcon icon={bedOutline} />
+                    Gerer les meubles
+                  </button>
+                  <button type="button" className="danger" onClick={() => handleDelete(property._id)}>
+                    <IonIcon icon={trashOutline} />
+                    Supprimer le bien
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </div>
 
-    if (activeSection === "furniture") {
-      return (
-        <div style={{ display: 'grid', gap: '12px' }}>
-          {furnitureOrders.map((o) => (
-            <article key={o._id} style={{ background: 'white', padding: '16px', borderRadius: '12px', border: '1px solid var(--brand-border)' }}>
-              <h4 style={{ margin: '0 0 6px', color: 'var(--brand-primary-deep)', fontWeight: 'bold' }}>Commande #{o._id.slice(-6)}</h4>
-              <p style={{ margin: '0', color: '#64748b', fontSize: '14px' }}>Total: {o.total || 0} TND</p>
-            </article>
-          ))}
+          <div className="owner-property-price">
+            <strong>{property.rent?.toLocaleString("fr-TN") || 0} TND</strong>
+            <span>/mois</span>
+          </div>
         </div>
-      )
-    }
-    
-    if (activeSection === "analytics") {
-      const occupationRate = properties.length > 0 ? Math.round((properties.filter(p => p.status === "rented").length / properties.length) * 100) : 0
-      return (
-        <div style={{ background: 'white', padding: '24px', borderRadius: '12px', border: '1px solid var(--brand-border)', textAlign: 'center' }}>
-          <h3 style={{ fontSize: '36px', color: 'var(--brand-primary-deep)', margin: '0 0 8px', fontWeight: 'bold' }}>{occupationRate}%</h3>
-          <p style={{ margin: 0, color: '#64748b' }}>Taux d'occupation global</p>
+
+        <div className="owner-property-body">
+          <div>
+            <h3>{property.title || "Sans Titre"}</h3>
+            <div className="owner-property-location">
+              <IonIcon icon={locationOutline} />
+              <span>{locationLabel}</span>
+            </div>
+          </div>
+          <div className="owner-property-inline">
+            <span className="owner-property-type">{propertyType}</span>
+            {property.deposit ? <span className="owner-property-deposit">Depot {property.deposit.toLocaleString("fr-TN")} TND</span> : null}
+          </div>
+          <div className="owner-property-meta">
+            <span>{property.surface || 0} m2</span>
+            <span>{property.bedrooms || 0} ch.</span>
+            <span>{property.bathrooms || 0} sdb</span>
+            {property.parking ? (
+              <span>
+                <IonIcon icon={carOutline} />
+                Parking
+              </span>
+            ) : null}
+          </div>
+          <div className="owner-property-actions">
+            <button type="button" className="owner-outline-btn compact" onClick={() => history.push(`/property/${property._id}`)}>
+              <IonIcon icon={eyeOutline} />
+              Voir details
+            </button>
+            <button type="button" className="owner-outline-btn compact" onClick={() => history.push(`/property-form/${property._id}`)}>
+              <IonIcon icon={pencilOutline} />
+              Modifier
+            </button>
+          </div>
         </div>
-      )
-    }
-    return null
+      </article>
+    )
   }
 
   return (
-    <>
-      <IonMenu contentId="owner-main-content" type="overlay">
-        <IonHeader className="ion-no-border">
-          <IonToolbar style={{ '--background': 'var(--brand-primary-deep)', '--color': 'white', paddingTop: 'env(safe-area-inset-top)' }}>
-            <IonTitle style={{ fontWeight: 'bold' }}>ImmoSmart</IonTitle>
-          </IonToolbar>
-        </IonHeader>
-        
-        <IonContent style={{ '--background': 'linear-gradient(180deg, var(--brand-primary-deep) 0%, var(--brand-primary) 100%)' }}>
-          <div style={{ padding: '8px' }}>
-            <IonList style={{ background: 'transparent' }} lines="none">
-              {navQuick.map((item) => {
-                const isActive = activeSection === item.key
+    <IonPage>
+      <IonContent fullscreen className="mobile-content owner-dashboard-page">
+        <div className="owner-dashboard-shell">
+          <aside className={`owner-sidebar ${sidebarOpen ? "open" : ""}`}>
+            <div className="owner-sidebar-header">
+              <div>
+                <div className="owner-sidebar-brand">ImmoSmart</div>
+                <p>Owner Space</p>
+              </div>
+              <button type="button" className="owner-icon-btn mobile-only" onClick={() => setSidebarOpen(false)}>
+                <IonIcon icon={closeOutline} />
+              </button>
+            </div>
+
+            <nav className="owner-sidebar-nav">
+              {ownerNavItems.map((item) => {
+                const isActive = item.type === "section" ? item.section === activeSection : false
                 return (
-                  <IonItem
-                    button
+                  <button
                     key={item.key}
-                    onClick={() => handleQuickAction(item.key)}
-                    style={{
-                      '--background': isActive ? 'var(--brand-primary)' : 'transparent',
-                      '--color': 'white',
-                      borderRadius: '8px',
-                      margin: '4px 0',
-                    }}
+                    type="button"
+                    className={`owner-sidebar-link ${isActive ? "active" : ""}`}
+                    onClick={() => handleNavClick(item)}
                   >
-                    <IonIcon slot="start" icon={item.icon} style={{ color: 'white' }} />
-                    <span style={{ fontSize: '14px', fontWeight: isActive ? 'bold' : 'normal' }}>{item.label}</span>
-                  </IonItem>
+                    <IonIcon icon={item.icon} />
+                    <span>{item.label}</span>
+                    {item.key === "requests" && requestCount > 0 ? <strong>{requestCount > 99 ? "99+" : requestCount}</strong> : null}
+                    {item.key === "notifications" && unreadNotifications > 0 ? <strong>{unreadNotifications > 99 ? "99+" : unreadNotifications}</strong> : null}
+                  </button>
                 )
               })}
-            </IonList>
-          </div>
+            </nav>
 
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '16px', borderTop: '1px solid rgba(255,255,255,0.2)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.1)', padding: '12px', borderRadius: '8px' }}>
-              <div style={{ background: 'rgba(255,255,255,0.2)', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <IonIcon icon={personOutline} style={{ color: 'white' }} />
-              </div>
-              <div style={{ overflow: 'hidden' }}>
-                <p style={{ margin: 0, fontSize: '14px', fontWeight: 'bold', color: 'white' }}>{user?.name || "Propriétaire"}</p>
-                <p style={{ margin: 0, fontSize: '12px', color: 'rgba(255,255,255,0.7)' }}>{user?.email}</p>
-              </div>
-            </div>
-            
-            <button
-               onClick={() => { logout(); history.replace("/tab3"); }}
-               style={{ width: '100%', marginTop: '12px', background: 'rgba(239,68,68,0.2)', color: '#fca5a5', padding: '10px', borderRadius: '8px', display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold' }}
-            >
-              <IonIcon icon={logOutOutline} />
-              Déconnexion
-            </button>
-          </div>
-        </IonContent>
-      </IonMenu>
-
-      <IonPage id="owner-main-content">
-        <IonHeader className="ion-no-border">
-          <IonToolbar style={{ '--background': 'rgba(255,255,255,0.92)', backdropFilter: 'blur(10px)', borderBottom: '1px solid var(--brand-border)' }}>
-            <IonButtons slot="start">
-              <IonMenuButton autoHide={false} style={{ color: 'var(--brand-primary-deep)' }}></IonMenuButton>
-            </IonButtons>
-            
-            <div slot="start" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#64748b', marginLeft: '6px' }}>
-              <IonIcon icon={locationOutline} />
-              Monastir, TN
-            </div>
-
-            <IonButtons slot="end" style={{ marginRight: '16px', gap: '8px' }}>
-              <button style={{ border: '1px solid var(--brand-border)', background: 'white', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', display: 'flex', gap: '6px', alignItems: 'center', fontWeight: 'bold', color: 'var(--brand-primary-deep)' }}>
-                 AI
+            <div className="owner-sidebar-footer">
+              <button type="button" className="owner-sidebar-link" onClick={() => history.push("/profile")}>
+                <IonIcon icon={settingsOutline} />
+                <span>Settings</span>
               </button>
-              <button style={{ border: '1px solid var(--brand-border)', background: 'white', padding: '6px 10px', borderRadius: '8px', fontSize: '12px', display: 'flex', gap: '4px', alignItems: 'center', fontWeight: 'bold', color: 'var(--brand-primary-deep)' }}>
-                 <IonIcon icon={globeOutline} /> FR
-              </button>
-            </IonButtons>
-          </IonToolbar>
-        </IonHeader>
-
-        <IonContent color="light" style={{ '--background': 'var(--brand-bg)' }}>
-          <div style={{ padding: '24px 16px', paddingBottom: '40px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
-              <div>
-                <h1 style={{ margin: '0', fontSize: '24px', fontWeight: 'bold', color: 'var(--brand-text)' }}>Bienvenue, {user?.name || "Propriétaire"}</h1>
-                <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '14px' }}>Espace Propriétaire</p>
-              </div>
             </div>
+          </aside>
 
-            {loading ? (
-              <div style={{ textAlign: 'center', marginTop: '60px', color: '#64748b' }}>Chargement...</div>
-            ) : error ? (
-              <div style={{ padding: '16px', background: 'rgba(242, 125, 114, 0.12)', color: 'var(--brand-accent-deep)', borderRadius: '8px' }}>{error}</div>
-            ) : activeSection !== "overview" && activeSection !== "properties" ? (
-              renderDynamicSection()
-            ) : (
-              <>
-                <div style={{ marginBottom: '32px' }}>
-                  <h2 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: 'bold', color: 'var(--brand-text)' }}>Menu Rapide</h2>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
-                    {navQuick.filter(item => item.key !== 'overview').map((item) => (
-                      <button 
-                        key={item.key} 
-                        onClick={() => handleQuickAction(item.key)} 
-                        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'white', padding: '12px 4px', borderRadius: '16px', border: '1px solid var(--brand-border)', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}
-                      >
-                        <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--brand-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px' }}>
-                          <IonIcon icon={item.icon} style={{ color: 'var(--brand-primary)', fontSize: '20px' }} />
+          {sidebarOpen ? <button type="button" className="owner-sidebar-backdrop" onClick={() => setSidebarOpen(false)} /> : null}
+
+          <div className="owner-main">
+            <header className="owner-topbar">
+              <div className="owner-topbar-title">
+                <button type="button" className="owner-icon-btn mobile-only" onClick={() => setSidebarOpen(true)}>
+                  <IonIcon icon={menuOutline} />
+                </button>
+                <div>
+                  <div className="owner-eyebrow">Tableau de bord</div>
+                  <h1>{activeTitle}</h1>
+                </div>
+              </div>
+
+              <div className="owner-topbar-actions">
+                <button type="button" className="owner-pill-btn" onClick={() => history.push("/rental-requests")}>
+                  <IonIcon icon={documentTextOutline} />
+                  <span>Demandes</span>
+                  {requestCount > 0 ? <strong>{requestCount > 99 ? "99+" : requestCount}</strong> : null}
+                </button>
+                <button type="button" className="owner-pill-btn" onClick={() => history.push("/notifications")}>
+                  <IonIcon icon={notificationsOutline} />
+                  <span>Notifications</span>
+                  {unreadNotifications > 0 ? <strong>{unreadNotifications > 99 ? "99+" : unreadNotifications}</strong> : null}
+                </button>
+                <button type="button" className="owner-profile-btn" onClick={() => history.push("/profile")}>
+                  <IonIcon icon={personCircleOutline} />
+                  <span>{displayName}</span>
+                </button>
+              </div>
+            </header>
+
+            <main className="owner-main-content">
+              <section className="owner-page-header">
+                <div>
+                  <div className="owner-eyebrow">Owner</div>
+                  <h2>{activeSection === "properties" ? "My Properties" : activeSection === "map" ? "Map" : "Owner Dashboard"}</h2>
+                  <p>
+                    {activeSection === "properties"
+                      ? "Retrouvez l'ensemble de vos annonces avec toutes les actions de gestion disponibles sur mobile."
+                      : activeSection === "map"
+                        ? "Visualisez vos biens sur la carte et controlez rapidement leur localisation."
+                        : "Suivez vos indicateurs, accedez rapidement a vos biens et gardez le controle sur vos demandes."}
+                  </p>
+                </div>
+                <button type="button" className="owner-primary-btn" onClick={() => history.push("/property-form")}>
+                  <IonIcon icon={addOutline} />
+                  Add Property
+                </button>
+              </section>
+
+              {activeSection === "overview" ? (
+                <>
+                  <section className="owner-stats-grid">
+                    {statsCards.map((stat) => (
+                      <article key={stat.label} className="owner-stat-card">
+                        <div>
+                          <p>{stat.label}</p>
+                          <strong>{stat.value}</strong>
                         </div>
-                        <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--brand-text)', textAlign: 'center', lineHeight: '1.2' }}>{item.label}</span>
-                      </button>
+                        <span className="owner-stat-icon">
+                          <IonIcon icon={stat.icon} />
+                        </span>
+                      </article>
                     ))}
-                  </div>
-                </div>
+                  </section>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '16px', marginBottom: '32px' }}>
-                  {stats.slice(0, 5).map((s, i) => (
-                    <div key={i} style={{ background: 'white', padding: '16px', borderRadius: '16px', border: '1px solid var(--brand-border)', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                      <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'var(--brand-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px' }}>
-                        <IonIcon icon={s.icon} style={{ color: 'var(--brand-primary)', fontSize: '18px' }} />
-                      </div>
-                      <h3 style={{ margin: '0 0 4px', fontSize: '22px', fontWeight: 'bold', color: 'var(--brand-text)' }}>{s.value}</h3>
-                      <p style={{ margin: 0, fontSize: '13px', color: '#64748b', fontWeight: '600' }}>{s.label}</p>
+                  {loading ? (
+                    <div className="owner-panel muted">Chargement du tableau de bord...</div>
+                  ) : error ? (
+                    <div className="owner-panel error">{error}</div>
+                  ) : (
+                    <div className="owner-overview-grid">
+                      <section className="owner-panel">
+                        <div className="owner-panel-actions">
+                          {quickActions.map((item) => (
+                            <button key={item.label} type="button" className="owner-outline-btn" onClick={item.action}>
+                              <IonIcon icon={item.icon} />
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+                      </section>
+
+                      <section className="owner-preview-section">
+                        <div className="owner-section-copy">
+                          <h3>My Properties</h3>
+                          <p>Retrouvez l'ensemble de vos annonces dans une page dediee, avec des actions SaaS claires.</p>
+                        </div>
+                        {previewProperties.length === 0 ? (
+                          <div className="owner-panel muted">No properties yet</div>
+                        ) : (
+                          <div className="owner-properties-grid">{previewProperties.map(renderPropertyCard)}</div>
+                        )}
+                      </section>
                     </div>
-                  ))}
-                </div>
+                  )}
+                </>
+              ) : null}
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <div>
-                    <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold', color: 'var(--brand-text)' }}>
-                      {activeSection === "properties" ? "Mes Propriétés" : "Aperçu Récent"}
-                    </h2>
-                    <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748b' }}>Gérez vos biens immobiliers à Monastir</p>
-                  </div>
-                  <button onClick={() => history.push("/property-form")} style={{ background: 'transparent', border: '1px solid var(--brand-primary)', padding: '8px 14px', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold', color: 'var(--brand-primary)', display: 'flex', gap: '4px', alignItems: 'center' }}>
-                    <IonIcon icon={addOutline} /> Ajouter
-                  </button>
-                </div>
+              {activeSection === "properties" ? (
+                loading ? (
+                  <div className="owner-panel muted">Chargement des proprietes...</div>
+                ) : error ? (
+                  <div className="owner-panel error">{error}</div>
+                ) : properties.length === 0 ? (
+                  <div className="owner-panel muted">No properties yet</div>
+                ) : (
+                  <section className="owner-properties-grid">{properties.map(renderPropertyCard)}</section>
+                )
+              ) : null}
 
-                <div style={{ display: 'grid', gap: '16px' }}>
-                  {visibleProperties.map((p) => (
-                    <article key={p._id} style={{ background: 'white', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--brand-border)', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                      <div style={{ position: 'relative', height: '180px' }}>
-                        <img src={p.images?.cover || "https://images.unsplash.com/photo-1613490493576-7fde63acd811?"} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
-                        <span style={{ position: 'absolute', top: '12px', left: '12px', background: 'var(--brand-primary)', color: 'white', padding: '4px 10px', borderRadius: '20px', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>Disponible</span>
-                        <span style={{ position: 'absolute', bottom: '12px', left: '12px', background: 'rgba(15,23,42,0.85)', backdropFilter: 'blur(4px)', color: 'white', padding: '6px 10px', borderRadius: '8px', fontSize: '14px', fontWeight: 'bold' }}>{p.rent} TND</span >
-                      </div>
-                      <div style={{ padding: '16px' }}>
-                        <h3 style={{ margin: '0 0 6px', fontSize: '16px', fontWeight: 'bold', color: 'var(--brand-text)' }}>{p.title}</h3>
-                        <p style={{ margin: '0 0 12px', fontSize: '13px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <IonIcon icon={locationOutline} /> {p.city}
-                        </p>
-                        <div style={{ display: 'flex', gap: '12px', fontSize: '12px', color: '#64748b', fontWeight: '600' }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><IonIcon icon={expandOutline} /> {p.surface}mÂ²</span>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><IonIcon icon={bedOutline} /> {p.bedrooms} ch.</span>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><IonIcon icon={waterOutline} /> {p.bathrooms} sdb</span>
+              {activeSection === "map" ? (
+                loading ? (
+                  <div className="owner-panel muted">Chargement de la carte...</div>
+                ) : error ? (
+                  <div className="owner-panel error">{error}</div>
+                ) : mappableProperties.length === 0 ? (
+                  <div className="owner-panel muted">Aucun bien geolocalise disponible pour la carte.</div>
+                ) : (
+                  <section className="owner-map-stack">
+                    <div className="owner-map-card relative">
+                      <MapContainer center={[35.7768, 10.8108]} zoom={13} scrollWheelZoom={true} style={{ height: "100%", width: "100%" }}>
+                        <TileLayer
+                          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                          attribution="&copy; OpenStreetMap contributors"
+                        />
+                        {mappableProperties.map((property) => (
+                          <Marker key={property._id} position={[property.lat, property.lng]}>
+                            <Popup>
+                              <div className="owner-map-popup">
+                                <div className="popup-badge" style={{
+                                  background: property.status === 'available' ? '#22c55e' : property.status === 'rented' ? '#3b82f6' : '#eab308',
+                                  color: 'white',
+                                  padding: '2px 8px',
+                                  borderRadius: '12px',
+                                  fontSize: '10px',
+                                  fontWeight: 'bold',
+                                  display: 'inline-block',
+                                  marginBottom: '5px'
+                                }}>
+                                  {statusLabels[property.status] || 'Propriété'}
+                                </div>
+                                <h4 style={{ margin: '0 0 5px 0', fontSize: '14px', fontWeight: 'bold' }}>{property.title}</h4>
+                                <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#666' }}>{property.address || property.city}</p>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #eee', paddingTop: '8px' }}>
+                                  <strong style={{ color: '#0066ff' }}>{property.rent?.toLocaleString("fr-TN")} TND</strong>
+                                  <button
+                                    onClick={() => history.push(`/property/${property._id}`)}
+                                    style={{ background: '#f0f4ff', color: '#0066ff', border: 'none', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}
+                                  >
+                                    Détails
+                                  </button>
+                                </div>
+                              </div>
+                            </Popup>
+                          </Marker>
+                        ))}
+                      </MapContainer>
+
+                      {/* Legend like web version */}
+                      <div className="map-legend-overlay">
+                        <div className="legend-title">Statuts</div>
+                        <div className="legend-items">
+                          <div className="legend-item">
+                            <span className="dot available"></span>
+                            <span>Disponible</span>
+                          </div>
+                          <div className="legend-item">
+                            <span className="dot rented"></span>
+                            <span>Loué</span>
+                          </div>
+                          <div className="legend-item">
+                            <span className="dot maintenance"></span>
+                            <span>Entretien</span>
+                          </div>
                         </div>
                       </div>
-                    </article>
-                  ))}
-                </div>
-              </>
-            )}
+                    </div>
+
+                    <div className="owner-map-list">
+                      <div className="list-header">
+                        <h3>Liste des Biens ({mappableProperties.length})</h3>
+                      </div>
+                      <div className="list-scroll">
+                        {mappableProperties.map((property) => (
+                          <article
+                            key={property._id}
+                            className={`owner-map-item ${property.status}`}
+                            onClick={() => history.push(`/property/${property._id}`)}
+                          >
+                            <div className="item-info">
+                              <strong>{property.title}</strong>
+                              <p>{property.address || property.city || "Monastir"}</p>
+                            </div>
+                            <div className="item-price">
+                              <span className="price">{property.rent?.toLocaleString("fr-TN")} TND</span>
+                              <span className={`status-tag ${property.status}`}>
+                                {statusLabels[property.status]}
+                              </span>
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                    </div>
+                  </section>
+                )
+              ) : null}
+
+              <section className="owner-shortcuts-row">
+                <button type="button" className="owner-shortcut-card" onClick={() => history.push("/messages")}>
+                  <IonIcon icon={chatbubblesOutline} />
+                  <div>
+                    <strong>Messages</strong>
+                    <p>Conversations locataires</p>
+                  </div>
+                  {unreadMessages > 0 ? <span>{unreadMessages > 99 ? "99+" : unreadMessages}</span> : null}
+                </button>
+
+                <button type="button" className="owner-shortcut-card" onClick={() => history.push("/profile")}>
+                  <IonIcon icon={settingsOutline} />
+                  <div>
+                    <strong>Settings</strong>
+                    <p>Profil et securite</p>
+                  </div>
+                </button>
+
+                <button type="button" className="owner-shortcut-card" onClick={() => history.push("/tab2")}>
+                  <IonIcon icon={searchOutline} />
+                  <div>
+                    <strong>Public Listings</strong>
+                    <p>Explorer le catalogue</p>
+                  </div>
+                </button>
+              </section>
+            </main>
           </div>
-        </IonContent>
-      </IonPage>
-    </>
+        </div>
+      </IonContent>
+    </IonPage>
   )
 }
 
 export default OwnerDashboard
-
-
-

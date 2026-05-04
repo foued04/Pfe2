@@ -28,7 +28,7 @@ import {
   Shield, 
   Send,
   User as UserIcon,
-  CheckCircle,
+  CheckCircle, Download, Loader2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { PdfLayout } from "./pdf-layout"
@@ -46,7 +46,7 @@ export function ContractView({ contract, onBack, onOwnerSign, onTenantSign, onSe
   const { lang, t } = useI18n()
   const statusCfg = contractStatusConfig[contract.status]
   
-  const [isSendDialogOpen, setIsSendDialogOpen] = useState(false)
+  const [isSendDialogOpen, setIsSendDialogOpen] = useState(false); const [isDownloading, setIsDownloading] = useState(false)
   const defaultMessage = lang === "fr" 
     ? "Bonjour,\n\nJ'ai signé le contrat de location. Merci de bien vouloir le consulter, le signer dans la zone prévue à cet effet, et me le renvoyer.\n\nCordialement."
     : "Hello,\n\nI have signed the rental contract. Please review it, sign in the designated area, and send it back.\n\nBest regards."
@@ -55,22 +55,22 @@ export function ContractView({ contract, onBack, onOwnerSign, onTenantSign, onSe
 
   const handlePrint = () => { window.print() }
 
-  const handleSend = () => {
+  const handleDownloadPDF = async () => { try { setIsDownloading(true); const html2pdf = (await import("html2pdf.js")).default; const element = document.getElementById("contract-content"); if (!element) return; const opt = { margin: 10, filename: `Contrat-ImmoSmart-${contract.id.slice(-6)}.pdf`, image: { type: "jpeg", quality: 0.98 }, html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" }, jsPDF: { unit: "mm", format: "a4", orientation: "portrait" } }; await html2pdf().set(opt).from(element).save(); } catch (error) { console.error("Error generating PDF:", error); } finally { setIsDownloading(false); } }; const handleSend = () => {
     onSendToTenant(message)
     setIsSendDialogOpen(false)
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-right-4 duration-400 pb-12">
+    <div className="mx-auto max-w-4xl space-y-6 animate-in fade-in slide-in-from-right-4 duration-400 pb-12">
       {/* Controls */}
       <div className="flex flex-col gap-4 print:hidden">
-        <div className="flex items-center justify-between bg-white/90 backdrop-blur-md p-4 rounded-2xl border border-slate-200/60 shadow-xl shadow-slate-200/20 sticky top-20 z-50">
+        <div className="sticky top-20 z-50 flex flex-col gap-4 rounded-2xl border border-slate-200/60 bg-white/90 p-4 shadow-xl shadow-slate-200/20 backdrop-blur-md xl:flex-row xl:items-center xl:justify-between">
           <Button variant="ghost" className="group gap-2 text-slate-500 hover:text-primary transition-all rounded-xl" onClick={onBack}>
             <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
             <span className="font-bold">{lang === "fr" ? "Retour" : "Back"}</span>
           </Button>
           
-          <div className="flex-1 max-w-md mx-8">
+          <div className="hidden flex-1 px-0 xl:mx-8 xl:block xl:max-w-md">
              <div className="relative flex justify-between items-center px-2">
                 <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-100 -translate-y-1/2 z-0" />
                 <div 
@@ -110,7 +110,7 @@ export function ContractView({ contract, onBack, onOwnerSign, onTenantSign, onSe
              </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
             <Badge className={cn("font-black text-[10px] px-3 py-1 border shadow-sm transition-all uppercase tracking-widest", statusCfg.bgColor, statusCfg.color, "border-current/10")}>
               {lang === "fr" ? statusCfg.label_fr : statusCfg.label_en}
             </Badge>
@@ -119,7 +119,7 @@ export function ContractView({ contract, onBack, onOwnerSign, onTenantSign, onSe
               (userRole === "tenant" && (contract.status === "SentToTenant" || contract.status === "SignedByTenant") && contract.tenantSignature)) && (
               <Dialog open={isSendDialogOpen} onOpenChange={setIsSendDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button className="h-10 gap-2 bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-600/20 rounded-xl px-5 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                  <Button className="h-10 w-full gap-2 rounded-xl bg-indigo-600 px-5 text-white shadow-lg shadow-indigo-600/20 transition-all hover:scale-[1.02] hover:bg-indigo-700 active:scale-[0.98] sm:w-auto">
                     <Send className="h-4 w-4" />
                     <span className="font-bold">
                       {userRole === "owner" 
@@ -167,10 +167,27 @@ export function ContractView({ contract, onBack, onOwnerSign, onTenantSign, onSe
               </Dialog>
             )}
 
-            <Button variant="outline" className="h-10 gap-2 rounded-xl text-slate-600 border-slate-200 bg-white hover:bg-slate-50 transition-all px-4" onClick={handlePrint}>
+            <Button 
+              variant="outline" 
+              className="h-10 w-full gap-2 rounded-xl border-slate-200 bg-white px-4 text-slate-600 transition-all hover:bg-slate-50 sm:w-auto" 
+              onClick={handlePrint}
+            >
               <Printer className="h-4 w-4" />
               <span className="font-bold">{lang === "fr" ? "Imprimer" : "Print"}</span>
             </Button>
+
+            {contract.status === "SignedByBoth" && (
+              <Button 
+                className="h-10 w-full gap-2 rounded-xl bg-emerald-600 px-5 text-white shadow-lg shadow-emerald-600/20 transition-all hover:scale-[1.02] hover:bg-emerald-700 active:scale-[0.98] sm:w-auto"
+                onClick={handleDownloadPDF}
+                disabled={isDownloading}
+              >
+                {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                <span className="font-bold">
+                  {lang === "fr" ? "Télécharger PDF" : "Download PDF"}
+                </span>
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -232,7 +249,7 @@ export function ContractView({ contract, onBack, onOwnerSign, onTenantSign, onSe
               </div>
             ) : null}
             <div className="bg-background rounded-2xl p-6 border border-secondary/10">
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div className="space-y-3">
                   <div>
                     <p className="text-[10px] text-muted-foreground font-black uppercase tracking-wider mb-1">{lang === "fr" ? "Bien" : "Property"}</p>
@@ -268,7 +285,7 @@ export function ContractView({ contract, onBack, onOwnerSign, onTenantSign, onSe
                 {lang === "fr" ? "Conditions Financières" : "Financial Terms"}
               </p>
             </div>
-            <div className="grid grid-cols-4 gap-4 text-center">
+            <div className="grid grid-cols-1 gap-4 text-center sm:grid-cols-2 xl:grid-cols-4">
               {[
                 { label: lang === "fr" ? "Loyer" : "Rent", value: `${contract.propertyRent.toLocaleString()}`, sub: "TND / mois", highlight: true },
                 { label: lang === "fr" ? "Caution" : "Deposit", value: `${contract.propertyDeposit.toLocaleString()}`, sub: "TND" },
@@ -328,7 +345,7 @@ export function ContractView({ contract, onBack, onOwnerSign, onTenantSign, onSe
             <p className="text-[10px] font-black uppercase text-primary tracking-[0.2em]">
               {lang === "fr" ? "Signatures" : "Signatures"}
             </p>
-            <div className="grid grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
               <div className="space-y-4">
                 <SignaturePad
                   label={lang === "fr" ? "Le Propriétaire" : "The Owner"}
@@ -359,8 +376,8 @@ export function ContractView({ contract, onBack, onOwnerSign, onTenantSign, onSe
           </div>
 
           {/* Legal Validation Seal */}
-          <div className="mt-8 pt-8 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400 font-medium">
-            <div className="flex items-center gap-4">
+          <div className="mt-8 flex flex-col gap-4 border-t border-slate-100 pt-8 text-[10px] font-medium text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
               <div className="flex items-center gap-1.5">
                 <Shield className="h-3 w-3 text-emerald-500" />
                 <span>Authentification multi-facteurs (2FA)</span>

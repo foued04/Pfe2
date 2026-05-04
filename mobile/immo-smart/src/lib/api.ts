@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
+export const API_URL = import.meta.env.VITE_API_URL || "http://10.0.2.2:5000/api"
 
 const parseError = async (response: Response) => {
   const body = await response.json().catch(() => null)

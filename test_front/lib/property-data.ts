@@ -1,3 +1,5 @@
+import { getSafeCoordinates } from "@/lib/coordinate-validation"
+
 export interface PropertyImage {
   cover: string
   kitchen: string
@@ -41,6 +43,7 @@ export interface Property {
   lng: number
   createdAt: string
   moderationStatus?: "pending" | "approved" | "rejected"
+  rejectionReason?: string
   furnishing?: {
     type: string
     level: string
@@ -56,7 +59,63 @@ export interface Property {
   }
 }
 
+function parseCoordinate(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value
+  }
+
+  if (typeof value === "string") {
+    const normalized = value.trim().replace(",", ".")
+    if (!normalized) return undefined
+
+    const parsed = Number(normalized)
+    if (Number.isFinite(parsed)) {
+      return parsed
+    }
+  }
+
+  return undefined
+}
+
+function extractPropertyCoordinates(p: any): { lat: number; lng: number } {
+  const directLat = parseCoordinate(p?.lat)
+  const directLng = parseCoordinate(p?.lng)
+
+  const locationLat =
+    parseCoordinate(p?.location?.lat) ??
+    parseCoordinate(p?.location?.latitude) ??
+    parseCoordinate(p?.coordinates?.lat) ??
+    parseCoordinate(p?.coordinates?.latitude)
+
+  const locationLng =
+    parseCoordinate(p?.location?.lng) ??
+    parseCoordinate(p?.location?.lon) ??
+    parseCoordinate(p?.location?.longitude) ??
+    parseCoordinate(p?.coordinates?.lng) ??
+    parseCoordinate(p?.coordinates?.lon) ??
+    parseCoordinate(p?.coordinates?.longitude)
+
+  const geoJsonCoordinates = Array.isArray(p?.location?.coordinates)
+    ? p.location.coordinates
+    : Array.isArray(p?.coordinates)
+      ? p.coordinates
+      : null
+
+  const geoJsonLng = geoJsonCoordinates ? parseCoordinate(geoJsonCoordinates[0]) : undefined
+  const geoJsonLat = geoJsonCoordinates ? parseCoordinate(geoJsonCoordinates[1]) : undefined
+
+  const safeCoordinates = getSafeCoordinates(
+    directLat ?? locationLat ?? geoJsonLat,
+    directLng ?? locationLng ?? geoJsonLng,
+    [p?.city, p?.department, p?.address].filter(Boolean).join(" "),
+  )
+
+  return safeCoordinates ?? { lat: 35.7768, lng: 10.8108 }
+}
+
 export function mapBackendProperty(p: any): Property {
+  const coordinates = extractPropertyCoordinates(p)
+
   return {
     id: p._id || p.id,
     title: p.title || "Sans titre",
@@ -89,10 +148,11 @@ export function mapBackendProperty(p: any): Property {
     ownerName: p.owner?.fullName || p.ownerName || "Propriétaire",
     ownerEmail: p.owner?.email || p.ownerEmail || "-",
     ownerPhone: p.owner?.phone || p.ownerPhone || "-",
-    lat: p.lat || 35.777,
-    lng: p.lng || 10.826,
+    lat: coordinates.lat,
+    lng: coordinates.lng,
     createdAt: p.createdAt || new Date().toISOString().slice(0, 10),
     moderationStatus: p.moderationStatus,
+    rejectionReason: p.rejectionReason || "",
     furnishing: p.furnishing ? {
       type: p.furnishing.type || "Non meublé",
       level: p.furnishing.level || "Standard",

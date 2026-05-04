@@ -109,6 +109,43 @@ export function FurnitureCart({
                   </div>
                 </div>
               </div>
+        <div className="overflow-y-auto max-h-[400px] pr-2 -mr-2 space-y-6">
+          {items.map((item) => (
+            <div key={item.id} className="p-0 flex gap-4 group transition-colors">
+              <div className="w-20 h-20 rounded-xl overflow-hidden bg-muted flex-shrink-0 shadow-sm border border-border/20">
+                <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+              </div>
+              <div className="flex-1 min-w-0 space-y-2">
+                <div className="flex justify-between items-start gap-2">
+                  <h4 className="font-extrabold text-sm text-primary line-clamp-1">{item.name}</h4>
+                  <button 
+                    onClick={() => onRemoveItem(item.id)}
+                    className="text-muted-foreground hover:text-destructive transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between mt-2">
+                  <div className="flex items-center gap-3 bg-secondary/30 rounded-xl p-1 px-2">
+                    <button
+                      className="h-6 w-6 flex items-center justify-center rounded-lg hover:bg-white text-muted-foreground transition-all shadow-sm"
+                      onClick={() => onUpdateQuantity(item.id, -1)}
+                    >
+                      <Minus className="w-3 h-3" />
+                    </button>
+                    <span className="text-xs font-black w-3 text-center">{item.quantity}</span>
+                    <button
+                      className="h-6 w-6 flex items-center justify-center rounded-lg hover:bg-white text-muted-foreground transition-all shadow-sm"
+                      onClick={() => onUpdateQuantity(item.id, 1)}
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <div className="text-md font-black text-primary">
+                    {(item.price * item.quantity).toLocaleString()} DT
+                  </div>
+                </div>
+              </div>
             </div>
           ))}
         </div>
@@ -137,52 +174,60 @@ export function FurnitureCart({
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Payment Method */}
-            <div className="space-y-3">
-              <label className="text-xs font-bold text-muted-foreground flex items-center gap-2 uppercase tracking-widest">
+            
+            {/* Payment Method Checklist */}
+            <div className="space-y-4">
+              <label className="text-xs font-black text-muted-foreground flex items-center gap-2 uppercase tracking-widest">
                 <CreditCard className="w-4 h-4 text-secondary" /> {t("furn.payment")}
               </label>
               
-              <div className="flex flex-wrap gap-2 mb-3">
+              <div className="grid grid-cols-1 gap-2">
                 {[
-                  { id: "cash", label: t("furn.payment.cash") },
-                  { id: "check", label: t("furn.payment.check") },
-                  { id: "transfer", label: t("furn.payment.transfer") }
-                ].map((option) => (
-                  <button
-                    key={option.id}
-                    onClick={() => onPaymentMethodChange(option.label)}
-                    className={cn(
-                      "px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-tight transition-all",
-                      paymentMethod === option.label 
-                        ? "bg-primary text-white shadow-md shadow-primary/20 scale-105" 
-                        : "bg-white border border-border/50 text-muted-foreground hover:border-primary/30"
-                    )}
-                  >
-                    {option.label}
-                  </button>
-                ))}
+                  { id: "cash", label: t("furn.payment.cash"), icon: <CheckCircle2 className="w-4 h-4" />, desc: lang === "fr" ? "Règlement en espèces" : "Cash payment" },
+                  { id: "check", label: t("furn.payment.check"), icon: <Landmark className="w-4 h-4" />, desc: lang === "fr" ? "Par chèque bancaire" : "By bank check" },
+                  { id: "transfer", label: t("furn.payment.transfer"), icon: <Building2 className="w-4 h-4" />, desc: lang === "fr" ? "Virement bancaire" : "Bank transfer" }
+                ].map((option) => {
+                  const isSelected = paymentMethod === option.label;
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => onPaymentMethodChange(option.label)}
+                      className={cn(
+                        "flex items-center gap-4 p-3 rounded-2xl border-2 text-left transition-all duration-300 group",
+                        isSelected 
+                          ? "bg-primary/5 border-primary shadow-md scale-[1.02]" 
+                          : "bg-white border-slate-100 hover:border-primary/30 hover:bg-slate-50"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
+                        isSelected ? "bg-primary text-white" : "bg-slate-100 text-slate-500 group-hover:bg-primary/10 group-hover:text-primary"
+                      )}>
+                        {option.icon}
+                      </div>
+                      <div className="flex-1">
+                        <p className={cn(
+                          "text-xs font-black uppercase tracking-tight",
+                          isSelected ? "text-primary" : "text-slate-700"
+                        )}>
+                          {option.label}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground font-medium">{option.desc}</p>
+                      </div>
+                      <div className={cn(
+                        "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                        isSelected ? "border-primary bg-primary text-white" : "border-slate-200"
+                      )}>
+                        {isSelected && <CheckCircle2 className="w-3 h-3" />}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
-
-              <Input 
-                value={paymentMethod}
-                onChange={(e) => onPaymentMethodChange(e.target.value)}
-                placeholder={lang === "fr" ? "Saisir le mode de paiement..." : "Type payment method..."}
-                className="rounded-xl border-none bg-white shadow-sm h-11 font-black text-primary focus:ring-2 focus:ring-primary/20 placeholder:font-medium placeholder:text-muted-foreground/40"
-              />
-              <p className="text-[9px] text-muted-foreground/60 font-bold italic ml-1">
-                {lang === "fr" ? "* Vous pouvez taper manuellement votre mode de règlement" : "* You can manually type your payment method"}
-              </p>
             </div>
-          </div>
 
-          <div className="space-y-3">
-            <div className="flex justify-between text-sm items-center">
-              <span className="font-bold text-muted-foreground/80">{t("furn.total")}</span>
-              <span className="font-extrabold">{total.toLocaleString()} DT</span>
-            </div>
-            <div className="flex justify-between text-sm items-center">
+            <div className="flex justify-between text-sm items-center pt-2">
               <span className="font-bold text-muted-foreground/80">Livraison</span>
               <span className="text-emerald-600 font-black tracking-tighter uppercase">Gratuite</span>
             </div>

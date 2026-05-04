@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
+import { resolveApiUrl } from "@/lib/api/client"
 import { RentalRequest } from "@/lib/requests-data"
 import { RentalRequestCard } from "./rental-request-card"
 import { useI18n } from "@/lib/i18n"
@@ -37,7 +38,7 @@ export function TenantRequestsModule({ autoOpenRequestId, onAutoOpenHandled }: T
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [viewingContract, setViewingContract] = useState<Contract | null>(null)
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+  const API_URL = resolveApiUrl()
 
   const fetchRequests = async () => {
     if (!user) return

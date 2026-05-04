@@ -1,6 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { resolveApiUrl } from "@/lib/api/client"
 
 export type UserRole = "admin" | "owner" | "tenant"
 
@@ -49,8 +50,6 @@ interface RegisterData {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [role, setRole] = useState<UserRole | null>(null)
@@ -89,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const response = await fetch(`${API_URL}/auth/me`, {
+        const response = await fetch(`${resolveApiUrl()}/auth/me`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -125,7 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string, selectedRole?: UserRole): Promise<{ success: boolean; message?: string; role?: UserRole }> => {
     try {
       const normalizedEmail = email.trim().toLowerCase()
-      const response = await fetch(`${API_URL}/auth/login`, {
+      const response = await fetch(`${resolveApiUrl()}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: normalizedEmail, password }),
@@ -159,7 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (data: RegisterData): Promise<{ success: boolean; message?: string; devCode?: string }> => {
     try {
       const normalizedEmail = data.email.trim().toLowerCase()
-      const response = await fetch(`${API_URL}/auth/signup`, {
+      const response = await fetch(`${resolveApiUrl()}/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -190,7 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateProfile = async (profileData: Partial<User>): Promise<{ success: boolean; message?: string }> => {
     try {
       const token = localStorage.getItem("accessToken")
-      const response = await fetch(`${API_URL}/auth/profile`, {
+      const response = await fetch(`${resolveApiUrl()}/auth/profile`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -220,7 +219,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updatePassword = async (currentPassword: string, newPassword: string): Promise<{ success: boolean; message?: string }> => {
     try {
       const token = localStorage.getItem("accessToken")
-      const response = await fetch(`${API_URL}/auth/password`, {
+      const response = await fetch(`${resolveApiUrl()}/auth/password`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -248,7 +247,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     role?: UserRole
   ): Promise<{ success: boolean; message?: string; role?: UserRole }> => {
     try {
-      const response = await fetch(`${API_URL}/auth/google`, {
+      const response = await fetch(`${resolveApiUrl()}/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: credential, mode, role }),

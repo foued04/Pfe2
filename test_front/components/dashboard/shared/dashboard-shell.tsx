@@ -56,7 +56,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   }, [role])
 
   useEffect(() => {
-    if (role !== "tenant") {
+    if (role !== "tenant" && role !== "owner") {
       setUnreadNotifications(0)
       return
     }
@@ -89,7 +89,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
       </div>
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="w-72 border-0 bg-sidebar p-0 text-white">
+        <SheetContent side="left" className="w-[min(20rem,calc(100vw-1rem))] border-0 bg-sidebar p-0 text-white">
           <DashboardSidebar role={role} pendingRequests={pendingRequests} unreadNotifications={unreadNotifications} />
         </SheetContent>
       </Sheet>
@@ -104,7 +104,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           showOwnerNotifications={role === "owner"}
           showTenantNotifications={role === "tenant"}
         />
-        <main className="mx-auto max-w-7xl px-4 py-8 md:px-6">{children}</main>
+        <main className="mx-auto max-w-7xl px-3 py-5 sm:px-4 sm:py-6 md:px-6 md:py-8">{children}</main>
       </div>
     </div>
   )

@@ -14,3 +14,15 @@ export const updatePassword = (
 ) => {
   return http.patch<{ message: string }>("/auth/password", data, token)
 }
+
+export const uploadVerificationDocument = (
+  docType: "cin" | "rib",
+  url: string,
+  token: string,
+) => {
+  return http.post<{ message: string; documents: BackendAuthResponse["user"]["documents"] }>(
+    `/verifications/upload/${docType}`,
+    { url },
+    token,
+  )
+}

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useMemo } from "react"
 import { useI18n } from "@/lib/i18n"
 import { useAuth } from "@/lib/auth-context"
+import { resolveApiUrl } from "@/lib/api/client"
 import { cn } from "@/lib/utils"
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
@@ -289,13 +290,21 @@ export function OwnerProfile({ properties = [], requestCount = 0 }: { properties
     docInputRef.current?.click()
   }
 
+  const readFileAsDataUrl = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = () => reject(new Error("Unable to read file"))
+      reader.readAsDataURL(file)
+    })
+
   const handleDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       const docType = uploadingType
-      const previewUrl = URL.createObjectURL(file)
+      const previewUrl = await readFileAsDataUrl(file)
       
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+      const API_URL = resolveApiUrl()
       
       try {
         const response = await fetch(`${API_URL}/verifications/upload/${docType === 'id' ? 'cin' : 'rib'}`, {
@@ -304,12 +313,15 @@ export function OwnerProfile({ properties = [], requestCount = 0 }: { properties
             "Content-Type": "application/json",
             Authorization: `Bearer ${localStorage.getItem('accessToken')}`
           },
-          body: JSON.stringify({ url: previewUrl }) // In a real app we'd upload the file to cloud storage
+          body: JSON.stringify({ url: previewUrl })
         })
 
-        if (!response.ok) throw new Error("Upload failed")
+        if (!response.ok) {
+          const errorBody = await response.json().catch(() => null)
+          throw new Error(errorBody?.message || "Upload failed")
+        }
 
-        const result = await response.json()
+        await response.json()
         
         const newDoc = {
           id: docType,
@@ -336,7 +348,7 @@ export function OwnerProfile({ properties = [], requestCount = 0 }: { properties
         console.error("Upload error:", error)
         toast({
           title: "Erreur",
-          description: "Impossible d'envoyer le document.",
+          description: error instanceof Error ? error.message : "Impossible d'envoyer le document.",
           variant: "destructive"
         })
       }

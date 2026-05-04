@@ -141,7 +141,7 @@ export function AIChatbot({ isOpen, onClose }: AIChatbotProps) {
   if (!isOpen) return null
 
   return (
-    <div className="fixed bottom-24 right-6 z-50 flex flex-col w-[380px] h-[580px] rounded-2xl border border-white/20 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
+    <div className="fixed bottom-20 right-3 z-50 flex h-[min(36rem,calc(100vh-6.5rem))] w-[calc(100vw-1.5rem)] max-w-[380px] flex-col overflow-hidden rounded-2xl border border-white/20 bg-white/80 shadow-2xl backdrop-blur-xl animate-in slide-in-from-bottom-4 duration-300 dark:bg-slate-900/80 sm:bottom-24 sm:right-6">
       {/* Header */}
       <div className="flex items-center justify-between bg-gradient-to-r from-teal-500 to-blue-600 p-4 shadow-lg">
         <div className="flex items-center gap-3">
@@ -292,7 +292,7 @@ export function ChatbotTrigger() {
         onClick={() => setIsOpen(!isOpen)}
         suppressHydrationWarning
         className={cn(
-          "fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-2xl transition-all duration-500 hover:scale-110 active:scale-90 group",
+          "fixed bottom-5 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-2xl transition-all duration-500 hover:scale-110 active:scale-90 group sm:bottom-6 sm:right-6",
           isOpen 
             ? "bg-slate-800 rotate-90" 
             : "bg-gradient-to-br from-teal-400 to-blue-600 hover:rotate-12"

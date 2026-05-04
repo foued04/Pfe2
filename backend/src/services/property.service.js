@@ -19,6 +19,7 @@ const pickAllowedPropertyFields = (payload = {}) => {
     'availability',
     'status',
     'moderationStatus',
+    'rejectionReason',
     'images',
     'furnishing',
     'meuble',

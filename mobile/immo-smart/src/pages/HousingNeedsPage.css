@@ -1,0 +1,328 @@
+.housing-page {
+  display: grid;
+  gap: 18px;
+}
+
+.housing-hero {
+  background: linear-gradient(140deg, var(--brand-primary-deep), var(--brand-primary));
+  border-radius: 22px;
+  padding: 20px;
+  color: #ffffff;
+  box-shadow: 0 22px 48px rgba(46, 196, 199, 0.2);
+}
+
+.housing-eyebrow {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.housing-hero h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1.05;
+}
+
+.housing-hero p:last-child {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.housing-card {
+  background: var(--brand-surface);
+  border: 1px solid var(--brand-border);
+  border-radius: 22px;
+  padding: 18px;
+  box-shadow: 0 14px 36px rgba(46, 196, 199, 0.08);
+  display: grid;
+  gap: 16px;
+}
+
+.housing-card-header {
+  display: grid;
+  gap: 14px;
+}
+
+.housing-card-title-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.housing-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  background: rgba(29, 78, 216, 0.1);
+  color: var(--brand-primary);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.housing-card-icon ion-icon {
+  font-size: 22px;
+}
+
+.housing-card-header h2 {
+  margin: 0;
+  color: var(--brand-text);
+  font-size: 21px;
+  font-weight: 800;
+}
+
+.housing-card-header p {
+  margin: 6px 0 0;
+  color: var(--brand-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.housing-toggle-btn,
+.housing-btn {
+  border: none;
+  border-radius: 16px;
+  font: inherit;
+  font-weight: 800;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 48px;
+}
+
+.housing-toggle-btn {
+  justify-self: start;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, var(--brand-primary-deep), var(--brand-primary));
+  color: #ffffff;
+  box-shadow: 0 12px 28px rgba(46, 196, 199, 0.2);
+}
+
+.housing-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--brand-muted);
+  font-size: 14px;
+}
+
+.housing-summary-card {
+  display: grid;
+  gap: 14px;
+  border-radius: 18px;
+  border: 1px solid var(--brand-border);
+  background: rgba(148, 163, 184, 0.08);
+  padding: 16px;
+}
+
+.housing-summary-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #047857;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.housing-summary-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.housing-tag {
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--brand-text);
+  border: 1px solid var(--brand-border);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.housing-summary-notes {
+  margin: 10px 0 0;
+  color: var(--brand-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.housing-alert-box {
+  border-radius: 18px;
+  background: rgba(29, 78, 216, 0.06);
+  padding: 14px;
+}
+
+.housing-alert-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--brand-primary);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.housing-alert-box p {
+  margin: 8px 0 0;
+  color: var(--brand-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.housing-message {
+  margin: 0;
+  border-radius: 16px;
+  padding: 14px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.housing-message-success {
+  border: 1px solid #a7f3d0;
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.housing-message-error {
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.08);
+  color: #b91c1c;
+}
+
+.housing-form {
+  display: grid;
+  gap: 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: #ffffff;
+  padding: 16px;
+}
+
+.housing-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.housing-field {
+  display: grid;
+  gap: 8px;
+}
+
+.housing-field > span {
+  color: var(--brand-text);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.housing-field input,
+.housing-field select,
+.housing-field textarea {
+  width: 100%;
+  border: 1px solid var(--brand-border);
+  border-radius: 14px;
+  background: #ffffff;
+  color: var(--brand-text);
+  font: inherit;
+  padding: 14px 15px;
+  outline: none;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.housing-field textarea {
+  min-height: 130px;
+  resize: vertical;
+}
+
+.housing-field input:focus,
+.housing-field select:focus,
+.housing-field textarea:focus {
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.housing-input-icon-wrap {
+  position: relative;
+}
+
+.housing-input-icon-wrap ion-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--brand-muted);
+  font-size: 18px;
+  pointer-events: none;
+}
+
+.housing-input-icon-wrap input {
+  padding-left: 42px;
+}
+
+.housing-switch-grid {
+  display: grid;
+  gap: 12px;
+  border-radius: 18px;
+  border: 1px solid var(--brand-border);
+  background: rgba(148, 163, 184, 0.08);
+  padding: 14px;
+}
+
+.housing-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--brand-text);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.housing-switch input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--brand-primary);
+}
+
+.housing-actions {
+  display: grid;
+  gap: 12px;
+}
+
+.housing-btn-outline {
+  background: #ffffff;
+  border: 1px solid var(--brand-border);
+  color: var(--brand-primary-deep);
+}
+
+.housing-btn-solid {
+  background: linear-gradient(135deg, var(--brand-primary-deep), var(--brand-primary));
+  color: #ffffff;
+  box-shadow: 0 12px 28px rgba(46, 196, 199, 0.2);
+}
+
+.housing-btn:disabled {
+  opacity: 0.65;
+}
+
+@media (min-width: 640px) {
+  .housing-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .housing-switch-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .housing-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

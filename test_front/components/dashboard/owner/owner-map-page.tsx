@@ -34,7 +34,7 @@ export function OwnerMapPage() {
             properties={properties}
             selectedProperty={selectedProperty}
             onPropertySelect={setSelectedProperty}
-            height="560px"
+            height="clamp(22rem, 60vh, 35rem)"
           />
 
           {selectedProperty && (

@@ -5,7 +5,7 @@ import type { AuthUser, BackendAuthResponse } from "../types/api"
 const TOKEN_KEY = "accessToken"
 
 type RegisterPayload = {
-  fullName: string
+  name: string
   email: string
   password: string
   role: "owner" | "tenant"
@@ -15,12 +15,13 @@ type RegisterPayload = {
 type LoginResult = {
   success: boolean
   message?: string
+  role?: AuthUser["role"]
 }
 
 type RegisterResult = {
   success: boolean
   message?: string
-  devCode?: string
+  emailDelivered?: boolean
 }
 
 type AuthContextType = {
@@ -31,6 +32,11 @@ type AuthContextType = {
   login: (email: string, password: string, expectedRole?: AuthUser["role"]) => Promise<LoginResult>
   register: (payload: RegisterPayload) => Promise<RegisterResult>
   verifyEmail: (email: string, code: string) => Promise<LoginResult>
+  loginWithGoogle: (
+    credential: string,
+    mode: "login" | "register",
+    role?: AuthUser["role"],
+  ) => Promise<LoginResult>
   logout: () => void
   setUser: (user: AuthUser | null) => void
 }
@@ -45,6 +51,10 @@ const mapUser = (backendUser: BackendAuthResponse["user"]): AuthUser => ({
   email: backendUser.email,
   phone: backendUser.phone || "",
   role: backendUser.role,
+  avatar: backendUser.avatar,
+  address: backendUser.address,
+  birthDate: backendUser.birthDate,
+  documents: backendUser.documents,
 })
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -103,7 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       setSession(data)
-      return { success: true }
+      return { success: true, role: data.user.role }
     } catch (err) {
       return {
         success: false,
@@ -115,14 +125,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (payload: RegisterPayload): Promise<RegisterResult> => {
     try {
       const data = await http.post<BackendAuthResponse>("/auth/signup", {
-        ...payload,
+        fullName: payload.name,
+        password: payload.password,
+        role: payload.role,
+        phone: payload.phone,
         email: payload.email.trim().toLowerCase(),
       })
 
       return {
         success: true,
         message: data.message,
-        devCode: data.devCode,
+        emailDelivered: data.emailDelivered,
       }
     } catch (err) {
       return {
@@ -140,11 +153,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
 
       setSession(data)
-      return { success: true, message: data.message }
+      return { success: true, message: data.message, role: data.user.role }
     } catch (err) {
       return {
         success: false,
         message: err instanceof Error ? err.message : "Impossible de verifier l'email",
+      }
+    }
+  }
+
+  const loginWithGoogle = async (
+    credential: string,
+    mode: "login" | "register",
+    role?: AuthUser["role"],
+  ): Promise<LoginResult> => {
+    try {
+      const data = await http.post<BackendAuthResponse>("/auth/google", {
+        token: credential,
+        mode,
+        role,
+      })
+
+      setSession(data)
+      return { success: true, role: data.user.role }
+    } catch (err) {
+      return {
+        success: false,
+        message: err instanceof Error ? err.message : "Echec de la connexion Google",
       }
     }
   }
@@ -162,6 +197,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login,
       register,
       verifyEmail,
+      loginWithGoogle,
       logout,
       setUser,
     }),

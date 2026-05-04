@@ -32,8 +32,8 @@ export function PropertiesListPage({ headingTag: Heading = "h1" }: PropertiesLis
           <span className="inline-flex rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
             Catalogue
           </span>
-          <Heading className="mt-4 text-4xl font-black tracking-tight text-foreground md:text-5xl">Explorez les proprietes disponibles</Heading>
-          <p className="mt-4 text-base leading-7 text-muted-foreground md:text-lg">
+          <Heading className="mt-4 text-3xl font-black tracking-tight text-foreground sm:text-4xl md:text-5xl">Explorez les proprietes disponibles</Heading>
+          <p className="mt-4 text-sm leading-7 text-muted-foreground sm:text-base md:text-lg">
             Une experience de recherche claire, structuree comme une vraie application SaaS, avec des pages dediees et une navigation stable.
           </p>
         </div>

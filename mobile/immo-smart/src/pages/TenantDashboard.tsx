@@ -55,8 +55,8 @@ const TenantDashboard: React.FC = () => {
   }, [requests, notifications])
 
   const menuItems = [
-    { title: "Recherche", icon: searchOutline, route: "/tab2", color: "blue", stat: 0 },
-    { title: "Carte", icon: mapOutline, route: "/tab2", color: "blue", stat: 0 },
+    { title: "Recherche", icon: searchOutline, route: "/tab2?view=list", color: "blue", stat: 0 },
+    { title: "Carte", icon: mapOutline, route: "/tab2?view=map", color: "blue", stat: 0 },
     { title: "Favoris", icon: heartOutline, route: "/favorites", color: "red", stat: 0 },
     { title: "Mes Demandes", icon: documentTextOutline, route: "/rental-requests", color: "teal", stat: stats.pendingReqs },
     { title: "Mobilier", icon: bedOutline, route: "/furniture", color: "indigo", stat: 0 },

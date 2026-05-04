@@ -1,27 +1,37 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Card, CardContent } from "./ui/card"
-import { Button } from "./ui/button"
-import { Badge } from "./ui/badge"
-import { 
-  Building, 
-  MapPin, 
-  User, 
-  Calendar, 
-  Check, 
-  X, 
-  Eye, 
-  Search, 
-  Filter,
+import { useEffect, useMemo, useState } from "react"
+import {
   AlertCircle,
-  MoreVertical,
+  BadgeCheck,
+  Building,
+  Calendar,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  ClipboardList,
+  Filter,
+  Home,
   Layers,
+  Mail,
+  MapPin,
+  Package,
+  Phone,
+  ScanSearch,
+  Search,
+  ShieldCheck,
   Sofa,
-  Package
+  User,
+  X,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
+import type { LucideIcon } from "lucide-react"
+
+import { resolveApiUrl } from "@/lib/api/client"
 import { type Property, mapBackendProperty as centralMapBackendProperty } from "@/lib/property-data"
+import { cn } from "@/lib/utils"
+import { Badge } from "./ui/badge"
+import { Button } from "./ui/button"
+import { Card, CardContent } from "./ui/card"
 
 type ValidationStatus = "pending" | "approved" | "rejected"
 
@@ -41,10 +51,8 @@ const mapBackendProperty = (property: any): ManagedProperty => {
   const mapped = centralMapBackendProperty(property)
   return {
     ...mapped,
-    // Add admin-specific fields
     validationStatus: property.moderationStatus || property.validationStatus || "pending",
     rejectionReason: property.rejectionReason || "",
-    // Ensure dates are formatted for the table
     createdAt: formatDate(property.createdAt),
   }
 }
@@ -52,29 +60,45 @@ const mapBackendProperty = (property: any): ManagedProperty => {
 export function AdminPropertiesManagement() {
   const [properties, setProperties] = useState<ManagedProperty[]>([])
   const [filter, setFilter] = useState({ search: "", status: "all", city: "all" })
-  const [rejectingId, setRejectingId] = useState<string | null>(null)
-  const [rejectionReason, setRejectionReason] = useState("")
   const [selectedProperty, setSelectedProperty] = useState<ManagedProperty | null>(null)
+  const [expandedPropertyId, setExpandedPropertyId] = useState<string | null>(null)
+  const [activeImage, setActiveImage] = useState<string | null>(null)
+  const [rejectionReason, setRejectionReason] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+  const API_URL = resolveApiUrl()
 
-  const filteredProperties = properties.filter(p => {
-    const matchesSearch = p.title.toLowerCase().includes(filter.search.toLowerCase()) || 
-                         p.ownerName.toLowerCase().includes(filter.search.toLowerCase())
-    const matchesStatus = filter.status === "all" || p.validationStatus === filter.status
-    const matchesCity = filter.city === "all" || p.city === filter.city
-    return matchesSearch && matchesStatus && matchesCity
-  })
+  const filteredProperties = useMemo(() => {
+    return properties.filter((property) => {
+      const haystack = `${property.title} ${property.ownerName} ${property.city} ${property.address}`.toLowerCase()
+      const matchesSearch = haystack.includes(filter.search.toLowerCase())
+      const matchesStatus = filter.status === "all" || property.validationStatus === filter.status
+      const matchesCity = filter.city === "all" || property.city === filter.city
+      return matchesSearch && matchesStatus && matchesCity
+    })
+  }, [filter, properties])
+
+  const moderationSummary = useMemo(() => {
+    return {
+      total: properties.length,
+      pending: properties.filter((property) => property.validationStatus === "pending").length,
+      approved: properties.filter((property) => property.validationStatus === "approved").length,
+      rejected: properties.filter((property) => property.validationStatus === "rejected").length,
+    }
+  }, [properties])
+
+  const cityOptions = useMemo(() => {
+    return Array.from(new Set(properties.map((property) => property.city).filter(Boolean))).sort()
+  }, [properties])
 
   const syncPropertyState = (id: string, validationStatus: ValidationStatus, reason?: string) => {
     setProperties((prev) =>
       prev.map((property) =>
-        property.id === id ? { ...property, validationStatus, rejectionReason: reason } : property
-      )
+        property.id === id ? { ...property, validationStatus, rejectionReason: reason || "" } : property,
+      ),
     )
     setSelectedProperty((prev) =>
-      prev && prev.id === id ? { ...prev, validationStatus, rejectionReason: reason } : prev
+      prev && prev.id === id ? { ...prev, validationStatus, rejectionReason: reason || "" } : prev,
     )
   }
 
@@ -92,7 +116,7 @@ export function AdminPropertiesManagement() {
       }
 
       const data = await response.json()
-      setProperties(data.map(mapBackendProperty))
+      setProperties((Array.isArray(data) ? data : []).map(mapBackendProperty))
     } catch (error) {
       console.error("Error fetching admin properties:", error)
       alert("Impossible de charger les proprietes.")
@@ -105,6 +129,17 @@ export function AdminPropertiesManagement() {
     fetchProperties()
   }, [])
 
+  useEffect(() => {
+    if (!selectedProperty) return
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [selectedProperty])
+
   const updateModerationStatus = async (id: string, validationStatus: ValidationStatus, reason?: string) => {
     setUpdatingId(id)
     try {
@@ -114,7 +149,10 @@ export function AdminPropertiesManagement() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
-        body: JSON.stringify({ moderationStatus: validationStatus }),
+        body: JSON.stringify({
+          moderationStatus: validationStatus,
+          rejectionReason: reason || "",
+        }),
       })
 
       if (!response.ok) {
@@ -134,388 +172,558 @@ export function AdminPropertiesManagement() {
   }
 
   const handleApprove = async (id: string) => {
-    await updateModerationStatus(id, "approved")
+    const success = await updateModerationStatus(id, "approved")
+    if (!success) return
+
+    if (selectedProperty?.id === id) {
+      closeProperty()
+    }
   }
 
   const handleReject = async (id: string) => {
     if (!rejectionReason.trim()) return
-    const didUpdate = await updateModerationStatus(id, "rejected", rejectionReason)
-    if (didUpdate) {
-      setRejectingId(null)
-      setRejectionReason("")
+    const success = await updateModerationStatus(id, "rejected", rejectionReason.trim())
+    if (!success) return
+
+    if (selectedProperty?.id === id) {
+      closeProperty()
     }
+  }
+
+  const handleQuickReject = async (property: ManagedProperty) => {
+    const fallbackReason = property.rejectionReason?.trim() || "Annonce rejetee par l'administrateur."
+    const reason = window.prompt("Motif du rejet", fallbackReason)
+
+    if (reason === null) return
+
+    const trimmedReason = reason.trim()
+    if (!trimmedReason) {
+      alert("Veuillez saisir un motif de rejet.")
+      return
+    }
+
+    await updateModerationStatus(property.id, "rejected", trimmedReason)
+  }
+
+  const openProperty = (property: ManagedProperty) => {
+    setSelectedProperty(property)
+    setActiveImage(property.images.cover)
+    setRejectionReason(property.rejectionReason || "")
+  }
+
+  const closeProperty = () => {
+    setSelectedProperty(null)
+    setActiveImage(null)
+    setRejectionReason("")
+  }
+
+  const toggleExpandedProperty = (id: string) => {
+    setExpandedPropertyId((prev) => (prev === id ? null : id))
   }
 
   const getStatusBadge = (status: ValidationStatus) => {
     switch (status) {
       case "approved":
-        return <Badge className="bg-emerald-100 text-emerald-600 border-none font-bold">Publié</Badge>
+        return <Badge className="bg-emerald-100 text-emerald-700 border-none font-bold">Publie</Badge>
       case "pending":
-        return <Badge className="bg-orange-100 text-orange-600 border-none font-bold animate-pulse">En attente</Badge>
+        return <Badge className="bg-amber-100 text-amber-700 border-none font-bold">En attente</Badge>
       case "rejected":
-        return <Badge className="bg-red-100 text-red-600 border-none font-bold">Rejeté</Badge>
+        return <Badge className="bg-rose-100 text-rose-700 border-none font-bold">Rejete</Badge>
     }
   }
 
+  const gallery = selectedProperty
+    ? [
+        selectedProperty.images.cover,
+        selectedProperty.images.kitchen,
+        selectedProperty.images.bathroom,
+        selectedProperty.images.bedroom,
+        selectedProperty.images.livingRoom,
+        selectedProperty.images.exterior,
+      ].filter((image): image is string => Boolean(image))
+    : []
+
+  const reviewChecklist = selectedProperty
+    ? [
+        { label: "Description detaillee", ok: selectedProperty.description.trim().length > 60 },
+        { label: "Galerie suffisante", ok: gallery.length >= 3 },
+        { label: "Tarification renseignee", ok: selectedProperty.rent > 0 && selectedProperty.deposit >= 0 },
+        { label: "Coordonnees proprietaire", ok: Boolean(selectedProperty.ownerName && selectedProperty.ownerEmail && selectedProperty.ownerPhone) },
+      ]
+    : []
+
   return (
     <div className="p-8 space-y-8 animate-in fade-in duration-700">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-3xl font-black text-foreground tracking-tight">Gestion des Biens Immobiliers</h1>
-          <p className="text-muted-foreground font-medium">Modérez et gérez les annonces publiées sur la plateforme</p>
+          <h1 className="text-3xl font-black tracking-tight text-foreground">Moderation des proprietes</h1>
+          <p className="mt-2 text-sm font-medium text-muted-foreground">
+            Consultez chaque bien comme un dossier de validation, puis approuvez ou refusez avec une interface de decision claire.
+          </p>
         </div>
-        <div className="flex items-center gap-2">
-           <Badge variant="outline" className="px-4 py-1.5 rounded-full bg-primary/5 text-primary border-primary/10 font-bold">
-             {properties.filter(p => p.validationStatus === "pending").length} en attente
-           </Badge>
-        </div>
+        <Badge variant="outline" className="w-fit rounded-full bg-primary/5 px-4 py-2 font-bold text-primary border-primary/15">
+          {moderationSummary.pending} biens a traiter
+        </Badge>
       </div>
 
-      <Card className="border-none shadow-xl bg-card p-4">
-        <div className="flex flex-col md:flex-row gap-4 items-center">
-          <div className="relative flex-1 w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input 
-              type="text" 
-              placeholder="Rechercher par titre, locateur..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-muted/50 border-none text-sm font-medium focus:ring-2 focus:ring-primary/20 transition-all"
+      <div className="grid gap-4 md:grid-cols-4">
+        {[
+          { label: "Biens en file", value: moderationSummary.total, note: "Volume total", icon: ClipboardList, tone: "bg-slate-50 text-slate-700" },
+          { label: "En attente", value: moderationSummary.pending, note: "Decision requise", icon: ScanSearch, tone: "bg-amber-50 text-amber-700" },
+          { label: "Publies", value: moderationSummary.approved, note: "Diffusion active", icon: BadgeCheck, tone: "bg-emerald-50 text-emerald-700" },
+          { label: "Refuses", value: moderationSummary.rejected, note: "Correction demandee", icon: AlertCircle, tone: "bg-rose-50 text-rose-700" },
+        ].map((item) => (
+          <Card key={item.label} className="border-none shadow-lg bg-card">
+            <CardContent className="p-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-muted-foreground">{item.label}</p>
+                  <p className="mt-3 text-3xl font-black tracking-tight text-foreground">{item.value}</p>
+                  <p className="mt-2 text-sm font-medium text-muted-foreground">{item.note}</p>
+                </div>
+                <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl", item.tone)}>
+                  <item.icon className="h-5 w-5" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Card className="border-none bg-card p-4 shadow-xl">
+        <div className="flex flex-col items-center gap-4 md:flex-row">
+          <div className="relative w-full flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Rechercher par titre, proprietaire, ville ou adresse"
+              className="w-full rounded-2xl bg-muted/50 py-2.5 pl-10 pr-4 text-sm font-medium outline-none ring-0 transition focus:bg-muted"
               value={filter.search}
-              onChange={(e) => setFilter({ ...filter, search: e.target.value })}
+              onChange={(e) => setFilter((prev) => ({ ...prev, search: e.target.value }))}
             />
           </div>
-          <div className="flex gap-3 w-full md:w-auto">
-            <select 
-              className="bg-muted/50 border-none rounded-2xl px-4 py-2.5 text-sm font-black text-muted-foreground focus:ring-2 focus:ring-primary/20"
+          <div className="flex w-full gap-3 md:w-auto">
+            <select
+              className="rounded-2xl bg-muted/50 px-4 py-2.5 text-sm font-bold text-muted-foreground outline-none"
               value={filter.status}
-              onChange={(e) => setFilter({ ...filter, status: e.target.value })}
+              onChange={(e) => setFilter((prev) => ({ ...prev, status: e.target.value }))}
             >
               <option value="all">Tous les statuts</option>
               <option value="pending">En attente</option>
-              <option value="approved">Approuvé</option>
-              <option value="rejected">Rejeté</option>
+              <option value="approved">Publies</option>
+              <option value="rejected">Rejetes</option>
             </select>
+            <select
+              className="rounded-2xl bg-muted/50 px-4 py-2.5 text-sm font-bold text-muted-foreground outline-none"
+              value={filter.city}
+              onChange={(e) => setFilter((prev) => ({ ...prev, city: e.target.value }))}
+            >
+              <option value="all">Toutes les villes</option>
+              {cityOptions.map((city) => (
+                <option key={city} value={city}>
+                  {city}
+                </option>
+              ))}
+            </select>
+            <div className="hidden h-11 items-center rounded-2xl bg-primary/5 px-4 text-primary md:flex">
+              <Filter className="h-4 w-4" />
+            </div>
           </div>
         </div>
       </Card>
 
       <div className="grid gap-6">
-        {isLoading && (
-          <Card className="border-none shadow-xl bg-card p-8">
+        {isLoading ? (
+          <Card className="border-none bg-card p-8 shadow-xl">
             <p className="text-sm font-bold text-muted-foreground">Chargement des proprietes...</p>
           </Card>
-        )}
-        {filteredProperties.map((property) => (
-          <Card key={property.id} className="border-none shadow-xl bg-card overflow-hidden group hover:shadow-2xl transition-all duration-500">
+        ) : null}
+
+        {!isLoading && filteredProperties.map((property) => (
+          <Card key={property.id} className="overflow-hidden border-none bg-card shadow-xl transition-all duration-300 hover:shadow-2xl">
             <div className="flex flex-col lg:flex-row">
-              <div className="relative w-full lg:w-72 h-48 lg:h-auto shrink-0 overflow-hidden">
-                <img 
-                  src={property.images.cover} 
-                  alt={property.title}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                />
-                <div className="absolute top-4 left-4">
-                  {getStatusBadge(property.validationStatus)}
-                </div>
+              <div className="relative h-52 w-full shrink-0 overflow-hidden lg:h-auto lg:w-72">
+                <img src={property.images.cover} alt={property.title} className="h-full w-full object-cover" />
+                <div className="absolute left-4 top-4">{getStatusBadge(property.validationStatus)}</div>
               </div>
 
-              <div className="flex-1 p-6 flex flex-col justify-between">
+              <div className="flex flex-1 flex-col justify-between p-6">
                 <div>
-                  <div className="flex justify-between items-start mb-2">
+                  <div className="flex items-start justify-between gap-4">
                     <div>
-                      <h3 className="text-xl font-black text-foreground tracking-tight line-clamp-1">{property.title}</h3>
-                      <div className="flex items-center gap-4 mt-2 text-xs font-black uppercase tracking-widest text-muted-foreground opacity-60">
-                        <span className="flex items-center gap-1.5"><Building className="w-3.5 h-3.5 text-primary" /> {property.type}</span>
-                        <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-primary" /> {property.city}</span>
+                      <h3 className="text-2xl font-black tracking-tight text-foreground">{property.title}</h3>
+                      <div className="mt-3 flex flex-wrap items-center gap-3 text-xs font-black uppercase tracking-[0.16em] text-muted-foreground">
+                        <span className="inline-flex items-center gap-1.5">
+                          <Building className="h-3.5 w-3.5 text-primary" />
+                          {property.type}
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                          <MapPin className="h-3.5 w-3.5 text-primary" />
+                          {property.city}
+                        </span>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-2xl font-black text-primary tracking-tighter">{property.rent} DT</p>
-                      <p className="text-[10px] font-black uppercase text-muted-foreground opacity-50">Par mois</p>
+                      <p className="text-3xl font-black tracking-tight text-primary">{property.rent} DT</p>
+                      <p className="text-[10px] font-black uppercase text-muted-foreground">Loyer mensuel</p>
                     </div>
                   </div>
-                  
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 py-4 border-y border-border/50">
-                    <div className="flex flex-col">
-                      <span className="text-[9px] font-black uppercase text-muted-foreground mb-1">Locateur</span>
-                      <span className="text-sm font-bold text-foreground flex items-center gap-2"><User className="w-3.5 h-3.5 text-orange-400" /> {property.ownerName}</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-[9px] font-black uppercase text-muted-foreground mb-1">Date d&apos;ajout</span>
-                      <span className="text-sm font-bold text-foreground flex items-center gap-2"><Calendar className="w-3.5 h-3.5 text-emerald-400" /> {property.createdAt}</span>
-                    </div>
-                    <div className="flex flex-col col-span-2">
-                      <span className="text-[9px] font-black uppercase text-muted-foreground mb-1">Adresse</span>
-                      <span className="text-sm font-bold text-foreground truncate">{property.address}</span>
+
+                  <div className="mt-6 grid gap-4 border-y border-border/50 py-4 md:grid-cols-4">
+                    <MetaBlock icon={User} label="Proprietaire" value={property.ownerName} accent="text-orange-500" />
+                    <MetaBlock icon={Calendar} label="Ajoute le" value={property.createdAt || "-"} accent="text-emerald-500" />
+                    <MetaBlock icon={Home} label="Surface" value={`${property.surface} m2`} accent="text-blue-500" />
+                    <div className="md:col-span-1">
+                      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">Adresse</p>
+                      <p className="mt-2 truncate text-sm font-bold text-foreground">{property.address}</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between mt-6 gap-4">
-                  <div className="flex gap-2 w-full lg:w-auto">
+                <div className="mt-6 flex flex-col gap-3">
+                  <div className={`grid gap-2 ${property.validationStatus === "pending" ? "lg:grid-cols-[1fr_1fr_auto_auto]" : "lg:grid-cols-[auto_auto]"}`}>
                     {property.validationStatus === "pending" ? (
                       <>
-                        <Button 
+                        <Button
                           onClick={() => handleApprove(property.id)}
                           disabled={updatingId === property.id}
-                          className="flex-1 lg:flex-none h-11 px-8 rounded-2xl bg-emerald-500 hover:bg-emerald-600 font-black uppercase text-[11px] tracking-widest text-white shadow-lg shadow-emerald-200 border-none"
+                          className="h-11 flex-1 rounded-2xl bg-emerald-500 font-black uppercase tracking-[0.12em] text-white hover:bg-emerald-600"
                         >
-                          <Check className="w-4 h-4 mr-2" />
+                          <Check className="mr-2 h-4 w-4" />
                           {updatingId === property.id ? "..." : "Approuver"}
                         </Button>
-                        <Button 
-                          onClick={() => setRejectingId(property.id)}
-                          disabled={updatingId === property.id}
+                        <Button
+                          onClick={() => handleQuickReject(property)}
                           variant="outline"
-                          className="flex-1 lg:flex-none h-11 px-8 rounded-2xl bg-red-50 text-red-600 border-red-200 border-2 font-black uppercase text-[11px] tracking-widest hover:bg-red-100"
+                          className="h-11 flex-1 rounded-2xl border-red-200 bg-red-50 font-black uppercase tracking-[0.12em] text-red-600 hover:bg-red-100"
                         >
-                          <X className="w-4 h-4 mr-2" />
-                          {updatingId === property.id ? "..." : "Rejeter"}
+                          <X className="mr-2 h-4 w-4" />
+                          Rejeter
                         </Button>
                       </>
-                    ) : (
-                      <>
-                        {property.validationStatus === "approved" ? (
-                          <Button 
-                            variant="outline"
-                            disabled={updatingId === property.id}
-                            onClick={() => setRejectingId(property.id)}
-                            className="h-11 px-8 rounded-2xl font-black uppercase text-[11px] tracking-widest border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-50"
-                          >
-                            <Check className="w-4 h-4 mr-2" /> PUBLIÉ (Cliquer pour retirer)
-                          </Button>
-                        ) : (
-                          <Button 
-                            variant="outline"
-                            disabled={updatingId === property.id}
-                            onClick={() => handleApprove(property.id)}
-                            className="h-11 px-8 rounded-2xl font-black uppercase text-[11px] tracking-widest border-2 border-red-500 text-red-600 hover:bg-red-50"
-                          >
-                            <X className="w-4 h-4 mr-2" /> REJETÉ (Cliquer pour approuver)
-                          </Button>
-                        )}
-                      </>
-                    )}
+                    ) : null}
+
+                    <Button
+                      onClick={() => toggleExpandedProperty(property.id)}
+                      variant="outline"
+                      className="h-11 rounded-2xl border-slate-200 bg-slate-50 px-5 font-black uppercase tracking-[0.12em] text-slate-700 hover:bg-slate-100"
+                    >
+                      <ChevronDown className={cn("mr-2 h-4 w-4 transition-transform", expandedPropertyId === property.id ? "rotate-180" : "")} />
+                      {expandedPropertyId === property.id ? "Masquer les details" : "Voir les details"}
+                    </Button>
+
                   </div>
-                  <Button 
-                    onClick={() => setSelectedProperty(property)}
-                    variant="ghost" 
-                    className="h-11 px-6 rounded-2xl font-black uppercase text-[11px] tracking-widest text-primary flex items-center gap-2 hover:bg-primary/5"
-                  >
-                    <Eye className="w-4 h-4" />
-                    Voir Détails
-                  </Button>
+
+                  {expandedPropertyId === property.id ? (
+                    <div className="grid gap-3 rounded-3xl border border-border/60 bg-slate-50/80 p-4 md:grid-cols-2 xl:grid-cols-4">
+                      <InlineDetail label="Description" value={property.description || "Aucune description"} className="md:col-span-2 xl:col-span-2" />
+                      <InlineDetail label="Chambres" value={String(property.bedrooms)} />
+                      <InlineDetail label="Salles de bain" value={String(property.bathrooms)} />
+                      <InlineDetail label="Salons" value={String(property.livingRooms)} />
+                      <InlineDetail label="Cuisine" value={property.equippedKitchen ? "Equipee" : "Standard"} />
+                      <InlineDetail label="Meuble" value={property.meuble ? "Oui" : "Non"} />
+                      <InlineDetail label="Caution" value={`${property.deposit} DT`} />
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </div>
           </Card>
         ))}
-        {!isLoading && filteredProperties.length === 0 && (
-          <Card className="border-none shadow-xl bg-card p-8">
+
+        {!isLoading && filteredProperties.length === 0 ? (
+          <Card className="border-none bg-card p-8 shadow-xl">
             <p className="text-sm font-bold text-foreground">Aucune propriete trouvee.</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Modifiez le filtre ou ajoutez de nouvelles annonces pour les voir ici.
-            </p>
+            <p className="mt-1 text-sm text-muted-foreground">Essayez un autre filtre ou recherchez un autre bien.</p>
           </Card>
-        )}
+        ) : null}
       </div>
 
-      {selectedProperty && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-500 overflow-y-auto">
-          <div className="relative w-full max-w-5xl bg-background rounded-[2rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-500 my-8">
-            <button 
-              onClick={() => setSelectedProperty(null)}
-              className="absolute top-6 right-6 z-10 p-2 rounded-full bg-black/20 hover:bg-black/40 text-white transition-all shadow-lg"
-            >
-              <X className="w-6 h-6" />
-            </button>
+      {selectedProperty ? (
+        <div className="fixed inset-0 z-50 bg-black/65">
+          <div className="h-screen w-screen overflow-hidden bg-background shadow-2xl">
+            <div className="relative grid h-full lg:grid-cols-[1.05fr_0.95fr]">
+              <button
+                onClick={closeProperty}
+                className="absolute right-6 top-6 z-20 rounded-full bg-black/25 p-3 text-white shadow-lg transition hover:bg-black/45"
+              >
+                <X className="h-6 w-6" />
+              </button>
 
-            <div className="flex flex-col lg:flex-row h-full">
-              <div className="w-full lg:w-1/2 bg-muted p-1 flex flex-col gap-1">
-                 <div className="h-[400px] lg:h-[500px] w-full rounded-2xl overflow-hidden relative">
-                    <img src={selectedProperty.images.cover} className="w-full h-full object-cover" alt="Main" />
-                    <div className="absolute top-6 left-6">
-                      {getStatusBadge(selectedProperty.validationStatus)}
-                    </div>
-                 </div>
-                 <div className="grid grid-cols-5 gap-1">
-                   {[selectedProperty.images.kitchen, selectedProperty.images.bathroom, selectedProperty.images.bedroom, selectedProperty.images.livingRoom, selectedProperty.images.exterior].map((img, i) => (
-                     <div key={i} className="h-20 lg:h-24 rounded-lg overflow-hidden border-2 border-transparent hover:border-primary transition-all cursor-pointer">
-                        <img src={img} className="w-full h-full object-cover" alt={`Thumb ${i}`} />
-                     </div>
-                   ))}
-                 </div>
+              <div className="flex h-full min-h-0 flex-col bg-slate-950 p-5 text-white lg:p-6">
+                <p className="text-[11px] font-black uppercase tracking-[0.24em] text-white/55">Property Review Workspace</p>
+                <h2 className="mt-3 text-3xl font-black tracking-tight">{selectedProperty.title}</h2>
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-white/70">
+                  <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1">
+                    <Building className="h-4 w-4" />
+                    {selectedProperty.type.toUpperCase()}
+                  </span>
+                  <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1">
+                    <MapPin className="h-4 w-4" />
+                    {selectedProperty.city}
+                  </span>
+                  <span>{getStatusBadge(selectedProperty.validationStatus)}</span>
+                </div>
+
+                <div className="mt-4 flex-1 overflow-hidden rounded-[1.75rem] border border-white/10">
+                  <img src={activeImage || selectedProperty.images.cover} alt={selectedProperty.title} className="h-full min-h-[320px] w-full object-cover lg:min-h-0" />
+                </div>
+
+                <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6">
+                  {gallery.map((image, index) => (
+                    <button
+                      type="button"
+                      key={`${image}-${index}`}
+                      onClick={() => setActiveImage(image)}
+                      className={cn(
+                        "overflow-hidden rounded-2xl border-2 transition-all",
+                        activeImage === image ? "border-blue-400 shadow-lg shadow-blue-500/20" : "border-white/10 hover:border-white/40",
+                      )}
+                    >
+                      <img src={image} alt={`Vue ${index + 1}`} className="h-16 w-full object-cover lg:h-20" />
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              <div className="flex-1 p-8 lg:p-12 overflow-y-auto max-h-[800px] scrollbar-hide">
-                 <div className="space-y-8">
+              <div className="h-full overflow-hidden bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] p-6 lg:p-7">
+                <div className="flex h-full min-h-0 flex-col space-y-5">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Dossier de moderation</p>
+                    <h3 className="mt-2 text-3xl font-black uppercase tracking-tight text-foreground">{selectedProperty.title}</h3>
+                    <p className="mt-2 flex items-center gap-2 text-base font-medium text-muted-foreground">
+                      <MapPin className="h-5 w-5 text-primary" />
+                      {selectedProperty.address}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 border-y border-border/50 py-5">
+                    <MetricCard label="Loyer mensuel" value={`${selectedProperty.rent} DT`} tone="blue" />
+                    <MetricCard label="Caution demandee" value={`${selectedProperty.deposit} DT`} tone="slate" />
+                  </div>
+
+                  <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
                     <div>
-                      <div className="flex items-center gap-2 text-primary font-black uppercase text-[10px] tracking-[0.2em] mb-2">
-                        <Building className="w-3 h-3" /> {selectedProperty.type} • {selectedProperty.city}
+                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">Description complete</p>
+                      <p className="mt-3 line-clamp-5 text-sm font-medium leading-relaxed text-foreground/80">{selectedProperty.description}</p>
+                    </div>
+
+                    <Card className="border border-border/60 bg-white/90 shadow-none">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">
+                          <ClipboardList className="h-3.5 w-3.5 text-primary" />
+                          Checklist de conformite
+                        </div>
+                        <div className="mt-3 space-y-2">
+                          {reviewChecklist.map((item) => (
+                            <div key={item.label} className="flex items-center justify-between rounded-2xl border border-border/50 bg-muted/20 px-3 py-2.5">
+                              <span className="text-sm font-semibold text-foreground">{item.label}</span>
+                              <Badge className={cn("border-none font-bold", item.ok ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700")}>
+                                {item.ok ? "Valide" : "A verifier"}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">Fiche technique</p>
+                    <div className="mt-3 grid gap-3 rounded-3xl border border-border/30 bg-muted/30 p-4 sm:grid-cols-2 xl:grid-cols-3">
+                      {[
+                        { label: "Surface", value: `${selectedProperty.surface} m2`, icon: Layers },
+                        { label: "Chambres", value: String(selectedProperty.bedrooms), icon: Building },
+                        { label: "Salles de bain", value: String(selectedProperty.bathrooms), icon: Building },
+                        { label: "Salons", value: String(selectedProperty.livingRooms), icon: Sofa },
+                        { label: "Cuisine", value: selectedProperty.equippedKitchen ? "Equipee" : "Standard", icon: Package },
+                        { label: "Meuble", value: selectedProperty.meuble ? "Oui" : "Non", icon: Package },
+                      ].map((feature) => (
+                        <div key={feature.label} className="rounded-2xl bg-white px-3 py-3 shadow-sm">
+                          <p className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.16em] text-muted-foreground">
+                            <feature.icon className="h-3 w-3" />
+                            {feature.label}
+                          </p>
+                          <p className="mt-2 text-sm font-black text-foreground">{feature.value}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Card className="border border-slate-200/80 bg-white/90 shadow-none">
+                    <CardContent className="p-3.5">
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-lg font-black text-white shadow-sm">
+                            {selectedProperty.ownerName[0]}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary/80">Proprietaire declarant</p>
+                            <h4 className="truncate text-lg font-black tracking-tight text-foreground">{selectedProperty.ownerName}</h4>
+                          </div>
+                        </div>
+
+                        <div className="grid gap-2 sm:grid-cols-2 lg:min-w-[340px]">
+                          <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-3 py-3">
+                            <p className="text-[9px] font-black uppercase tracking-[0.16em] text-muted-foreground">Email</p>
+                            <div className="mt-1.5 flex items-center gap-2 text-sm font-bold text-foreground">
+                              <Mail className="h-4 w-4 shrink-0 text-primary" />
+                              <span className="truncate">{selectedProperty.ownerEmail}</span>
+                            </div>
+                          </div>
+                          <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-3 py-3">
+                            <p className="text-[9px] font-black uppercase tracking-[0.16em] text-muted-foreground">Telephone</p>
+                            <div className="mt-1.5 flex items-center gap-2 text-sm font-bold text-foreground">
+                              <Phone className="h-4 w-4 shrink-0 text-primary" />
+                              <span className="truncate">{selectedProperty.ownerPhone}</span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <h2 className="text-4xl font-black text-foreground tracking-tight leading-tight uppercase underline decoration-primary/30 underline-offset-8 decoration-4 mb-4">
-                        {selectedProperty.title}
-                      </h2>
-                      <p className="text-lg text-muted-foreground font-medium flex items-center gap-2">
-                        <MapPin className="w-5 h-5 text-primary" /> {selectedProperty.address}
-                      </p>
-                    </div>
+                    </CardContent>
+                  </Card>
 
-                    <div className="grid grid-cols-2 gap-6 py-8 border-y border-border/50">
-                       <div>
-                          <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1.5">Loyer Mensuel</p>
-                          <p className="text-4xl font-black text-primary tracking-tighter">{selectedProperty.rent} <span className="text-lg">DT</span></p>
-                       </div>
-                       <div>
-                          <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1.5">Caution Demandée</p>
-                          <p className="text-4xl font-black text-foreground tracking-tighter">{selectedProperty.deposit} <span className="text-lg">DT</span></p>
-                       </div>
-                    </div>
-
-                    <div>
-                      <h4 className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-4">Description complète</h4>
-                      <p className="text-base text-foreground/80 leading-relaxed font-medium">
-                        {selectedProperty.description}
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-6 bg-muted/30 p-6 rounded-3xl border border-border/30">
-                       {[
-                         { label: "Surface", value: `${selectedProperty.surface} m²`, icon: Layers },
-                         { label: "Chambres", value: selectedProperty.bedrooms, icon: Building },
-                         { label: "Salles de bain", value: selectedProperty.bathrooms, icon: Building },
-                         { label: "Salons", value: selectedProperty.livingRooms, icon: Sofa },
-                         { label: "Cuisine", value: selectedProperty.equippedKitchen ? "Équipée" : "Standard", icon: Package },
-                         { label: "Meublé", value: selectedProperty.meuble ? "Oui" : "Non", icon: Package },
-                       ].map((feat, i) => (
-                         <div key={i} className="flex flex-col gap-1">
-                            <span className="text-[9px] font-black uppercase text-muted-foreground opacity-60 tracking-wider flex items-center gap-1.5">
-                              <feat.icon className="w-3 h-3" /> {feat.label}
-                            </span>
-                            <span className="text-sm font-black text-foreground">{feat.value}</span>
-                         </div>
-                       ))}
-                    </div>
-
-                    <div className="p-6 rounded-3xl border-2 border-primary/10 bg-primary/5 flex items-center gap-5">
-                       <div className="w-16 h-16 rounded-full bg-primary text-white flex items-center justify-center font-black text-2xl shadow-lg ring-4 ring-white">
-                         {selectedProperty.ownerName[0]}
-                       </div>
-                       <div className="flex-1">
-                          <p className="text-[10px] font-black uppercase text-primary tracking-widest mb-1">Locateur de confiance</p>
-                          <h4 className="text-xl font-black text-foreground tracking-tight">{selectedProperty.ownerName}</h4>
-                          <div className="flex flex-wrap gap-4 mt-2">
-                             <div className="text-xs font-black text-muted-foreground flex items-center gap-1.5"><Eye className="w-3.5 h-3.5" /> {selectedProperty.ownerEmail}</div>
-                             <div className="text-xs font-black text-muted-foreground flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-emerald-500" /> +216 {selectedProperty.ownerPhone.split('+216')[1] || selectedProperty.ownerPhone}</div>
+                  <Card className="mt-auto overflow-hidden border-none bg-slate-950 text-white shadow-xl">
+                    <CardContent className="p-0">
+                      <div className="border-b border-white/10 px-5 py-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/45">Decision panel</p>
+                            <h4 className="mt-1.5 text-xl font-black">Valider ou refuser l'annonce</h4>
+                            <p className="mt-1.5 text-sm font-medium text-white/65">
+                              Finalisez la moderation avec un motif clair en cas de refus. Cette action pilote la visibilite du bien sur la plateforme.
+                            </p>
                           </div>
-                       </div>
-                    </div>
+                          <div className="hidden h-14 w-14 items-center justify-center rounded-2xl bg-white/10 sm:flex">
+                            <ChevronRight className="h-6 w-6 text-white/80" />
+                          </div>
+                        </div>
+                      </div>
 
-                    <div className="pt-8 border-t border-border/50">
-                       {selectedProperty.validationStatus === "pending" ? (
-                          <div className="space-y-6">
-                             <div className="flex flex-col gap-2">
-                                <h4 className="text-[10px] font-black uppercase text-red-600 tracking-widest">Zone de décision</h4>
-                                <p className="text-sm text-muted-foreground font-medium">Vérifiez toutes les informations avant de valider cette annonce.</p>
-                             </div>
-                             <div className="flex gap-4">
-                                <Button 
-                                  onClick={() => handleApprove(selectedProperty.id)}
-                                  disabled={updatingId === selectedProperty.id}
-                                  className="flex-1 h-14 rounded-2xl bg-emerald-500 hover:bg-emerald-600 font-black uppercase text-xs tracking-[0.1em] text-white shadow-xl shadow-emerald-200 border-none"
-                                >
-                                  <Check className="w-5 h-5 mr-3" />
-                                  {updatingId === selectedProperty.id ? "..." : "Approuver l'annonce"}
-                                </Button>
-                                <Button 
-                                  onClick={() => setRejectingId(selectedProperty.id)}
-                                  disabled={updatingId === selectedProperty.id}
-                                  variant="outline"
-                                  className="flex-1 h-14 rounded-2xl bg-red-50 text-red-600 border-red-200 border-2 font-black uppercase text-xs tracking-[0.1em] hover:bg-red-100"
-                                >
-                                  <X className="w-5 h-5 mr-3" />
-                                  Rejeter l&apos;annonce
-                                </Button>
-                             </div>
+                      <div className="space-y-4 px-5 py-5">
+                        <div className="grid gap-3 sm:grid-cols-3">
+                          <DecisionMetric label="Statut" value={selectedProperty.validationStatus === "approved" ? "Publiee" : selectedProperty.validationStatus === "rejected" ? "Refusee" : "En attente"} />
+                          <DecisionMetric label="Photos" value={String(gallery.length)} />
+                          <DecisionMetric label="Conformite" value={`${reviewChecklist.filter((item) => item.ok).length}/${reviewChecklist.length}`} />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase tracking-[0.18em] text-white/45">Motif de refus / note de moderation</label>
+                          <textarea
+                            className="min-h-[88px] w-full resize-none rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white outline-none placeholder:text-white/35 focus:border-red-300/50 focus:bg-white/10"
+                            placeholder="Ex: photos insuffisantes, description floue, adresse incoherente, prix non justifie..."
+                            value={rejectionReason}
+                            onChange={(e) => setRejectionReason(e.target.value)}
+                          />
+                        </div>
+
+                        {selectedProperty.validationStatus === "pending" ? (
+                          <div className="flex flex-col gap-3 sm:flex-row">
+                            <Button
+                              onClick={() => handleApprove(selectedProperty.id)}
+                              disabled={updatingId === selectedProperty.id}
+                              className="h-12 flex-1 rounded-2xl bg-emerald-500 font-black uppercase tracking-[0.12em] text-white hover:bg-emerald-600"
+                            >
+                              <Check className="mr-3 h-5 w-5" />
+                              {updatingId === selectedProperty.id ? "..." : "Approuver et publier"}
+                            </Button>
+                            <Button
+                              onClick={() => handleReject(selectedProperty.id)}
+                              disabled={!rejectionReason.trim() || updatingId === selectedProperty.id}
+                              variant="outline"
+                              className="h-12 flex-1 rounded-2xl border border-red-300/20 bg-red-500/10 font-black uppercase tracking-[0.12em] text-red-100 hover:bg-red-500/20"
+                            >
+                              <X className="mr-3 h-5 w-5" />
+                              {updatingId === selectedProperty.id ? "..." : "Refuser avec motif"}
+                            </Button>
                           </div>
-                       ) : selectedProperty.validationStatus === "approved" ? (
-                          <div className="flex items-center justify-between p-6 rounded-3xl bg-emerald-50 border border-emerald-200">
-                             <div>
-                                <p className="text-[10px] font-black uppercase text-emerald-600 tracking-widest mb-1">Statut actuel</p>
-                                <div className="flex items-center gap-3">
-                                   <Badge className="bg-emerald-500 text-white border-none font-bold italic">ANNONCE PUBLIÉE</Badge>
-                                   <span className="text-sm font-bold text-foreground">Visible sur la page d'accueil</span>
-                                </div>
-                             </div>
-                             <Button 
-                               variant="outline"
-                               disabled={updatingId === selectedProperty.id}
-                               onClick={() => setRejectingId(selectedProperty.id)}
-                               className="rounded-2xl bg-red-50 text-red-600 border-red-200 border-2 font-black uppercase text-[10px] tracking-widest h-10 px-6"
-                             >
-                                <X className="w-4 h-4 mr-2" /> {updatingId === selectedProperty.id ? "..." : "Retirer l'annonce"}
-                             </Button>
+                        ) : null}
+
+                        {selectedProperty.validationStatus === "rejected" && selectedProperty.rejectionReason ? (
+                          <div className="rounded-2xl border border-red-300/20 bg-red-500/10 px-4 py-4">
+                            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-red-200/70">Dernier motif enregistre</p>
+                            <p className="mt-2 text-sm font-medium text-red-50">{selectedProperty.rejectionReason}</p>
                           </div>
-                       ) : (
-                        <div className="flex items-center justify-between p-6 rounded-3xl bg-red-50 border border-red-200">
-                             <div>
-                                <p className="text-[10px] font-black uppercase text-red-600 tracking-widest mb-1">Statut actuel</p>
-                                <div className="flex items-center gap-3">
-                                   <Badge className="bg-red-500 text-white border-none font-bold italic">ANNONCE REJETÉE</Badge>
-                                   <span className="text-sm font-bold text-foreground">Non visible par les locataires</span>
-                                </div>
-                             </div>
-                             <Button 
-                               disabled={updatingId === selectedProperty.id}
-                               onClick={() => handleApprove(selectedProperty.id)}
-                               className="rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white border-none font-black uppercase text-[10px] tracking-widest h-10 px-6 shadow-lg shadow-emerald-200"
-                             >
-                                <Check className="w-4 h-4 mr-2" /> {updatingId === selectedProperty.id ? "..." : "Ré-Approuver"}
-                             </Button>
-                          </div>
-                       )}
-                    </div>
-                 </div>
+                        ) : null}
+
+                        <div className="flex items-center gap-2 text-[11px] font-medium text-white/45">
+                          <ShieldCheck className="h-4 w-4" />
+                          Les decisions sont appliquees immediatement au statut de moderation du bien.
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      )}
+      ) : null}
+    </div>
+  )
+}
 
-      {rejectingId && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
-          <Card className="w-full max-w-md border-none shadow-2xl bg-card p-8 animate-in zoom-in-95 duration-300">
-            <div className="mb-6">
-              <h2 className="text-2xl font-black text-foreground tracking-tight">Motif du rejet</h2>
-              <p className="text-muted-foreground font-medium mt-1">Expliquez pourquoi cette annonce est rejetée. Le locateur sera notifié.</p>
-            </div>
-            <textarea 
-              className="w-full h-32 p-4 rounded-2xl bg-muted border-none text-sm font-medium focus:ring-2 focus:ring-red-200 transition-all resize-none mb-6"
-              placeholder="Ex: Photos de mauvaise qualité, description incomplète..."
-              value={rejectionReason}
-              onChange={(e) => setRejectionReason(e.target.value)}
-            />
-            <div className="flex gap-4">
-              <Button 
-                onClick={() => handleReject(rejectingId)}
-                disabled={!rejectionReason.trim() || updatingId === rejectingId}
-                className="flex-1 rounded-2xl bg-red-500 hover:bg-red-600 text-white font-black uppercase text-[11px] tracking-widest h-12 shadow-lg shadow-red-200 border-none"
-              >
-                {updatingId === rejectingId ? "..." : "Confirmer le rejet"}
-              </Button>
-              <Button 
-                onClick={() => {
-                  setRejectingId(null)
-                  setRejectionReason("")
-                }}
-                variant="ghost"
-                className="flex-1 rounded-2xl font-black uppercase text-[11px] tracking-widest h-12"
-              >
-                Annuler
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
+function MetaBlock({
+  icon: Icon,
+  label,
+  value,
+  accent,
+}: {
+  icon: LucideIcon
+  label: string
+  value: string
+  accent: string
+}) {
+  return (
+    <div>
+      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
+      <p className="mt-2 flex items-center gap-2 text-sm font-bold text-foreground">
+        <Icon className={cn("h-3.5 w-3.5", accent)} />
+        {value}
+      </p>
+    </div>
+  )
+}
+
+function MetricCard({
+  label,
+  value,
+  tone,
+}: {
+  label: string
+  value: string
+  tone: "blue" | "slate"
+}) {
+  return (
+    <div className={cn("rounded-3xl p-5", tone === "blue" ? "border border-blue-100 bg-blue-50/70" : "border border-slate-200 bg-white")}>
+      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
+      <p className={cn("mt-2 text-4xl font-black tracking-tight", tone === "blue" ? "text-primary" : "text-foreground")}>{value}</p>
+    </div>
+  )
+}
+
+function DecisionMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-white/5 px-4 py-4">
+      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/45">{label}</p>
+      <p className="mt-2 text-lg font-black text-white">{value}</p>
+    </div>
+  )
+}
+
+function InlineDetail({
+  label,
+  value,
+  className,
+}: {
+  label: string
+  value: string
+  className?: string
+}) {
+  return (
+    <div className={cn("rounded-2xl border border-slate-200 bg-white px-4 py-3", className)}>
+      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
+      <p className="mt-2 text-sm font-bold leading-relaxed text-foreground">{value}</p>
     </div>
   )
 }

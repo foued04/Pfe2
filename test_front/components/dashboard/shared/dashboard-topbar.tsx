@@ -26,26 +26,26 @@ export function DashboardTopbar({
   const { lang } = useI18n()
 
   return (
-    <div className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-border bg-background/95 px-4 backdrop-blur md:px-6">
-      <div className="flex items-center gap-3">
+    <div className="sticky top-0 z-30 flex min-h-20 flex-wrap items-center justify-between gap-3 border-b border-border bg-background/95 px-3 py-3 backdrop-blur sm:px-4 md:px-6">
+      <div className="flex min-w-0 items-center gap-3">
         <Button variant="outline" size="icon" className="rounded-full md:hidden" onClick={onOpenMobileMenu}>
           <Menu className="h-4 w-4" />
         </Button>
-        <div>
+        <div className="min-w-0">
           {eyebrow && (
-            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+            <div className="truncate text-[10px] font-semibold uppercase tracking-[0.18em] text-primary sm:text-xs">
               {eyebrow}
             </div>
           )}
-          <div className="text-lg font-bold text-foreground">{title}</div>
+          <div className="truncate text-base font-bold text-foreground sm:text-lg">{title}</div>
         </div>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex w-full items-center justify-end gap-2 sm:w-auto sm:gap-3">
         {showOwnerNotifications && (
           <Button
             asChild
             variant="outline"
-            className="relative h-11 rounded-full px-4 text-sm font-semibold"
+            className="relative h-10 rounded-full px-3 text-sm font-semibold sm:h-11 sm:px-4"
             title={
               pendingRequests > 0
                 ? lang === "fr"
@@ -58,7 +58,7 @@ export function DashboardTopbar({
           >
             <Link href="/dashboard/owner/requests">
               <Bell className="mr-2 h-4 w-4" />
-              {lang === "fr" ? "Demandes" : "Requests"}
+              <span className="hidden sm:inline">{lang === "fr" ? "Demandes" : "Requests"}</span>
               {pendingRequests > 0 && (
                 <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-xs font-bold text-white shadow-md ring-2 ring-background">
                   {pendingRequests > 99 ? "99+" : pendingRequests}
@@ -84,7 +84,7 @@ export function DashboardTopbar({
           >
             <Link href="/dashboard/tenant/notifications">
               <Bell className="mr-2 h-4 w-4" />
-              {lang === "fr" ? "Notifications" : "Notifications"}
+              <span className="hidden sm:inline">{lang === "fr" ? "Notifications" : "Notifications"}</span>
               {unreadNotifications > 0 && (
                 <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-xs font-bold text-white shadow-md ring-2 ring-background">
                   {unreadNotifications > 99 ? "99+" : unreadNotifications}

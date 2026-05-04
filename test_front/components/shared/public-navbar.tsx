@@ -92,7 +92,7 @@ export function PublicNavbar() {
                 <Menu className="h-4 w-4" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[300px]">
+            <SheetContent side="right" className="w-[min(20rem,calc(100vw-1rem))]">
               <SheetHeader>
                 <SheetTitle>{lang === "fr" ? "Navigation" : "Navigation"}</SheetTitle>
               </SheetHeader>

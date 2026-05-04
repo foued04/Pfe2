@@ -65,9 +65,9 @@ export function RentalRequestDetail({
   const currentIndex = request.status === "Refusée" ? -1 : statusOrder.indexOf(request.status)
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-right-4 duration-400">
+    <div className="mx-auto max-w-4xl space-y-6 animate-in fade-in slide-in-from-right-4 duration-400">
       {/* Back + Status Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Button variant="ghost" className="gap-2 text-muted-foreground hover:text-foreground" onClick={onBack}>
           <ArrowLeft className="h-4 w-4" />
           {lang === "fr" ? "Retour aux demandes" : "Back to requests"}
@@ -79,8 +79,8 @@ export function RentalRequestDetail({
 
       {/* Timeline */}
       {request.status !== "Refusée" && (
-        <div className="bg-card border border-border/50 rounded-2xl p-6">
-          <div className="flex items-center justify-between relative">
+        <div className="overflow-x-auto rounded-2xl border border-border/50 bg-card p-4 sm:p-6">
+          <div className="relative flex min-w-[560px] items-center justify-between">
             {/* Progress Bar */}
             <div className="absolute top-5 left-0 right-0 h-0.5 bg-border/50 mx-12" />
             <div 
@@ -126,7 +126,7 @@ export function RentalRequestDetail({
       )}
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Tenant Info */}
         <div className="bg-card border border-border/50 rounded-2xl p-6 space-y-5">
           <div className="flex items-center gap-2">
@@ -193,7 +193,7 @@ export function RentalRequestDetail({
             </div>
           </div>
           <div className="p-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider">{lang === "fr" ? "Loyer mensuel" : "Monthly rent"}</p>
                 <p className="text-2xl font-black text-primary">{request.propertyRent.toLocaleString()} TND</p>
@@ -207,29 +207,43 @@ export function RentalRequestDetail({
         </div>
       </div>
 
-      {/* Message */}
-      <div className="bg-card border border-border/50 rounded-2xl p-6 space-y-4">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center">
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+      {/* Message Section */}
+      <div id="chat-section" className="bg-card border border-border/50 rounded-2xl p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <MessageSquare className="h-4 w-4 text-primary" />
+            </div>
+            <h3 className="font-black text-foreground">{lang === "fr" ? "Discussion avec le locataire" : "Discussion with tenant"}</h3>
           </div>
-          <h3 className="font-black text-foreground">{lang === "fr" ? "Message du locataire" : "Tenant's message"}</h3>
+          <Badge variant="outline" className="text-[10px] uppercase font-black tracking-widest bg-emerald-50 text-emerald-700 border-emerald-100 animate-pulse">Direct</Badge>
         </div>
-        <div className="bg-muted/20 rounded-xl p-5 border border-border/30">
-          <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{request.message}</p>
+        
+        <div className="bg-muted/10 rounded-xl p-4 border border-border/30 mb-2">
+          <p className="text-[10px] font-black uppercase text-muted-foreground mb-1 tracking-widest">{lang === "fr" ? "Message initial de la demande" : "Initial request message"}</p>
+          <p className="text-sm text-foreground italic">"{request.message}"</p>
         </div>
+
+        <ChatModule 
+          contextId={request.id}
+          contextTitle={`Demande ${request.propertyTitle}`}
+          recipientId={(request as any).tenantId || (request as any).tenant?._id}
+          recipientName={request.tenantName}
+          category="Demandes"
+        />
       </div>
-      
-      {/* Messaging Section */}
-      <ChatModule 
-        contextId={request.id}
-        contextTitle={`Demande ${request.propertyTitle}`}
-        recipientId={(request as any).tenantId || (request as any).tenant?._id}
-        category="Demandes"
-      />
 
       {/* Action Buttons */}
-      <div className="flex flex-wrap gap-3 justify-end bg-card border border-border/50 rounded-2xl p-5">
+      <div className="flex flex-col gap-3 rounded-2xl border border-border/50 bg-card p-5 sm:flex-row sm:flex-wrap sm:justify-end sticky bottom-6 z-40 shadow-2xl backdrop-blur-md bg-white/80">
+        <Button
+          variant="outline"
+          className="gap-2 font-bold border-primary/20 text-primary hover:bg-primary/5"
+          onClick={() => document.getElementById('chat-section')?.scrollIntoView({ behavior: 'smooth' })}
+        >
+          <MessageSquare className="h-4 w-4" />
+          {lang === "fr" ? "Répondre / Discuter" : "Respond / Chat"}
+        </Button>
+
         {(request.status === "En attente" || request.status === "Acceptée" || request.status === "Contrat généré") && (
           <>
             <Button
@@ -261,8 +275,6 @@ export function RentalRequestDetail({
             {lang === "fr" ? "Générer le contrat" : "Generate contract"}
           </Button>
         )}
-
-
 
         {(request.status === "Contrat généré" || request.status === "Contrat actif") && (
           <Button

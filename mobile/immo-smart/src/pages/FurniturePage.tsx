@@ -1,56 +1,132 @@
-import { IonBackButton, IonButtons, IonContent, IonHeader, IonPage, IonTitle, IonToolbar } from "@ionic/react"
-import { useEffect, useMemo, useState } from "react"
+import { IonBackButton, IonButtons, IonContent, IonHeader, IonIcon, IonPage, IonTitle, IonToolbar } from "@ionic/react"
+import {
+  addOutline,
+  arrowBackOutline,
+  bagHandleOutline,
+  bedOutline,
+  cameraOutline,
+  cartOutline,
+  closeOutline,
+  cubeOutline,
+  eyeOutline,
+  filterOutline,
+  homeOutline,
+  listOutline,
+  mailOpenOutline,
+  removeOutline,
+  sparklesOutline,
+} from "ionicons/icons"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { useLocation } from "react-router-dom"
+import EmptyState from "../components/EmptyState"
+import LoadingSpinner from "../components/LoadingSpinner"
+import MobileFurnitureReceipt from "../components/MobileFurnitureReceipt"
 import { useAuth } from "../lib/auth-context"
-import { fetchRentalRequests } from "../lib/rental-api"
-import { createFurnitureChangeRequest, fetchFurniture, saveFurnitureOrder } from "../lib/furniture-api"
-import type { BackendFurniture, BackendRentalRequest } from "../types/api"
+import {
+  createFurnitureChangeRequest,
+  fetchFurniture,
+  fetchFurnitureByProperty,
+  fetchTenantFurnitureOrders,
+  getFurnitureFallbackImage,
+  saveFurnitureOrder,
+  type MobileFurnitureItem,
+} from "../lib/furniture-api"
+import { fetchMyRentals, fetchProperties } from "../lib/property-api"
+import type { BackendFurnitureOrder, BackendProperty } from "../types/api"
 import "../theme/mobile-theme.css"
 
 type CartItem = {
-  furniture: BackendFurniture
+  furniture: MobileFurnitureItem
   quantity: number
 }
 
-const changeTypes = ["Remplacement", "Ajout", "Suppression", "Reparation", "Echange"]
+type ReceiptOrder = {
+  id: string
+  propertyId: string
+  propertyName: string
+  date: string
+  items: Array<{
+    id: string
+    name: string
+    category: string
+    quantity: number
+    price: number
+  }>
+  total: number
+  paymentMethod: string
+  status: string
+}
+
+const categories = ["Tous", "Salon", "Chambre", "Salle a manger", "Cuisine", "Decoration", "Bureau"] as const
+const changeTypes = ["Changement", "Remplacement", "Ajout", "Suppression", "Reparation", "Echange"]
+
+const isMongoObjectId = (value?: string) => Boolean(value && /^[a-f\d]{24}$/i.test(value))
 
 const FurniturePage: React.FC = () => {
   const { token, user } = useAuth()
+  const location = useLocation()
+  const photoInputRef = useRef<HTMLInputElement>(null)
 
+  const [view, setView] = useState<"catalog" | "receipt">("catalog")
   const [loading, setLoading] = useState(false)
+  const [existingLoading, setExistingLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
-  const [catalogue, setCatalogue] = useState<BackendFurniture[]>([])
-  const [requests, setRequests] = useState<BackendRentalRequest[]>([])
+  const [catalogue, setCatalogue] = useState<MobileFurnitureItem[]>([])
+  const [rentals, setRentals] = useState<BackendProperty[]>([])
+  const [orders, setOrders] = useState<BackendFurnitureOrder[]>([])
+  const [existingFurniture, setExistingFurniture] = useState<Array<MobileFurnitureItem & { quantity?: number }>>([])
   const [selectedPropertyId, setSelectedPropertyId] = useState("")
+  const [search, setSearch] = useState("")
+  const [selectedCategory, setSelectedCategory] = useState<(typeof categories)[number]>("Tous")
+  const [selectedFurniture, setSelectedFurniture] = useState<MobileFurnitureItem | null>(null)
   const [cart, setCart] = useState<Record<string, CartItem>>({})
+  const [paymentMethod, setPaymentMethod] = useState("cash")
   const [orderBusy, setOrderBusy] = useState(false)
-  const [lastOrderId, setLastOrderId] = useState("")
   const [changeBusy, setChangeBusy] = useState(false)
+  const [isChangeModalOpen, setIsChangeModalOpen] = useState(false)
+  const [changeFurnitureName, setChangeFurnitureName] = useState("")
   const [changeFurnitureId, setChangeFurnitureId] = useState("")
   const [changeType, setChangeType] = useState(changeTypes[0])
   const [changeReason, setChangeReason] = useState("")
   const [changeDescription, setChangeDescription] = useState("")
+  const [changePhoto, setChangePhoto] = useState("")
+  const [currentReceipt, setCurrentReceipt] = useState<ReceiptOrder | null>(null)
 
   useEffect(() => {
-    if (!token) return
+    const requestedPropertyId = new URLSearchParams(location.search).get("property") || ""
+    if (requestedPropertyId) {
+      setSelectedPropertyId(requestedPropertyId)
+    }
+  }, [location.search])
+
+  useEffect(() => {
+    if (!token || (user?.role !== "tenant" && user?.role !== "owner")) return
 
     let active = true
     const load = async () => {
       setLoading(true)
-      setError("")
       try {
-        const [furnitureData, requestsData] = await Promise.all([fetchFurniture(token), fetchRentalRequests(token)])
+        setError("")
+        const isOwner = user?.role === "owner"
+        const [furnitureData, propertiesData, ordersData] = await Promise.all([
+          fetchFurniture(token),
+          isOwner ? fetchProperties(token) : fetchMyRentals(token),
+          isOwner ? Promise.resolve([]) : fetchTenantFurnitureOrders(token),
+        ])
+
         if (!active) return
         setCatalogue(furnitureData)
-        setRequests(requestsData)
-        const defaultPropertyId = requestsData
-          .map((req) => (typeof req.property === "string" ? req.property : req.property?._id || ""))
-          .find(Boolean)
-        setSelectedPropertyId(defaultPropertyId || "")
+        setRentals(Array.isArray(propertiesData) ? propertiesData : [])
+        setOrders(Array.isArray(ordersData) ? ordersData : [])
+
+        const initialPropertyId =
+          (Array.isArray(propertiesData) ? propertiesData[0]?._id : "") ||
+          (Array.isArray(ordersData) ? String(ordersData[0]?.property || "") : "")
+        setSelectedPropertyId(initialPropertyId)
       } catch (err) {
-        if (active) {
-          setError(err instanceof Error ? err.message : "Erreur chargement ameublement")
-        }
+        if (!active) return
+        setError(err instanceof Error ? err.message : "Erreur chargement ameublement")
       } finally {
         if (active) setLoading(false)
       }
@@ -60,50 +136,118 @@ const FurniturePage: React.FC = () => {
     return () => {
       active = false
     }
-  }, [token])
+  }, [token, user?.role])
 
-  const rentalOptions = useMemo(() => {
-    return requests.map((req) => {
-      const propertyObj = typeof req.property === "string" ? null : req.property
-      const propertyId = typeof req.property === "string" ? req.property : propertyObj?._id || ""
-      return {
-        requestId: req._id,
-        propertyId,
-        label: propertyObj?.title || `Bien ${propertyId.slice(-6)}`,
-        status: req.status || "En attente",
+  useEffect(() => {
+    if (!token || !selectedPropertyId) {
+      setExistingFurniture([])
+      return
+    }
+
+    let active = true
+    const loadExistingFurniture = async () => {
+      setExistingLoading(true)
+      try {
+        const data = await fetchFurnitureByProperty(selectedPropertyId, token)
+        if (!active) return
+
+        const normalized = (Array.isArray(data) ? data : []).map((item) => ({
+          ...item,
+          id: item.id || item._id,
+          image: item.image || getFurnitureFallbackImage(item),
+        }))
+        setExistingFurniture(normalized)
+      } catch {
+        if (active) {
+          setExistingFurniture([])
+        }
+      } finally {
+        if (active) setExistingLoading(false)
       }
+    }
+
+    loadExistingFurniture()
+    return () => {
+      active = false
+    }
+  }, [selectedPropertyId, token])
+
+  const selectedProperty = useMemo(
+    () => rentals.find((property) => property._id === selectedPropertyId) || null,
+    [rentals, selectedPropertyId]
+  )
+
+  const filteredCatalogue = useMemo(() => {
+    const query = search.trim().toLowerCase()
+    return catalogue.filter((item) => {
+      const matchesCategory = selectedCategory === "Tous" || item.category === selectedCategory
+      const matchesSearch =
+        query === "" ||
+        item.name.toLowerCase().includes(query) ||
+        (item.description || "").toLowerCase().includes(query)
+      return matchesCategory && matchesSearch
     })
-  }, [requests])
+  }, [catalogue, search, selectedCategory])
 
   const cartItems = useMemo(() => Object.values(cart), [cart])
   const cartTotal = useMemo(
-    () => cartItems.reduce((sum, item) => sum + (item.furniture.price || 0) * item.quantity, 0),
-    [cartItems],
+    () => cartItems.reduce((sum, item) => sum + item.furniture.price * item.quantity, 0),
+    [cartItems]
   )
-  const availableForChange = useMemo(() => cartItems.map((item) => item.furniture), [cartItems])
 
-  const setQuantity = (furniture: BackendFurniture, quantity: number) => {
-    setCart((prev) => {
+  const mappedOrders = useMemo(
+    () =>
+      orders.map((order) => ({
+        id: order._id,
+        propertyId: typeof order.property === "string" ? order.property : "",
+        propertyName:
+          rentals.find((property) => property._id === (typeof order.property === "string" ? order.property : ""))?.title ||
+          "Bien immobilier",
+        date: new Date(order.createdAt || Date.now()).toLocaleDateString("fr-FR"),
+        items: order.items.map((item, index) => {
+          const furnitureObject = typeof item.furniture === "string" ? null : item.furniture
+          return {
+            id: furnitureObject?._id || `item-${index}`,
+            name: furnitureObject?.name || "Mobilier",
+            category: furnitureObject?.category || "Catalogue",
+            quantity: item.quantity,
+            price: item.price,
+          }
+        }),
+        total: order.total,
+        paymentMethod: order.paymentMethod || "cash",
+        status: order.status || "Brouillon",
+      })),
+    [orders, rentals]
+  )
+
+  const setQuantity = (furniture: MobileFurnitureItem, quantity: number) => {
+    setCart((current) => {
       if (quantity <= 0) {
-        const next = { ...prev }
-        delete next[furniture._id]
+        const next = { ...current }
+        delete next[furniture.id]
         return next
       }
+
       return {
-        ...prev,
-        [furniture._id]: { furniture, quantity },
+        ...current,
+        [furniture.id]: { furniture, quantity },
       }
     })
   }
 
-  const handleSubmitOrder = async () => {
+  const handleCheckout = async () => {
     if (!token) return
     if (!selectedPropertyId) {
-      setError("Selectionnez d'abord un bien concerne.")
+      setError("Veuillez selectionner un logement avant de confirmer la commande.")
       return
     }
     if (cartItems.length === 0) {
       setError("Ajoutez au moins un meuble au panier.")
+      return
+    }
+    if (!paymentMethod.trim()) {
+      setError("Veuillez selectionner ou saisir un mode de paiement.")
       return
     }
 
@@ -113,7 +257,9 @@ const FurniturePage: React.FC = () => {
 
     try {
       const payloadItems = cartItems.map((item) => ({
-        furniture: item.furniture._id,
+        ...(isMongoObjectId(item.furniture._id) ? { furniture: item.furniture._id } : {}),
+        name: item.furniture.name,
+        category: item.furniture.category,
         quantity: item.quantity,
         price: item.furniture.price,
       }))
@@ -123,33 +269,76 @@ const FurniturePage: React.FC = () => {
           propertyId: selectedPropertyId,
           items: payloadItems,
           total: cartTotal,
-          paymentMethod: "cash",
+          paymentMethod,
         },
-        token,
+        token
       )
 
-      setLastOrderId(createdOrder._id)
-      setChangeFurnitureId(payloadItems[0]?.furniture || "")
+      const receipt: ReceiptOrder = {
+        id: createdOrder._id,
+        propertyId: selectedPropertyId,
+        propertyName: selectedProperty?.title || "Bien immobilier",
+        date: new Date(createdOrder.createdAt || Date.now()).toLocaleDateString("fr-FR"),
+        items: cartItems.map((item) => ({
+          id: item.furniture.id,
+          name: item.furniture.name,
+          category: item.furniture.category,
+          quantity: item.quantity,
+          price: item.furniture.price,
+        })),
+        total: cartTotal,
+        paymentMethod,
+        status: createdOrder.status || "Brouillon",
+      }
+
+      setOrders((current) => [createdOrder, ...current])
+      setCurrentReceipt(receipt)
+      setView("receipt")
+      setCart({})
       setSuccess("Commande enregistree avec succes.")
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Impossible d'enregistrer la commande")
+      setError(err instanceof Error ? err.message : "Impossible de confirmer la commande.")
     } finally {
       setOrderBusy(false)
     }
   }
 
+  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    if (file.size > 5 * 1024 * 1024) {
+      setError("L'image est trop volumineuse (max 5Mo).")
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setChangePhoto(String(reader.result || ""))
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const resetChangeForm = () => {
+    setChangeFurnitureId("")
+    setChangeFurnitureName("")
+    setChangeType(changeTypes[0])
+    setChangeReason("")
+    setChangeDescription("")
+    setChangePhoto("")
+  }
+
   const handleSubmitChangeRequest = async () => {
     if (!token) return
     if (!selectedPropertyId) {
-      setError("Selectionnez un bien avant d'envoyer une demande.")
+      setError("Veuillez selectionner un logement avant d'envoyer votre demande.")
       return
     }
-    if (!changeFurnitureId) {
-      setError("Choisissez un meuble pour la demande de changement.")
+    if (!changeFurnitureName.trim() && !changeFurnitureId) {
+      setError("Veuillez indiquer le meuble concerne.")
       return
     }
     if (!changeReason.trim()) {
-      setError("La raison de la demande est obligatoire.")
+      setError("Veuillez indiquer le motif.")
       return
     }
 
@@ -160,24 +349,49 @@ const FurniturePage: React.FC = () => {
     try {
       await createFurnitureChangeRequest(
         {
-          furnitureId: changeFurnitureId,
-          contractId: lastOrderId || undefined,
+          ...(isMongoObjectId(changeFurnitureId) ? { furnitureId: changeFurnitureId } : {}),
+          furnitureName: changeFurnitureName.trim() || undefined,
           propertyId: selectedPropertyId,
           type: changeType,
           reason: changeReason.trim(),
           description: changeDescription.trim() || undefined,
+          photo: changePhoto || undefined,
         },
-        token,
+        token
       )
 
-      setChangeReason("")
-      setChangeDescription("")
-      setSuccess("Demande de changement envoyee. Le proprietaire a ete notifie.")
+      setSuccess("Demande de changement envoyee avec succes.")
+      resetChangeForm()
+      setIsChangeModalOpen(false)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Impossible d'envoyer la demande de changement")
+      setError(err instanceof Error ? err.message : "Impossible d'envoyer la demande de changement.")
     } finally {
       setChangeBusy(false)
     }
+  }
+
+  const openOrderReceipt = (order: ReceiptOrder) => {
+    setCurrentReceipt(order)
+    setView("receipt")
+  }
+
+  if (view === "receipt" && currentReceipt) {
+    return (
+      <IonPage>
+        <IonContent fullscreen className="mobile-content">
+          <div className="mobile-page">
+            <MobileFurnitureReceipt
+              order={currentReceipt}
+              property={selectedProperty}
+              userName={user?.name}
+              userEmail={user?.email}
+              userPhone={user?.phone}
+              onBack={() => setView("catalog")}
+            />
+          </div>
+        </IonContent>
+      </IonPage>
+    )
   }
 
   return (
@@ -187,215 +401,398 @@ const FurniturePage: React.FC = () => {
           <IonButtons slot="start">
             <IonBackButton defaultHref="/tab3" text="" icon="arrow-back-outline" />
           </IonButtons>
-          <IonTitle className="font-title">Ameublement</IonTitle>
+          <IonTitle className="font-title">Mobilier</IonTitle>
         </IonToolbar>
       </IonHeader>
       <IonContent fullscreen className="mobile-content">
-        <div className="mobile-page" style={{ display: "grid", gap: "14px", paddingBottom: "24px" }}>
-          <div style={{ background: "white", borderRadius: "12px", padding: "14px", border: "1px solid #e2e8f0" }}>
-            <h3 style={{ margin: "0 0 8px", color: "#1e3a8a" }}>Commande mobilier locataire</h3>
-            <p style={{ margin: "0 0 10px", color: "#64748b", fontSize: "14px" }}>
-              Bonjour {user?.name || "Locataire"}, choisissez vos meubles puis passez commande.
-            </p>
-            <label style={{ display: "block", fontSize: "13px", marginBottom: "6px", color: "#334155" }}>
-              Bien concerne
-            </label>
-            <select
-              value={selectedPropertyId}
-              onChange={(event) => setSelectedPropertyId(event.target.value)}
-              style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1" }}
-            >
-              <option value="">Selectionner un bien</option>
-              {rentalOptions.map((option) => (
-                <option key={`${option.requestId}-${option.propertyId}`} value={option.propertyId}>
-                  {option.label} ({option.status})
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="mobile-page furniture-page">
+          <section className="furniture-hero-card">
+            <div className="furniture-hero-copy">
+              <span className="furniture-hero-badge">
+                <IonIcon icon={sparklesOutline} />
+                Mobilier premium
+              </span>
+              <h1>Equipez votre logement comme sur la version web.</h1>
+              <p>Consultez le catalogue, achetez du mobilier, demandez un changement et recuperez votre bon PDF.</p>
+            </div>
+            <div className="furniture-hero-actions">
+              <button type="button" className="furniture-pill-btn" onClick={() => setIsChangeModalOpen(true)}>
+                <IonIcon icon={mailOpenOutline} />
+                Demande de changement
+              </button>
+            </div>
+          </section>
 
-          {loading ? (
-            <div style={{ textAlign: "center", color: "#64748b" }}>Chargement du catalogue...</div>
-          ) : (
-            <div style={{ display: "grid", gap: "10px" }}>
-              {catalogue.map((item) => {
-                const quantity = cart[item._id]?.quantity || 0
-                return (
-                  <article
-                    key={item._id}
-                    style={{
-                      background: "white",
-                      borderRadius: "12px",
-                      border: "1px solid #e2e8f0",
-                      padding: "12px",
-                      display: "grid",
-                      gap: "8px",
+          {loading ? <LoadingSpinner message="Chargement du mobilier..." /> : null}
+
+          {!loading && error ? (
+            <div className="empty-state error-state">
+              <p>{error}</p>
+            </div>
+          ) : null}
+
+          {!loading ? (
+            <>
+              <section className="furniture-panel">
+                <div className="furniture-panel-header">
+                  <div>
+                    <h3>Logement concerne</h3>
+                    <p>Utilise la meme source de donnees locataire que la version web.</p>
+                  </div>
+                </div>
+                <select
+                  className="furniture-select"
+                  value={selectedPropertyId}
+                  onChange={(event) => setSelectedPropertyId(event.target.value)}
+                >
+                  <option value="">Choisir un logement</option>
+                  {rentals.map((property) => (
+                    <option key={property._id} value={property._id}>
+                      {property.title}
+                    </option>
+                  ))}
+                </select>
+              </section>
+
+              <section className="furniture-panel">
+                <div className="furniture-panel-header">
+                  <div>
+                    <h3>Mobilier actuellement installe</h3>
+                    <p>Articles deja presents dans votre logement.</p>
+                  </div>
+                  <span className="furniture-count-pill">{existingFurniture.length}</span>
+                </div>
+                {existingLoading ? (
+                  <LoadingSpinner message="Chargement du mobilier installe..." />
+                ) : existingFurniture.length === 0 ? (
+                  <EmptyState
+                    icon={bedOutline}
+                    title="Aucun mobilier installe"
+                    message="Aucun article confirme n'est encore rattache a ce logement."
+                  />
+                ) : (
+                  <div className="furniture-existing-grid">
+                    {existingFurniture.map((item, index) => (
+                      <article key={`${item.id}-${index}`} className="furniture-existing-item">
+                        <img src={item.image || getFurnitureFallbackImage(item)} alt={item.name} />
+                        <div>
+                          <strong>{item.name}</strong>
+                          <span>{item.category}</span>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              <section className="furniture-panel">
+                <div className="furniture-panel-header">
+                  <div>
+                    <h3>Catalogue</h3>
+                    <p>Consultez tous les meubles disponibles comme sur le web.</p>
+                  </div>
+                  <span className="furniture-count-pill">{filteredCatalogue.length}</span>
+                </div>
+
+                <div className="search-input furniture-search-input">
+                  <IonIcon icon={filterOutline} />
+                  <input
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="Rechercher un meuble"
+                  />
+                </div>
+
+                <div className="furniture-categories">
+                  {categories.map((category) => (
+                    <button
+                      key={category}
+                      type="button"
+                      className={`furniture-category-chip ${selectedCategory === category ? "active" : ""}`}
+                      onClick={() => setSelectedCategory(category)}
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
+
+                {filteredCatalogue.length === 0 ? (
+                  <EmptyState
+                    icon={cubeOutline}
+                    title="Aucun meuble trouve"
+                    message="Essayez une autre recherche ou categorie."
+                  />
+                ) : (
+                  <div className="furniture-catalog-grid">
+                    {filteredCatalogue.map((item) => {
+                      const quantity = cart[item.id]?.quantity || 0
+                      return (
+                        <article key={item.id} className="furniture-card">
+                          <div className="furniture-card-media">
+                            <img src={item.image || getFurnitureFallbackImage(item)} alt={item.name} />
+                            <span>{item.category}</span>
+                          </div>
+                          <div className="furniture-card-body">
+                            <div className="furniture-card-topline">
+                              <h4>{item.name}</h4>
+                              <strong>{item.price.toLocaleString("fr-TN")} DT</strong>
+                            </div>
+                            <p>{item.description || "Description indisponible."}</p>
+                            <div className="furniture-card-actions">
+                              <button type="button" className="furniture-secondary-btn" onClick={() => setSelectedFurniture(item)}>
+                                <IonIcon icon={eyeOutline} />
+                                Consulter
+                              </button>
+                              <div className="furniture-qty-controls">
+                                <button type="button" onClick={() => setQuantity(item, quantity - 1)}>
+                                  <IonIcon icon={removeOutline} />
+                                </button>
+                                <span>{quantity}</span>
+                                <button type="button" onClick={() => setQuantity(item, quantity + 1)}>
+                                  <IonIcon icon={addOutline} />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </article>
+                      )
+                    })}
+                  </div>
+                )}
+              </section>
+
+              <section className="furniture-panel">
+                <div className="furniture-panel-header">
+                  <div>
+                    <h3>Panier et achat</h3>
+                    <p>Validez votre commande et affichez le bon PDF ensuite.</p>
+                  </div>
+                  <span className="furniture-count-pill">{cartItems.length}</span>
+                </div>
+
+                {cartItems.length === 0 ? (
+                  <EmptyState
+                    icon={cartOutline}
+                    title="Panier vide"
+                    message="Ajoutez du mobilier depuis le catalogue pour commencer."
+                  />
+                ) : (
+                  <div className="furniture-cart-list">
+                    {cartItems.map((item) => (
+                      <article key={item.furniture.id} className="furniture-cart-item">
+                        <img src={item.furniture.image || getFurnitureFallbackImage(item.furniture)} alt={item.furniture.name} />
+                        <div className="furniture-cart-body">
+                          <div className="furniture-card-topline">
+                            <h4>{item.furniture.name}</h4>
+                            <strong>{(item.furniture.price * item.quantity).toLocaleString("fr-TN")} DT</strong>
+                          </div>
+                          <p>{item.furniture.category}</p>
+                          <div className="furniture-qty-controls">
+                            <button type="button" onClick={() => setQuantity(item.furniture, item.quantity - 1)}>
+                              <IonIcon icon={removeOutline} />
+                            </button>
+                            <span>{item.quantity}</span>
+                            <button type="button" onClick={() => setQuantity(item.furniture, item.quantity + 1)}>
+                              <IonIcon icon={addOutline} />
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+
+                <label className="furniture-field">
+                  <span>Mode de paiement</span>
+                  <input
+                    value={paymentMethod}
+                    onChange={(event) => setPaymentMethod(event.target.value)}
+                    placeholder="cash / cheque / virement"
+                  />
+                </label>
+
+                <div className="furniture-total-box">
+                  <div>
+                    <span>Total mobilier</span>
+                    <strong>{cartTotal.toLocaleString("fr-TN")} DT</strong>
+                  </div>
+                  <div>
+                    <span>Livraison</span>
+                    <strong>Offerte</strong>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="furniture-primary-btn"
+                  disabled={orderBusy || cartItems.length === 0 || !selectedPropertyId}
+                  onClick={handleCheckout}
+                >
+                  <IonIcon icon={bagHandleOutline} />
+                  {orderBusy ? "Validation..." : "Acheter maintenant"}
+                </button>
+              </section>
+
+              <section className="furniture-panel">
+                <div className="furniture-panel-header">
+                  <div>
+                    <h3>Historique des commandes</h3>
+                    <p>Retrouvez vos achats et reouvrez le bon PDF.</p>
+                  </div>
+                  <span className="furniture-count-pill">{mappedOrders.length}</span>
+                </div>
+
+                {mappedOrders.length === 0 ? (
+                  <EmptyState
+                    icon={listOutline}
+                    title="Aucune commande"
+                    message="Vos futures commandes de mobilier apparaitront ici."
+                  />
+                ) : (
+                  <div className="furniture-orders-list">
+                    {mappedOrders.map((order) => (
+                      <article key={order.id} className="furniture-order-item">
+                        <div>
+                          <strong>#{order.id.slice(-6)}</strong>
+                          <p>{order.propertyName}</p>
+                          <span>{order.date}</span>
+                        </div>
+                        <div className="furniture-order-side">
+                          <strong>{order.total.toLocaleString("fr-TN")} DT</strong>
+                          <button type="button" className="furniture-secondary-btn" onClick={() => openOrderReceipt(order)}>
+                            Voir le bon
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </>
+          ) : null}
+
+          {success ? (
+            <div className="furniture-success-banner">{success}</div>
+          ) : null}
+        </div>
+
+        {selectedFurniture ? (
+          <div className="furniture-overlay" role="presentation" onClick={() => setSelectedFurniture(null)}>
+            <div className="furniture-modal" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+              <button type="button" className="furniture-modal-close" onClick={() => setSelectedFurniture(null)}>
+                <IonIcon icon={closeOutline} />
+              </button>
+              <img
+                className="furniture-modal-image"
+                src={selectedFurniture.image || getFurnitureFallbackImage(selectedFurniture)}
+                alt={selectedFurniture.name}
+              />
+              <div className="furniture-modal-body">
+                <div className="furniture-card-topline">
+                  <h3>{selectedFurniture.name}</h3>
+                  <strong>{selectedFurniture.price.toLocaleString("fr-TN")} DT</strong>
+                </div>
+                <span className="furniture-modal-category">{selectedFurniture.category}</span>
+                <p>{selectedFurniture.description || "Aucune description disponible pour ce mobilier."}</p>
+                <button
+                  type="button"
+                  className="furniture-primary-btn"
+                  onClick={() => {
+                    setQuantity(selectedFurniture, (cart[selectedFurniture.id]?.quantity || 0) + 1)
+                    setSelectedFurniture(null)
+                  }}
+                >
+                  <IonIcon icon={cartOutline} />
+                  Ajouter au panier
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {isChangeModalOpen ? (
+          <div className="furniture-overlay" role="presentation" onClick={() => setIsChangeModalOpen(false)}>
+            <div className="furniture-modal" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+              <button type="button" className="furniture-modal-close" onClick={() => setIsChangeModalOpen(false)}>
+                <IonIcon icon={closeOutline} />
+              </button>
+              <div className="furniture-modal-body">
+                <h3>Demande de changement</h3>
+                <p>Si un meuble ne convient pas ou est endommage, envoyez une demande au proprietaire.</p>
+
+                <label className="furniture-field">
+                  <span>Meuble concerne</span>
+                  <select
+                    value={changeFurnitureId}
+                    onChange={(event) => {
+                      const selected = existingFurniture.find((item) => item.id === event.target.value || item._id === event.target.value)
+                      setChangeFurnitureId(event.target.value)
+                      setChangeFurnitureName(selected?.name || "")
                     }}
                   >
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: "10px" }}>
-                      <div>
-                        <h4 style={{ margin: 0, color: "#0f172a" }}>{item.name}</h4>
-                        <p style={{ margin: "4px 0 0", color: "#64748b", fontSize: "13px" }}>{item.category}</p>
-                      </div>
-                      <strong style={{ color: "#1e3a8a" }}>{item.price} TND</strong>
-                    </div>
+                    <option value="">Choisir un meuble existant</option>
+                    {existingFurniture.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <button
-                        type="button"
-                        onClick={() => setQuantity(item, quantity - 1)}
-                        style={{ border: "1px solid #cbd5e1", borderRadius: "8px", width: "34px", height: "34px" }}
-                      >
-                        -
-                      </button>
-                      <span style={{ minWidth: "24px", textAlign: "center" }}>{quantity}</span>
-                      <button
-                        type="button"
-                        onClick={() => setQuantity(item, quantity + 1)}
-                        style={{ border: "1px solid #cbd5e1", borderRadius: "8px", width: "34px", height: "34px" }}
-                      >
-                        +
-                      </button>
-                    </div>
-                  </article>
-                )
-              })}
+                <label className="furniture-field">
+                  <span>Nom libre du meuble</span>
+                  <input
+                    value={changeFurnitureName}
+                    onChange={(event) => setChangeFurnitureName(event.target.value)}
+                    placeholder="Ex: Canape, Table, Lit..."
+                  />
+                </label>
+
+                <label className="furniture-field">
+                  <span>Type de demande</span>
+                  <select value={changeType} onChange={(event) => setChangeType(event.target.value)}>
+                    {changeTypes.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="furniture-field">
+                  <span>Motif</span>
+                  <input
+                    value={changeReason}
+                    onChange={(event) => setChangeReason(event.target.value)}
+                    placeholder="Ex: meuble endommage, trop grand..."
+                  />
+                </label>
+
+                <label className="furniture-field">
+                  <span>Description</span>
+                  <textarea
+                    value={changeDescription}
+                    onChange={(event) => setChangeDescription(event.target.value)}
+                    placeholder="Plus de details..."
+                  />
+                </label>
+
+                <div className="furniture-upload-box" onClick={() => photoInputRef.current?.click()}>
+                  <IonIcon icon={cameraOutline} />
+                  <span>{changePhoto ? "Photo ajoutee, toucher pour remplacer" : "Ajouter une photo (optionnel)"}</span>
+                  <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                </div>
+
+                {changePhoto ? <img className="furniture-upload-preview" src={changePhoto} alt="Apercu de la photo" /> : null}
+
+                <button type="button" className="furniture-primary-btn" disabled={changeBusy} onClick={handleSubmitChangeRequest}>
+                  <IonIcon icon={mailOpenOutline} />
+                  {changeBusy ? "Envoi..." : "Envoyer la demande"}
+                </button>
+              </div>
             </div>
-          )}
-
-          <div style={{ background: "white", borderRadius: "12px", padding: "14px", border: "1px solid #e2e8f0" }}>
-            <h3 style={{ margin: "0 0 8px", color: "#1e3a8a" }}>Panier</h3>
-            <p style={{ margin: "0 0 12px", color: "#64748b", fontSize: "14px" }}>
-              {cartItems.length} article(s) - Total: {cartTotal.toFixed(2)} TND
-            </p>
-            <button
-              type="button"
-              disabled={orderBusy || cartItems.length === 0 || !selectedPropertyId}
-              onClick={handleSubmitOrder}
-              style={{
-                width: "100%",
-                padding: "12px",
-                borderRadius: "10px",
-                background: "#1e3a8a",
-                color: "white",
-                fontWeight: 700,
-                opacity: orderBusy || cartItems.length === 0 || !selectedPropertyId ? 0.6 : 1,
-              }}
-            >
-              {orderBusy ? "Enregistrement..." : "Confirmer ma commande"}
-            </button>
           </div>
-
-          <div style={{ background: "white", borderRadius: "12px", padding: "14px", border: "1px solid #e2e8f0" }}>
-            <h3 style={{ margin: "0 0 8px", color: "#1e3a8a" }}>Demande de changement</h3>
-            <p style={{ margin: "0 0 10px", color: "#64748b", fontSize: "14px" }}>
-              Signalez un meuble a remplacer, reparer ou changer. Le proprietaire recevra une notification.
-            </p>
-
-            <label style={{ display: "block", fontSize: "13px", marginBottom: "6px", color: "#334155" }}>
-              Meuble
-            </label>
-            <select
-              value={changeFurnitureId}
-              onChange={(event) => setChangeFurnitureId(event.target.value)}
-              style={{
-                width: "100%",
-                padding: "10px",
-                borderRadius: "8px",
-                border: "1px solid #cbd5e1",
-                marginBottom: "8px",
-              }}
-            >
-              <option value="">Choisir un meuble</option>
-              {availableForChange.map((furniture) => (
-                <option key={furniture._id} value={furniture._id}>
-                  {furniture.name}
-                </option>
-              ))}
-            </select>
-
-            <label style={{ display: "block", fontSize: "13px", marginBottom: "6px", color: "#334155" }}>
-              Type de demande
-            </label>
-            <select
-              value={changeType}
-              onChange={(event) => setChangeType(event.target.value)}
-              style={{
-                width: "100%",
-                padding: "10px",
-                borderRadius: "8px",
-                border: "1px solid #cbd5e1",
-                marginBottom: "8px",
-              }}
-            >
-              {changeTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
-
-            <textarea
-              value={changeReason}
-              onChange={(event) => setChangeReason(event.target.value)}
-              placeholder="Raison (obligatoire)"
-              style={{
-                width: "100%",
-                minHeight: "80px",
-                padding: "10px",
-                borderRadius: "8px",
-                border: "1px solid #cbd5e1",
-                marginBottom: "8px",
-              }}
-            />
-
-            <textarea
-              value={changeDescription}
-              onChange={(event) => setChangeDescription(event.target.value)}
-              placeholder="Details supplementaires (optionnel)"
-              style={{
-                width: "100%",
-                minHeight: "70px",
-                padding: "10px",
-                borderRadius: "8px",
-                border: "1px solid #cbd5e1",
-                marginBottom: "12px",
-              }}
-            />
-
-            <button
-              type="button"
-              disabled={changeBusy || !selectedPropertyId || !changeFurnitureId || !changeReason.trim()}
-              onClick={handleSubmitChangeRequest}
-              style={{
-                width: "100%",
-                padding: "12px",
-                borderRadius: "10px",
-                background: "#0f766e",
-                color: "white",
-                fontWeight: 700,
-                opacity: changeBusy || !selectedPropertyId || !changeFurnitureId || !changeReason.trim() ? 0.6 : 1,
-              }}
-            >
-              {changeBusy ? "Envoi..." : "Envoyer ma demande"}
-            </button>
-          </div>
-
-          {error && (
-            <div
-              style={{ background: "#fee2e2", color: "#991b1b", borderRadius: "10px", padding: "10px", fontSize: "14px" }}
-            >
-              {error}
-            </div>
-          )}
-          {success && (
-            <div
-              style={{ background: "#dcfce7", color: "#166534", borderRadius: "10px", padding: "10px", fontSize: "14px" }}
-            >
-              {success}
-            </div>
-          )}
-        </div>
+        ) : null}
       </IonContent>
     </IonPage>
   )

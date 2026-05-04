@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useI18n } from "@/lib/i18n"
 import { useAuth } from "@/lib/auth-context"
+import { resolveApiUrl } from "@/lib/api/client"
 import type { Property } from "@/lib/property-data"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -47,8 +48,6 @@ export function ContactOwnerForm({ property, isOpen, onClose, onSuccess }: Conta
     visitDate: "",
   })
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
-
   if (!property) return null
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -70,7 +69,7 @@ export function ContactOwnerForm({ property, isOpen, onClose, onSuccess }: Conta
 
     try {
       const token = localStorage.getItem("accessToken")
-      const response = await fetch(`${API_URL}/rental-requests`, {
+      const response = await fetch(`${resolveApiUrl()}/rental-requests`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

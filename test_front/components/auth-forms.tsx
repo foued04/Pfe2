@@ -340,7 +340,7 @@ export function AuthForms({ initialView = "login", onClose }: { initialView?: Vi
                   <span className={styles.label}>Type de compte</span>
                   <select className={styles.input} value={role} onChange={(e) => setRole(e.target.value as UserRole)}>
                     <option value="tenant">Locataire</option>
-                    <option value="owner">Proprietaire</option>
+                    <option value="owner">Locateur</option>
                   </select>
                 </label>
               )}

@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from "react"
 import { useI18n } from "@/lib/i18n"
 import { useAuth } from "@/lib/auth-context"
+import { resolveApiUrl } from "@/lib/api/client"
 import { mockProperties } from "@/lib/property-data"
 import { FurnitureCatalog } from "./furniture-catalog"
 import { FurnitureCart } from "./furniture-cart"
@@ -44,7 +45,7 @@ export function FurnitureOrderModule({ initialPropertyId }: FurnitureOrderModule
     const fetchProperties = async () => {
       try {
         const token = localStorage.getItem("accessToken")
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/properties`, {
+        const response = await fetch(`${resolveApiUrl()}/properties`, {
           headers: { Authorization: `Bearer ${token}` }
         })
         if (response.ok) {
@@ -78,7 +79,7 @@ export function FurnitureOrderModule({ initialPropertyId }: FurnitureOrderModule
   const [ordersLoading, setOrdersLoading] = useState(false)
   const [brokenExistingImages, setBrokenExistingImages] = useState<Record<string, boolean>>({})
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+  const API_URL = resolveApiUrl()
 
   useEffect(() => {
     if (user?.role === 'tenant') {

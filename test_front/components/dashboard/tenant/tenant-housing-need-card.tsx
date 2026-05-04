@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { BellRing, CheckCircle2, ClipboardList, Home, Loader2, MapPin, PencilLine, Send } from "lucide-react"
 import { apiFetch } from "@/lib/api/client"
+import { resolveApiUrl } from "@/lib/api/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -80,6 +81,7 @@ export function TenantHousingNeedCard({
   defaultOpen?: boolean
   hideToggleButton?: boolean
 }) {
+  const apiUrl = resolveApiUrl()
   const [isOpen, setIsOpen] = useState(defaultOpen)
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -116,7 +118,11 @@ export function TenantHousingNeedCard({
         }
       } catch (err) {
         if (!active) return
-        setError(err instanceof Error ? err.message : "Impossible de charger votre besoin logement.")
+        setError(
+          err instanceof Error
+            ? err.message
+            : `Impossible de charger votre besoin logement. API attendue: ${apiUrl}`,
+        )
       } finally {
         if (active) setIsLoading(false)
       }
@@ -176,7 +182,11 @@ export function TenantHousingNeedCard({
       resetForm()
       setIsOpen(hideToggleButton)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Impossible d'enregistrer votre besoin logement.")
+      setError(
+        err instanceof Error
+          ? err.message
+          : `Impossible d'enregistrer votre besoin logement. API attendue: ${apiUrl}`,
+      )
     } finally {
       setIsSubmitting(false)
     }

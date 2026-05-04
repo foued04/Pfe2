@@ -15,6 +15,20 @@ export type AuthUser = {
   avatar?: string
   address?: string
   birthDate?: string
+  documents?: {
+    cin?: {
+      url: string
+      status: string
+      comment: string
+      uploadedAt?: string
+    }
+    rib?: {
+      url: string
+      status: string
+      comment: string
+      uploadedAt?: string
+    }
+  }
 }
 
 export type BackendAuthUser = {
@@ -34,13 +48,27 @@ export type BackendAuthUser = {
     ownerMessages: boolean
     rentReminders: boolean
   }
+  documents?: {
+    cin?: {
+      url: string
+      status: string
+      comment: string
+      uploadedAt?: string
+    }
+    rib?: {
+      url: string
+      status: string
+      comment: string
+      uploadedAt?: string
+    }
+  }
 }
 
 export type BackendAuthResponse = {
   user: BackendAuthUser
   accessToken?: string
   message?: string
-  devCode?: string
+  emailDelivered?: boolean
 }
 
 /* ── Properties ── */
@@ -76,6 +104,7 @@ export type BackendProperty = {
   title: string
   description: string
   city: string
+  department?: string
   address: string
   rent: number
   deposit: number
@@ -108,6 +137,7 @@ export type CreatePropertyPayload = {
   title: string
   description: string
   city: string
+  department?: string
   address: string
   rent: number
   deposit: number
@@ -140,6 +170,7 @@ export type BackendRentalRequest = {
   tenant: BackendAuthUser | string
   owner?: BackendAuthUser | string
   status: RentalRequestStatus
+  duration?: string
   message?: string
   date?: string
   createdAt?: string
@@ -164,10 +195,37 @@ export type BackendContract = {
   updatedAt?: string
 }
 
+/* Housing Needs */
+
+export type BackendHousingNeed = {
+  _id?: string
+  desiredCity: string
+  department?: string
+  minBudget?: number
+  maxBudget?: number
+  propertyType?: string
+  bedrooms?: string
+  moveInDate?: string
+  duration?: string
+  meuble?: boolean
+  parking?: boolean
+  nearCenter?: boolean
+  notes?: string
+  updatedAt?: string
+}
+
+export type BackendHousingNeedResponse = {
+  need: BackendHousingNeed
+  matchesCount: number
+  notifiedMatches: number
+  message: string
+}
+
 /* ── Notifications ── */
 
 export type BackendNotification = {
   _id: string
+  recipient?: string
   user: string
   title: string
   message: string
@@ -175,6 +233,41 @@ export type BackendNotification = {
   relatedId?: string
   isRead: boolean
   preview?: string
+  content?: string
+  status?: string
+  attachments?: Array<string | Record<string, unknown>>
+  claimMeta?: {
+    claimId?: string
+    tenantId?: string
+    tenantName?: string
+    ownerId?: string
+    propertyId?: string
+    propertyTitle?: string
+    propertyAddress?: string
+    subject?: string
+    category?: string
+    priority?: string
+    description?: string
+    source?: string
+    photos?: string[]
+  }
+  messageMeta?: {
+    conversationId?: string
+    messageId?: string
+    senderId?: string
+    senderName?: string
+    contextId?: string
+  }
+  contractData?: {
+    contractId?: string
+    requestId?: string
+    propertyTitle?: string
+    propertyAddress?: string
+    propertyImage?: string
+    startDate?: string
+    endDate?: string
+    rent?: number
+  }
   createdAt?: string
   updatedAt?: string
 }
@@ -188,6 +281,7 @@ export type BackendFurniture = {
   price: number
   image?: string
   description?: string
+  status?: string
 }
 
 export type BackendFurnitureOrder = {
@@ -202,6 +296,7 @@ export type BackendFurnitureOrder = {
     price: number
   }>
   total: number
+  paymentMethod?: string
   status: string
   createdAt?: string
 }

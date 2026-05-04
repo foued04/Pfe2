@@ -174,6 +174,50 @@ export function MessagesModule() {
     }
   }
 
+  const handleViewContractByRequest = async (requestId: string) => {
+    try {
+      const token = localStorage.getItem("accessToken")
+      const response = await fetch(`${API_URL}/contracts/request/${requestId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.status === 401) {
+        handleUnauthorized()
+        return
+      }
+      if (response.ok) {
+        const data = await response.json()
+        const contract: Contract = {
+          id: data._id,
+          requestId: data.request?._id || data.request,
+          propertyId: data.property?._id || data.property,
+          propertyImage: data.property?.images?.cover || "",
+          propertyTitle: data.property?.title || "...",
+          ownerName: data.owner?.fullName || "...",
+          ownerEmail: data.owner?.email || "...",
+          ownerPhone: data.owner?.phone || "...",
+          tenantName: data.tenant?.fullName || "...",
+          tenantEmail: data.tenant?.email || "...",
+          tenantPhone: data.tenant?.phone || "...",
+          propertyRent: data.rentAmount,
+          propertyDeposit: data.depositAmount,
+          propertySurface: data.property?.surface || 0,
+          propertyAddress: data.property?.address || "...",
+          propertyType: data.property?.type || "Appartement",
+          startDate: data.startDate || "",
+          endDate: data.endDate || "",
+          duration: data.request?.duration || "12 mois",
+          status: data.status,
+          ownerSignature: data.ownerSignature,
+          tenantSignature: data.tenantSignature,
+          createdAt: data.createdAt
+        }
+        setContractToView(contract)
+      }
+    } catch (err) {
+      console.error("View contract by request error:", err)
+    }
+  }
+
   const handleTenantSign = async (signature: string) => {
     if (!contractToView) return
     try {
@@ -513,6 +557,7 @@ export function MessagesModule() {
                   const isLastInGroup = !nextMsg || nextMsg.senderId !== msg.senderId
                   
                   const contractId = (msg as any).metadata?.contractId
+                  const requestId = (msg as any).metadata?.requestId
                   
                   return (
                     <div 
@@ -558,10 +603,18 @@ export function MessagesModule() {
                             <p className="leading-snug break-words whitespace-pre-wrap">{msg.content}</p>
                             
                             {/* Contract Action Button */}
-                            {contractId && (
+                            {(contractId || requestId) && (
                                 <div className="mt-4 pt-3 border-t border-white/20">
                                     <Button 
-                                        onClick={() => handleViewContract(contractId)}
+                                        onClick={() => {
+                                          if (contractId) {
+                                            handleViewContract(contractId)
+                                            return
+                                          }
+                                          if (requestId) {
+                                            handleViewContractByRequest(requestId)
+                                          }
+                                        }}
                                         variant="outline" 
                                         size="sm"
                                         className={cn(

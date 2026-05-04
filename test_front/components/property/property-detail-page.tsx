@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { AlertCircle, Bath, Bed, CheckCircle2, MapPin, Maximize, ChefHat, Car, Send, Sofa } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { AlertCircle, ArrowLeft, Bath, Bed, CheckCircle2, MapPin, Maximize, ChefHat, Car, Send, Sofa } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { apiFetch } from "@/lib/api/client"
 import { useProperty } from "@/hooks/api/use-property"
@@ -30,6 +31,7 @@ import { PageTransition } from "@/components/shared/page-transition"
 export function PropertyDetailPage({ propertyId }: { propertyId: string }) {
   const { property, isLoading, error } = useProperty(propertyId)
   const { role, isAuthenticated } = useAuth()
+  const router = useRouter()
   const [duration, setDuration] = useState("12 mois")
   const [message, setMessage] = useState("")
   const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false)
@@ -38,6 +40,22 @@ export function PropertyDetailPage({ propertyId }: { propertyId: string }) {
   const [requestError, setRequestError] = useState<string | null>(null)
 
   const canSendRentalRequest = isAuthenticated && role === "tenant"
+
+  const getFallbackHref = () => {
+    if (role === "admin") return "/dashboard/admin/properties"
+    if (role === "owner") return "/dashboard/owner/properties"
+    if (role === "tenant") return "/dashboard/tenant"
+    return "/properties"
+  }
+
+  const handleBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back()
+      return
+    }
+
+    router.replace(getFallbackHref())
+  }
 
   const handleRentalRequest = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -93,6 +111,13 @@ export function PropertyDetailPage({ propertyId }: { propertyId: string }) {
   return (
     <PageTransition>
       <section className="mx-auto max-w-7xl px-4 py-10 md:px-6">
+        <div className="mb-6">
+          <Button type="button" variant="outline" className="gap-2 rounded-2xl" onClick={handleBack}>
+            <ArrowLeft className="h-4 w-4" />
+            Retour
+          </Button>
+        </div>
+
         <div className="overflow-hidden rounded-[2rem] border border-border bg-card shadow-sm">
           <div className="aspect-[16/7] overflow-hidden bg-muted">
             <img src={property.images.cover} alt={property.title} className="h-full w-full object-cover" />

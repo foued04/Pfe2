@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
+import { resolveApiUrl } from "@/lib/api/client"
 import type { Property } from "@/lib/property-data"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -82,7 +83,7 @@ export function PropertyDetailsModal({
   const { role, isAuthenticated } = useAuth()
   const canViewOwnerContact = role === "owner" || role === "admin"
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+  const API_URL = resolveApiUrl()
 
   useEffect(() => {
     if (isOpen) {

@@ -10,7 +10,6 @@ import {
   Search, 
   Check, 
   X, 
-  Eye, 
   DollarSign,
   Plus,
   Trash2,
@@ -76,6 +75,17 @@ export function AdminFurnitureManagement() {
     loadItems()
   }, [])
 
+  useEffect(() => {
+    if (!selectedItem) return
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [selectedItem])
+
   const filteredItems = items.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(filter.search.toLowerCase()) || 
                          (item.requesterName || "").toLowerCase().includes(filter.search.toLowerCase())
@@ -88,7 +98,6 @@ export function AdminFurnitureManagement() {
     try {
       await apiUpdateStatus(id, "approved")
       await loadItems()
-      if (selectedItem?.id === id) setSelectedItem(prev => prev ? { ...prev, status: "approved" } : null)
     } catch (error) {
       alert("Error approving item")
     }
@@ -98,7 +107,6 @@ export function AdminFurnitureManagement() {
     try {
       await apiUpdateStatus(id, "rejected")
       await loadItems()
-      if (selectedItem?.id === id) setSelectedItem(prev => prev ? { ...prev, status: "rejected" } : null)
     } catch (error) {
       alert("Error updating status")
     }
@@ -109,7 +117,7 @@ export function AdminFurnitureManagement() {
     try {
       await deleteFurnitureItem(id)
       await loadItems()
-      setSelectedItem(null)
+      setSelectedItem((prev) => (prev?.id === id ? null : prev))
     } catch (error) {
       alert("Error deleting item")
     }
@@ -348,13 +356,15 @@ export function AdminFurnitureManagement() {
   
                   <div className="flex gap-2 pt-2">
                     <Button 
-                      onClick={() => setSelectedItem(item)}
+                      type="button"
+                      onClick={() => setSelectedItem((prev) => (prev?.id === item.id ? null : { ...item }))}
                       variant="outline" 
                       className="flex-1 rounded-2xl font-black uppercase text-[10px] tracking-widest h-10 border-2"
                     >
-                      <Eye className="w-4 h-4 mr-2" /> Détails
+                      {selectedItem?.id === item.id ? "Masquer les details" : "Details"}
                     </Button>
                     <Button 
+                      type="button"
                       onClick={() => item.id && handleDelete(item.id)}
                       variant="outline" 
                       className="w-10 h-10 rounded-2xl border-red-100 text-red-500 hover:bg-red-50 p-0 border-2"
@@ -362,6 +372,51 @@ export function AdminFurnitureManagement() {
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
+
+                  {selectedItem?.id === item.id ? (
+                    <div className="mt-6 space-y-4 rounded-[2rem] border border-slate-200/80 bg-slate-50/70 p-4 shadow-inner">
+                      <div className="grid gap-3 lg:grid-cols-[1fr_1fr_1fr]">
+                        <Button
+                          onClick={() => item.id && handleApprove(item.id)}
+                          className="h-12 rounded-2xl bg-emerald-500 font-black uppercase tracking-[0.12em] text-white shadow-lg shadow-emerald-100 hover:bg-emerald-600"
+                        >
+                          <Check className="mr-2 h-4 w-4" />
+                          Approuver
+                        </Button>
+                        <Button
+                          onClick={() => item.id && handleReject(item.id)}
+                          variant="outline"
+                          className="h-12 rounded-2xl border-red-200 bg-red-50 font-black uppercase tracking-[0.12em] text-red-600 hover:bg-red-100"
+                        >
+                          <X className="mr-2 h-4 w-4" />
+                          Rejeter
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={() => setSelectedItem(null)}
+                          variant="outline"
+                          className="h-12 rounded-2xl border-slate-200 bg-white font-black uppercase tracking-[0.12em] text-slate-700 hover:bg-slate-100"
+                        >
+                          Masquer les details
+                        </Button>
+                      </div>
+
+                      <div className="grid gap-3 rounded-[2rem] border border-slate-200/80 bg-white/90 p-4 md:grid-cols-3">
+                        <FurnitureInlineDetail
+                          label="Description"
+                          value={item.description || "Aucune description fournie pour cet article."}
+                          className="md:col-span-3"
+                        />
+                        <FurnitureInlineDetail label="Categorie" value={item.category} />
+                        <FurnitureInlineDetail label="Statut" value={item.status || "pending"} />
+                        <FurnitureInlineDetail label="Prix unitaire" value={`${item.price} DT`} />
+                        <FurnitureInlineDetail label="Quantite" value={String(item.quantity ?? 1)} />
+                        <FurnitureInlineDetail label="Demandeur" value={item.requesterName || "Proprietaire"} />
+                        <FurnitureInlineDetail label="Type" value={item.requesterType === "tenant" ? "Locataire" : "Proprietaire"} />
+                      </div>
+                    </div>
+                  ) : null}
+
                 </div>
               </CardContent>
             </Card>
@@ -377,115 +432,25 @@ export function AdminFurnitureManagement() {
         )}
       </div>
 
-      {/* Furniture Detail Modal */}
-      {selectedItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-500 overflow-y-auto">
-          <div className="relative w-full max-w-4xl bg-background rounded-[2rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-500 my-8">
-            {/* Close Button */}
-            <button 
-              onClick={() => setSelectedItem(null)}
-              className="absolute top-6 right-6 z-10 p-2 rounded-full bg-black/20 hover:bg-black/40 text-white transition-all shadow-lg"
-            >
-              <X className="w-6 h-6" />
-            </button>
+    </div>
+  )
+}
 
-            <div className="flex flex-col md:flex-row min-h-[500px]">
-              {/* Image Section */}
-              <div className="w-full md:w-1/2 relative bg-muted">
-                <img src={selectedItem.image} className="w-full h-full object-cover" alt={selectedItem.name} />
-                <div className="absolute top-6 left-6">
-                  {getStatusBadge(selectedItem.status)}
-                </div>
-                <div className="absolute top-6 right-16">
-                  <Badge className="bg-black/40 backdrop-blur-md text-white border-none font-black text-xs uppercase tracking-widest">
-                    {selectedItem.category}
-                  </Badge>
-                </div>
-              </div>
+function FurnitureInlineDetail({
+  label,
+  value,
+  className,
+}: {
+  label: string
+  value: string
+  className?: string
+}) {
+  const isLongText = label === "Description"
 
-              {/* Info Section */}
-              <div className="flex-1 p-8 lg:p-12 space-y-8 flex flex-col justify-between">
-                <div>
-                   <div className="flex items-center gap-2 text-primary font-black uppercase text-[10px] tracking-[0.2em] mb-2">
-                     <Package className="w-3 h-3" /> Mobilier • {selectedItem.category}
-                   </div>
-                   <h2 className="text-4xl font-black text-foreground tracking-tight leading-tight uppercase underline decoration-primary/30 underline-offset-8 decoration-4 mb-6">
-                     {selectedItem.name}
-                   </h2>
-
-                   <div className="grid grid-cols-2 gap-8 py-6 border-y border-border/50">
-                      <div>
-                        <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1">Prix Estimé</p>
-                        <p className="text-3xl font-black text-primary tracking-tighter">{selectedItem.price} <span className="text-sm">DT</span></p>
-                      </div>
-                      <div>
-                         <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1">Quantité</p>
-                         <p className="text-3xl font-black text-foreground tracking-tighter">{selectedItem.quantity}</p>
-                      </div>
-                   </div>
-
-                   <div className="mt-8">
-                      <h4 className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-3">Description du produit</h4>
-                      <p className="text-base text-foreground/80 leading-relaxed font-medium">
-                        {selectedItem.description || "Cet article fait partie de l'équipement standard proposé pour améliorer le confort de la propriété. Il a été sélectionné pour sa qualité et son design s'intégrant parfaitement au style moderne de la plateforme."}
-                      </p>
-                   </div>
-
-                   <div className="mt-8 p-6 rounded-3xl bg-muted/30 border border-border/30 flex items-center gap-4">
-                      <div className={cn(
-                        "w-12 h-12 rounded-full flex items-center justify-center font-black text-lg",
-                        selectedItem.requesterType === 'owner' ? "bg-orange-100 text-orange-600 shadow-orange-100 shadow-lg" : "bg-primary/10 text-primary shadow-primary/10 shadow-lg"
-                      )}>
-                        {(selectedItem.requesterName || "A")[0]}
-                      </div>
-                      <div>
-                         <p className="text-[10px] font-black uppercase text-muted-foreground opacity-60 tracking-widest leading-none mb-1">Demandé par</p>
-                         <h4 className="text-lg font-black text-foreground tracking-tight leading-none">{selectedItem.requesterName || "Propriétaire"}</h4>
-                         <p className="text-[10px] font-bold text-primary/60 uppercase mt-1">
-                           {selectedItem.requesterType === 'owner' || !selectedItem.requesterType ? "Propriétaire (Validation requise)" : "Locataire (Demande d'achat)"}
-                         </p>
-                      </div>
-                   </div>
-                </div>
-
-                <div className="pt-8 border-t border-border/50">
-                   {(selectedItem.status === 'pending' || selectedItem.status === 'requested') ? (
-                     <div className="flex gap-4">
-                        <Button 
-                          onClick={() => handleApprove(selectedItem.id)}
-                          className="flex-1 h-14 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-black uppercase text-xs tracking-widest shadow-xl shadow-emerald-100 border-none px-8"
-                        >
-                          <Check className="w-5 h-5 mr-3" /> Valider l&apos;article
-                        </Button>
-                        <Button 
-                          onClick={() => handleReject(selectedItem.id)}
-                          variant="outline"
-                          className="flex-1 h-14 rounded-2xl border-red-200 text-red-500 hover:bg-red-50 font-black uppercase text-xs tracking-widest px-8 border-2"
-                        >
-                          <X className="w-5 h-5 mr-3" /> Rejeter
-                        </Button>
-                     </div>
-                   ) : (
-                     <div className="flex items-center justify-between p-6 rounded-3xl bg-muted/50 border border-border/50">
-                        <div>
-                           <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1">Statut de validation</p>
-                           {getStatusBadge(selectedItem.status)}
-                        </div>
-                        <Button 
-                          variant="outline"
-                          onClick={() => selectedItem.status === 'approved' ? handleReject(selectedItem.id) : handleApprove(selectedItem.id)}
-                          className="rounded-2xl font-black uppercase text-[10px] tracking-widest h-10 border-2"
-                        >
-                           Changer le statut
-                        </Button>
-                     </div>
-                   )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+  return (
+    <div className={cn("rounded-2xl border border-slate-200 bg-white px-4 py-3", className)}>
+      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{label}</p>
+      <p className={cn("mt-2 text-sm leading-relaxed text-foreground", isLongText ? "whitespace-pre-wrap font-semibold" : "font-bold")}>{value}</p>
     </div>
   )
 }

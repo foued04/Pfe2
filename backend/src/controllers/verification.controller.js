@@ -79,9 +79,17 @@ const uploadDocument = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Invalid document type');
   }
 
+  if (!url || typeof url !== 'string') {
+    throw new ApiError(400, 'A valid document payload is required');
+  }
+
   const user = await User.findById(req.user._id);
   if (!user) {
     throw new ApiError(404, 'User not found');
+  }
+
+  if (!user.documents) {
+    user.documents = {};
   }
 
   user.documents[docType] = {

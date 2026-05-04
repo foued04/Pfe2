@@ -1,0 +1,241 @@
+.maintenance-page {
+  display: grid;
+  gap: 18px;
+}
+
+.maintenance-hero {
+  background: linear-gradient(140deg, var(--brand-primary-deep), var(--brand-primary));
+  border-radius: 22px;
+  padding: 20px;
+  color: #ffffff;
+  box-shadow: 0 22px 48px rgba(46, 196, 199, 0.2);
+}
+
+.maintenance-eyebrow {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.maintenance-hero h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1.05;
+}
+
+.maintenance-hero p:last-child {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.maintenance-card {
+  background: var(--brand-surface);
+  border: 1px solid var(--brand-border);
+  border-radius: 22px;
+  padding: 18px;
+  box-shadow: 0 14px 36px rgba(46, 196, 199, 0.08);
+}
+
+.maintenance-card-header h2 {
+  margin: 0 0 18px;
+  font-size: 21px;
+  font-weight: 800;
+  color: var(--brand-text);
+}
+
+.maintenance-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border-radius: 16px;
+  padding: 14px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.maintenance-alert ion-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.maintenance-alert-success {
+  border: 1px solid #a7f3d0;
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.maintenance-alert-error {
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.08);
+  color: #b91c1c;
+}
+
+.maintenance-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--brand-muted);
+  font-size: 14px;
+}
+
+.maintenance-form {
+  display: grid;
+  gap: 18px;
+}
+
+.maintenance-grid {
+  display: grid;
+  gap: 18px;
+}
+
+.maintenance-field {
+  display: grid;
+  gap: 8px;
+}
+
+.maintenance-field > span {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--brand-text);
+}
+
+.maintenance-field input,
+.maintenance-field select,
+.maintenance-field textarea {
+  width: 100%;
+  border: 1px solid var(--brand-border);
+  border-radius: 14px;
+  background: #ffffff;
+  color: var(--brand-text);
+  font: inherit;
+  padding: 14px 15px;
+  outline: none;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.maintenance-field textarea {
+  min-height: 160px;
+  resize: vertical;
+}
+
+.maintenance-field input:focus,
+.maintenance-field select:focus,
+.maintenance-field textarea:focus {
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.maintenance-field small {
+  color: var(--brand-muted);
+  font-size: 12px;
+}
+
+.maintenance-upload {
+  display: block;
+  border: 2px dashed rgba(100, 116, 139, 0.28);
+  background: rgba(148, 163, 184, 0.08);
+  border-radius: 18px;
+  padding: 14px;
+}
+
+.maintenance-upload input {
+  display: none;
+}
+
+.maintenance-upload-empty {
+  min-height: 128px;
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  text-align: center;
+  color: var(--brand-muted);
+}
+
+.maintenance-upload-empty ion-icon {
+  font-size: 34px;
+}
+
+.maintenance-upload-empty span {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--brand-text);
+}
+
+.maintenance-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.maintenance-photo-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid var(--brand-border);
+  background: #ffffff;
+}
+
+.maintenance-photo-card img {
+  display: block;
+  width: 100%;
+  height: 132px;
+  object-fit: cover;
+}
+
+.maintenance-remove-photo {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.72);
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+}
+
+.maintenance-submit {
+  width: 100%;
+  min-height: 52px;
+  border: none;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--brand-primary-deep), var(--brand-primary));
+  color: #ffffff;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 12px 28px rgba(46, 196, 199, 0.2);
+}
+
+.maintenance-submit:disabled {
+  opacity: 0.65;
+}
+
+.maintenance-submit ion-spinner,
+.maintenance-submit ion-icon {
+  font-size: 18px;
+}
+
+@media (min-width: 640px) {
+  .maintenance-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .maintenance-photo-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

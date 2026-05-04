@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react"
 import { useI18n } from "@/lib/i18n"
+import { resolveApiUrl } from "@/lib/api/client"
 import { mockNotifications, TenantNotification, NotificationType } from "@/lib/notifications-data"
 import { Badge } from "./ui/badge"
 import { Button } from "./ui/button"
@@ -37,7 +38,7 @@ export function TenantNotificationsModule() {
   const [replyError, setReplyError] = useState<string | null>(null)
   const [replySuccess, setReplySuccess] = useState<string | null>(null)
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+  const API_URL = resolveApiUrl()
 
   const handleViewContract = async (contractId?: string, requestId?: string) => {
     setViewContractError(null)

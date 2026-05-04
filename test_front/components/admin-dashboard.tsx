@@ -809,26 +809,28 @@ export function AdminDashboard({
                            </Badge>
                            <span className="text-[10px] font-bold text-muted-foreground opacity-60 uppercase">{property.ownerName}</span>
                         </div>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={moderatingPropertyId === property.id}
-                            onClick={() => handleModerateProperty(property.id, "approved")}
-                            className="h-8 flex-1 rounded-xl bg-emerald-50 text-emerald-700 border-emerald-200 border-2 font-black text-[10px] uppercase tracking-tighter hover:bg-emerald-100 disabled:opacity-60"
-                          >
-                             {moderatingPropertyId === property.id ? "..." : "Approuver"}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={moderatingPropertyId === property.id}
-                            onClick={() => handleModerateProperty(property.id, "rejected")}
-                            className="h-8 flex-1 rounded-xl bg-red-50 text-red-600 border-red-200 border-2 font-black text-[10px] uppercase tracking-tighter hover:bg-red-100 disabled:opacity-60"
-                          >
-                             {moderatingPropertyId === property.id ? "..." : "Rejeter"}
-                          </Button>
-                        </div>
+                        {((property as any).moderationStatus || "pending") === "pending" ? (
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={moderatingPropertyId === property.id}
+                              onClick={() => handleModerateProperty(property.id, "approved")}
+                              className="h-8 flex-1 rounded-xl bg-emerald-50 text-emerald-700 border-emerald-200 border-2 font-black text-[10px] uppercase tracking-tighter hover:bg-emerald-100 disabled:opacity-60"
+                            >
+                               {moderatingPropertyId === property.id ? "..." : "Approuver"}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={moderatingPropertyId === property.id}
+                              onClick={() => handleModerateProperty(property.id, "rejected")}
+                              className="h-8 flex-1 rounded-xl bg-red-50 text-red-600 border-red-200 border-2 font-black text-[10px] uppercase tracking-tighter hover:bg-red-100 disabled:opacity-60"
+                            >
+                               {moderatingPropertyId === property.id ? "..." : "Rejeter"}
+                            </Button>
+                          </div>
+                        ) : null}
                       </div>
                     </div>
                   ))}

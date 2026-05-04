@@ -4,8 +4,8 @@ const verificationController = require('../controllers/verification.controller')
 
 const router = express.Router();
 
-// Owner route: Upload document
-router.post('/upload/:docType', auth, authorize('owner'), verificationController.uploadDocument);
+// Self-service route: Upload document
+router.post('/upload/:docType', auth, authorize('owner', 'tenant'), verificationController.uploadDocument);
 
 // Admin routes: Manage verifications
 router.get('/pending', auth, authorize('admin'), verificationController.getPendingVerifications);
