@@ -27,8 +27,11 @@ import {
   User,
   AlertTriangle,
   Send,
-  ArrowLeft
+  ArrowLeft,
+  FileText,
+  XCircle
 } from "lucide-react"
+
 import { RentalRequestDetail } from "./rental-request-detail"
 import { RentalRequest, RequestStatus } from "@/lib/rental-request-data"
 
@@ -142,32 +145,40 @@ export function NotificationsModule() {
     }
   }
 
-  const mapBackendContract = (data: any): Contract => ({
-    id: data._id,
-    requestId: data.request?._id || data.request,
-    propertyId: data.property?._id || data.property,
-    propertyImage: data.property?.images?.cover || "",
-    propertyTitle: data.property?.title || "...",
-    propertyAddress: data.property?.address || "...",
-    propertyType: data.property?.type || "...",
-    propertySurface: data.property?.surface || 0,
-    propertyRent: data.rentAmount || 0,
-    propertyDeposit: data.depositAmount || 0,
-    ownerName: data.owner?.fullName || "...",
-    ownerEmail: data.owner?.email || "...",
-    ownerPhone: data.owner?.phone || "...",
-    tenantName: data.tenant?.fullName || "...",
-    tenantEmail: data.tenant?.email || "...",
-    tenantPhone: data.tenant?.phone || "...",
-    startDate: data.startDate || "",
-    endDate: data.endDate || "",
-    duration: data.request?.duration || "",
-    status: data.status,
-    ownerSignature: data.ownerSignature,
-    tenantSignature: data.tenantSignature,
-    tenantMessage: data.tenantMessage,
-    createdAt: data.createdAt
-  })
+  const mapBackendContract = (data: any): Contract => {
+    if (!data) return {} as Contract
+    
+    // Fallback for status to prevent crash in ContractView
+    const validStatuses = ["Draft", "SignedByOwner", "SentToTenant", "SignedByTenant", "SignedByBoth"]
+    const status = validStatuses.includes(data.status) ? data.status : "Draft"
+
+    return {
+      id: data._id,
+      requestId: data.request?._id || data.request,
+      propertyId: data.property?._id || data.property,
+      propertyImage: data.property?.images?.cover || "",
+      propertyTitle: data.property?.title || "...",
+      propertyAddress: data.property?.address || "...",
+      propertyType: data.property?.type || "...",
+      propertySurface: data.property?.surface || 0,
+      propertyRent: data.rentAmount || data.property?.rent || 0,
+      propertyDeposit: data.depositAmount || (data.property?.rent * 2) || 0,
+      ownerName: data.owner?.fullName || "...",
+      ownerEmail: data.owner?.email || "...",
+      ownerPhone: data.owner?.phone || "...",
+      tenantName: data.tenant?.fullName || "...",
+      tenantEmail: data.tenant?.email || "...",
+      tenantPhone: data.tenant?.phone || "...",
+      startDate: data.startDate || new Date().toISOString(),
+      endDate: data.endDate || new Date().toISOString(),
+      duration: data.request?.duration || "12 mois",
+      status: status as any,
+      ownerSignature: data.ownerSignature,
+      tenantSignature: data.tenantSignature,
+      tenantMessage: data.tenantMessage,
+      createdAt: data.createdAt || new Date().toISOString()
+    }
+  }
 
   const handleViewContract = async (contractId?: string, requestId?: string) => {
     setViewContractError(null)
@@ -218,6 +229,7 @@ export function NotificationsModule() {
           propertyTitle: r.property?.title || "Propriété inconnue",
           propertyAddress: r.property?.address || "Adresse inconnue",
           propertyRent: r.property?.rent || 0,
+          tenantId: r.tenant?._id || r.tenant, // Ensure tenantId is available for ChatModule
           tenantName: r.tenant?.fullName || "Utilisateur inconnu",
           tenantEmail: r.tenant?.email || "",
           tenantPhone: r.tenant?.phone || "",
@@ -240,6 +252,7 @@ export function NotificationsModule() {
   const handleAcceptRequest = async (requestId: string) => {
     try {
       const token = localStorage.getItem("accessToken")
+      // 1. Accept the request
       const response = await fetch(`${API_URL}/rental-requests/${requestId}/status`, {
         method: "PUT",
         headers: {
@@ -248,11 +261,29 @@ export function NotificationsModule() {
         },
         body: JSON.stringify({ status: "Acceptée" }),
       })
+      
       if (response.ok) {
-        handleViewRequest(requestId)
+        // 2. Automatically generate the contract
+        const contractRes = await fetch(`${API_URL}/contracts`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ requestId }),
+        })
+
+        if (contractRes.ok) {
+          const data = await contractRes.json()
+          // 3. Immediately show the contract signing page
+          setContractToView(mapBackendContract(data))
+        } else {
+          // Fallback to viewing request if contract generation fails
+          handleViewRequest(requestId)
+        }
       }
     } catch (err) {
-      console.error("Accept request error:", err)
+      console.error("Accept and generate contract error:", err)
     }
   }
 
@@ -268,7 +299,10 @@ export function NotificationsModule() {
         body: JSON.stringify({ status: "Refusée" }),
       })
       if (response.ok) {
-        handleViewRequest(requestId)
+        // Clear detail view and remove notification
+        setSelectedRequest(null)
+        setNotifications(prev => prev.filter(n => n._id !== activeNotifId))
+        setActiveNotifId(null)
       }
     } catch (err) {
       console.error("Reject request error:", err)
@@ -287,7 +321,9 @@ export function NotificationsModule() {
         body: JSON.stringify({ requestId }),
       })
       if (response.ok) {
-        handleViewRequest(requestId)
+        const data = await response.json()
+        // Open the contract signing page directly
+        setContractToView(mapBackendContract(data))
       }
     } catch (err) {
       console.error("Generate contract error:", err)
@@ -1064,20 +1100,41 @@ export function NotificationsModule() {
                          <p className="text-sm font-bold text-slate-500">Demande de {activeNotif.requestMeta.tenantName}</p>
                       </div>
                    </div>
-                   <Button
-                    className="w-full h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-base font-black shadow-lg shadow-emerald-200 transition-all hover:scale-[1.02]"
-                    disabled={isLoadingRequest}
-                    onClick={() => handleViewRequest(activeNotif.requestMeta!.requestId)}
-                  >
-                    {isLoadingRequest ? (
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
-                    ) : (
-                      <>
-                        <FileText className="w-5 h-5 mr-2" />
-                        {isFr ? "Consulter la Demande" : "View Request"}
-                      </>
-                    )}
-                  </Button>
+                   <div className="flex flex-col gap-3">
+                    <Button
+                      className="w-full h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-base font-black shadow-lg shadow-emerald-200 transition-all hover:scale-[1.02]"
+                      disabled={isLoadingRequest}
+                      onClick={() => handleViewRequest(activeNotif.requestMeta!.requestId)}
+                    >
+                      {isLoadingRequest ? (
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
+                      ) : (
+                        <>
+                          <FileText className="w-5 h-5 mr-2" />
+                          {isFr ? "Consulter la Demande" : "View Request"}
+                        </>
+                      )}
+                    </Button>
+                    
+                    <div className="flex gap-3">
+                      <Button
+                        variant="outline"
+                        className="flex-1 h-12 rounded-2xl border-emerald-200 text-emerald-600 font-bold hover:bg-emerald-50"
+                        onClick={() => handleAcceptRequest(activeNotif.requestMeta!.requestId)}
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        {isFr ? "Accepter" : "Accept"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="flex-1 h-12 rounded-2xl border-red-200 text-red-600 font-bold hover:bg-red-50"
+                        onClick={() => handleRejectRequest(activeNotif.requestMeta!.requestId)}
+                      >
+                        <XCircle className="w-4 h-4 mr-2" />
+                        {isFr ? "Refuser" : "Reject"}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

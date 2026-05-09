@@ -18,8 +18,11 @@ import type { BackendNotification } from "../types/api"
 import { useHistory } from "react-router-dom"
 import { documentTextOutline } from "ionicons/icons"
 
+import { useSocket } from "../lib/socket-context"
+
 const NotificationsPage: React.FC = () => {
   const { token, user } = useAuth()
+  const { socket } = useSocket()
   const history = useHistory()
   const [notifications, setNotifications] = useState<BackendNotification[]>([])
   const [loading, setLoading] = useState(true)
@@ -49,13 +52,26 @@ const NotificationsPage: React.FC = () => {
     }
 
     load()
-    const interval = window.setInterval(load, 30000)
 
     return () => {
       active = false
-      window.clearInterval(interval)
     }
   }, [token])
+
+  useEffect(() => {
+    if (!socket) return
+
+    const handleNewNotification = (notification: BackendNotification) => {
+      setNotifications((prev) => [notification, ...prev])
+    }
+
+    socket.on('new_notification', handleNewNotification)
+
+    return () => {
+      socket.off('new_notification', handleNewNotification)
+    }
+  }, [socket])
+
 
   const activeNotification = useMemo(
     () => notifications.find((notification) => notification._id === activeId) || null,
@@ -232,7 +248,7 @@ const NotificationsPage: React.FC = () => {
                     <span>{formatDate(activeNotification.createdAt)}</span>
                   </div>
 
-                  {activeNotification.contractData ? (
+                   {activeNotification.contractData ? (
                     <div className="notification-contract-block">
                       <div className="contract-mini-card">
                         <img 
@@ -256,6 +272,24 @@ const NotificationsPage: React.FC = () => {
                       >
                         <IonIcon icon={documentTextOutline} />
                         Consulter le Contrat
+                      </button>
+                    </div>
+                  ) : activeNotification.requestMeta ? (
+                    <div className="notification-request-block">
+                       <div className="contract-mini-card">
+                        <div className="contract-mini-info" style={{ paddingLeft: '15px' }}>
+                          <h4>{activeNotification.requestMeta.propertyTitle}</h4>
+                          <p>Demande de {activeNotification.requestMeta.tenantName}</p>
+                        </div>
+                      </div>
+                      <button 
+                        className="detail-cta request-cta"
+                        onClick={() => {
+                          history.push(`/rental-requests?id=${activeNotification.requestMeta?.requestId}`)
+                        }}
+                      >
+                        <IonIcon icon={documentTextOutline} />
+                        Consulter la Demande
                       </button>
                     </div>
                   ) : activeNotification.messageMeta?.conversationId ? (

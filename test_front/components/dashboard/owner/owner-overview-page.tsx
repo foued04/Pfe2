@@ -13,7 +13,7 @@ import { OwnerPropertiesGrid } from "@/components/owner-properties-grid"
 
 export function OwnerOverviewPage() {
   const router = useRouter()
-  const { properties, setProperties, stats, isLoading, error } = useOwnerDashboard()
+  const { myProperties, setProperties, stats, isLoading, error } = useOwnerDashboard()
 
   const handleDelete = async (id: string) => {
     try {
@@ -29,7 +29,7 @@ export function OwnerOverviewPage() {
       <PageHeader
         eyebrow="Owner"
         title="Owner Dashboard"
-        description="Suivez vos indicateurs personnels et parcourez toutes les proprietes de la plateforme sans perdre vos droits de gestion."
+        description="Consultez et gérez vos propres biens immobiliers."
         actions={
           <Button asChild>
             <Link href="/dashboard/owner/properties/new"><Plus className="mr-2 h-4 w-4" />Add Property</Link>
@@ -61,13 +61,14 @@ export function OwnerOverviewPage() {
             </CardContent>
           </Card>
           <OwnerPropertiesGrid
-            properties={properties.slice(0, 3)}
+            properties={myProperties}
             onManageFurniture={(id) => router.push(`/dashboard/owner/furniture?property=${id}`)}
             onEdit={(property) => router.push(`/dashboard/owner/properties/new?edit=${property.id || property._id}`)}
             onDelete={handleDelete}
           />
         </div>
       )}
+
     </div>
   )
 }

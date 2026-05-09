@@ -19,9 +19,12 @@ import {
   type MobileMessage,
 } from "../lib/messages-api"
 import "./OwnerDashboard.css"
+import { useSocket } from "../lib/socket-context"
+
 
 const MessagesPage: React.FC = () => {
   const { token, user } = useAuth()
+  const { socket } = useSocket()
   const [conversations, setConversations] = useState<MobileConversation[]>([])
   const [messages, setMessages] = useState<MobileMessage[]>([])
   const [activeConversationId, setActiveConversationId] = useState("")
@@ -53,10 +56,8 @@ const MessagesPage: React.FC = () => {
     }
 
     load()
-    const interval = window.setInterval(load, 10000)
     return () => {
       active = false
-      window.clearInterval(interval)
     }
   }, [token])
 
@@ -79,16 +80,44 @@ const MessagesPage: React.FC = () => {
     }
 
     loadMessages()
-    const interval = window.setInterval(loadMessages, 5000)
     return () => {
       active = false
-      window.clearInterval(interval)
     }
   }, [activeConversationId, token])
 
   useEffect(() => {
+    if (!socket) return
+
+    const handleNewMessage = (message: MobileMessage) => {
+      // Update conversations list to show last message/update time
+      setConversations((prev) => {
+        const index = prev.findIndex((c) => c._id === message.conversation)
+        if (index === -1) return prev // Conversation not in list (shouldn't happen often)
+        
+        const next = [...prev]
+        const updated = { ...next[index], updatedAt: message.createdAt }
+        next.splice(index, 1)
+        next.unshift(updated) // Move to top
+        return next
+      })
+
+      // If this message belongs to the active conversation, append it
+      if (message.conversation === activeConversationId) {
+        setMessages((prev) => [...prev, message])
+      }
+    }
+
+    socket.on('new_message', handleNewMessage)
+
+    return () => {
+      socket.off('new_message', handleNewMessage)
+    }
+  }, [socket, activeConversationId])
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
+
 
   const currentUserId = String(user?.id || "")
 

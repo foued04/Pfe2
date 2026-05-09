@@ -13,14 +13,12 @@ import {
   IonFooter,
   IonInput,
   IonList,
-  IonItem,
-  IonAvatar,
   IonText,
   IonSpinner
 } from '@ionic/react';
-import { chatbubbleEllipsesOutline, closeOutline, sendOutline, sparklesOutline } from 'ionicons/icons';
+import { sparklesOutline, chatbubbleEllipsesOutline, closeOutline, sendOutline } from 'ionicons/icons';
 import { useAuth } from '../lib/auth-context';
-import { API_URL } from '../lib/api';
+import { http } from '../lib/api';
 import './MobileChatbot.css';
 
 interface Message {
@@ -29,6 +27,18 @@ interface Message {
   content: string;
   timestamp: Date;
 }
+
+const getReadableChatbotError = (error: unknown) => {
+  if (error instanceof Error && error.message) {
+    if (error.message.includes('Failed to fetch')) {
+      return 'Impossible de contacter le serveur. Verifiez la connexion internet du telephone et assurez-vous que le backend est bien en ligne.';
+    }
+
+    return error.message;
+  }
+
+  return 'Une erreur technique est survenue. Reessayez plus tard.';
+};
 
 const MobileChatbot: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -42,7 +52,7 @@ const MobileChatbot: React.FC = () => {
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const { token, user } = useAuth();
+  const { token } = useAuth();
   const contentRef = useRef<HTMLIonContentElement>(null);
 
   const scrollToBottom = () => {
@@ -78,20 +88,10 @@ const MobileChatbot: React.FC = () => {
           parts: [{ text: m.content }]
         }));
 
-      const response = await fetch(`${API_URL}/chatbot/ask`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({
-          message: textToSend,
-          history: history
-        })
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Erreur');
+      const data = await http.post<{ response: string }>('/chatbot/ask', {
+        message: textToSend,
+        history
+      }, token || undefined);
 
       const assistantMessage: Message = {
         id: Date.now().toString(),
@@ -101,12 +101,14 @@ const MobileChatbot: React.FC = () => {
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Chatbot Error:', error);
+      const errorDetail = getReadableChatbotError(error);
+
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         role: 'model',
-        content: 'Désolé, je rencontre un problème technique. Réessayez plus tard.',
+        content: errorDetail,
         timestamp: new Date(),
       }]);
     } finally {
@@ -127,7 +129,7 @@ const MobileChatbot: React.FC = () => {
           <IonToolbar className="chatbot-toolbar">
             <IonButtons slot="start">
               <div className="bot-avatar-header">
-                    <IonIcon icon={sparklesOutline} />
+                <IonIcon icon={sparklesOutline} />
               </div>
             </IonButtons>
             <IonTitle>
@@ -152,13 +154,13 @@ const MobileChatbot: React.FC = () => {
             <IonIcon icon={sparklesOutline} />
             <p>Posez vos questions sur la location, le mobilier ou vos contrats.</p>
           </div>
-          
+
           <IonList lines="none" className="message-list">
             {messages.map((m) => (
               <div key={m.id} className={`message-wrapper ${m.role}`}>
                 {m.role === 'model' && (
                   <div className="message-avatar">
-                       <IonIcon icon={sparklesOutline} />
+                    <IonIcon icon={sparklesOutline} />
                   </div>
                 )}
                 <div className="message-bubble">
@@ -169,11 +171,11 @@ const MobileChatbot: React.FC = () => {
                 </div>
               </div>
             ))}
-            
+
             {isTyping && (
               <div className="message-wrapper model">
                 <div className="message-avatar">
-                      <IonIcon icon={sparklesOutline} />
+                  <IonIcon icon={sparklesOutline} />
                 </div>
                 <div className="message-bubble typing">
                   <IonSpinner name="dots" color="primary" />

@@ -109,43 +109,6 @@ export function FurnitureCart({
                   </div>
                 </div>
               </div>
-        <div className="overflow-y-auto max-h-[400px] pr-2 -mr-2 space-y-6">
-          {items.map((item) => (
-            <div key={item.id} className="p-0 flex gap-4 group transition-colors">
-              <div className="w-20 h-20 rounded-xl overflow-hidden bg-muted flex-shrink-0 shadow-sm border border-border/20">
-                <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-              </div>
-              <div className="flex-1 min-w-0 space-y-2">
-                <div className="flex justify-between items-start gap-2">
-                  <h4 className="font-extrabold text-sm text-primary line-clamp-1">{item.name}</h4>
-                  <button 
-                    onClick={() => onRemoveItem(item.id)}
-                    className="text-muted-foreground hover:text-destructive transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-                <div className="flex items-center justify-between mt-2">
-                  <div className="flex items-center gap-3 bg-secondary/30 rounded-xl p-1 px-2">
-                    <button
-                      className="h-6 w-6 flex items-center justify-center rounded-lg hover:bg-white text-muted-foreground transition-all shadow-sm"
-                      onClick={() => onUpdateQuantity(item.id, -1)}
-                    >
-                      <Minus className="w-3 h-3" />
-                    </button>
-                    <span className="text-xs font-black w-3 text-center">{item.quantity}</span>
-                    <button
-                      className="h-6 w-6 flex items-center justify-center rounded-lg hover:bg-white text-muted-foreground transition-all shadow-sm"
-                      onClick={() => onUpdateQuantity(item.id, 1)}
-                    >
-                      <Plus className="w-3 h-3" />
-                    </button>
-                  </div>
-                  <div className="text-md font-black text-primary">
-                    {(item.price * item.quantity).toLocaleString()} DT
-                  </div>
-                </div>
-              </div>
             </div>
           ))}
         </div>
@@ -255,4 +218,3 @@ export function FurnitureCart({
     </Card>
   )
 }
-

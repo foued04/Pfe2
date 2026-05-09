@@ -5,6 +5,7 @@ import { useI18n } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
+import { resolveApiUrl } from "@/lib/api/client"
 import { Bot, X, Send, Sparkles, Home, Search, ClipboardList, User, MessageSquare } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 
@@ -92,8 +93,7 @@ export function AIChatbot({ isOpen, onClose }: AIChatbotProps) {
           parts: [{ text: m.content }]
         }))
 
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
-      const apiUrl = baseUrl.endsWith('/api') ? `${baseUrl}/chatbot/ask` : `${baseUrl}/api/chatbot/ask`
+      const apiUrl = `${resolveApiUrl()}/chatbot/ask`
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -107,9 +107,9 @@ export function AIChatbot({ isOpen, onClose }: AIChatbotProps) {
         })
       })
 
-      const data = await response.json()
+      const data = await response.json().catch(() => null)
 
-      if (!response.ok) throw new Error(data.error || data.message || "Erreur serveur")
+      if (!response.ok) throw new Error(data?.message || data?.error || "Erreur serveur")
 
       const assistantMessage: Message = {
         id: Date.now().toString(),

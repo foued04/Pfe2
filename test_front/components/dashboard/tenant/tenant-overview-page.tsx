@@ -13,7 +13,6 @@ import { TenantPropertyCard } from "@/components/tenant-property-card"
 import { PropertyDetailPage } from "@/components/property/property-detail-page"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { TenantHousingNeedCard } from "@/components/dashboard/tenant/tenant-housing-need-card"
 
 export function TenantOverviewPage() {
   const { properties, isLoading, error } = useProperties({ auth: true })
@@ -40,7 +39,6 @@ export function TenantOverviewPage() {
   return (
     <div className="space-y-8">
       <PageHeader eyebrow="Tenant" title="Tenant Dashboard" description="Accedez rapidement a vos demandes, favoris et notifications depuis un tableau de bord clair." />
-      <TenantHousingNeedCard />
       <StatsGrid
         stats={[
           { label: "Properties available", value: availableProperties.length, icon: Home },

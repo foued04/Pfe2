@@ -268,6 +268,13 @@ export type BackendNotification = {
     endDate?: string
     rent?: number
   }
+  requestMeta?: {
+    requestId: string
+    tenantId: string
+    tenantName: string
+    propertyId: string
+    propertyTitle: string
+  }
   createdAt?: string
   updatedAt?: string
 }

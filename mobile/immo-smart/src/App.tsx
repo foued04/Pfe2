@@ -149,16 +149,20 @@ const AppTabs: React.FC = () => (
   </IonTabs>
 )
 
+import { SocketProvider } from "./lib/socket-context"
+
 const App: React.FC = () => (
   <IonApp>
     <AuthProvider>
-      <IonReactRouter>
-        <AppTabs />
-      </IonReactRouter>
-      <MobileChatbot />
+      <SocketProvider>
+        <IonReactRouter>
+          <AppTabs />
+        </IonReactRouter>
+        <MobileChatbot />
+      </SocketProvider>
     </AuthProvider>
-
   </IonApp>
 )
+
 
 export default App

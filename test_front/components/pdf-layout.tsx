@@ -148,7 +148,34 @@ export function PdfLayout({
             margin: 0;
           }
         }
+
+        /* Fix for html2canvas: Override modern Tailwind v4 oklab/oklch colors with legacy HEX */
+        #${id || 'contract-content'} {
+          --background: #ffffff !important;
+          --foreground: #0f172a !important;
+          --primary: #2563eb !important;
+          --primary-foreground: #ffffff !important;
+          --secondary: #f8fafc !important;
+          --secondary-foreground: #0f172a !important;
+          --muted: #f1f5f9 !important;
+          --muted-foreground: #64748b !important;
+          --accent: #dbeafe !important;
+          --accent-foreground: #1e40af !important;
+          --destructive: #ef4444 !important;
+          --destructive-foreground: #ffffff !important;
+          --border: #e2e8f0 !important;
+          --input: #e2e8f0 !important;
+          --ring: #2563eb !important;
+        }
+
+        /* Prevent html2canvas from crashing on modern color functions */
+        #${id || 'contract-content'} * {
+          color: inherit;
+          border-color: inherit;
+          background-color: transparent;
+        }
       `}</style>
+
     </div>
   )
 }

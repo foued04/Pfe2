@@ -75,15 +75,27 @@ const getSectionFromSearch = (search: string): OwnerSection => {
   return "properties"
 }
 
+// Simple global cache to allow instant transitions between tabs
+let mobileGlobalCache: {
+  properties: BackendProperty[];
+  requests: BackendRentalRequest[];
+  notificationsCount: number;
+  messagesCount: number;
+  timestamp: number;
+} | null = null;
+
 const OwnerDashboard: React.FC = () => {
   const history = useHistory()
   const location = useLocation()
   const { token, user } = useAuth()
-  const [properties, setProperties] = useState<BackendProperty[]>([])
-  const [requestCount, setRequestCount] = useState(0)
-  const [unreadNotifications, setUnreadNotifications] = useState(0)
-  const [unreadMessages, setUnreadMessages] = useState(0)
-  const [loading, setLoading] = useState(true)
+  const [properties, setProperties] = useState<BackendProperty[]>(() => mobileGlobalCache?.properties || [])
+  const [requestCount, setRequestCount] = useState(() => {
+    if (!mobileGlobalCache) return 0
+    return mobileGlobalCache.requests.filter((r) => r.status === "En attente").length
+  })
+  const [unreadNotifications, setUnreadNotifications] = useState(() => mobileGlobalCache?.notificationsCount || 0)
+  const [unreadMessages, setUnreadMessages] = useState(() => mobileGlobalCache?.messagesCount || 0)
+  const [loading, setLoading] = useState(!mobileGlobalCache)
   const [error, setError] = useState("")
   const [openActionsFor, setOpenActionsFor] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -97,7 +109,10 @@ const OwnerDashboard: React.FC = () => {
     let active = true
     const loadDashboard = async () => {
       try {
-        setLoading(true)
+        if (!mobileGlobalCache) {
+          setLoading(true)
+        }
+        
         const [propertiesData, requestsData, notificationsData, messagesCountData] = await Promise.all([
           fetchOwnerDashboardProperties(token),
           http.get<BackendRentalRequest[]>("/rental-requests", token),
@@ -106,6 +121,15 @@ const OwnerDashboard: React.FC = () => {
         ])
 
         if (!active) return
+
+        // Update global cache
+        mobileGlobalCache = {
+          properties: propertiesData,
+          requests: requestsData,
+          notificationsCount: Number(notificationsData?.count || 0),
+          messagesCount: Number(messagesCountData?.count || 0),
+          timestamp: Date.now()
+        }
 
         const requests = Array.isArray(requestsData) ? requestsData : []
         const rentedPropertyIds = new Set(
@@ -130,7 +154,11 @@ const OwnerDashboard: React.FC = () => {
         setError("")
       } catch (err) {
         if (!active) return
-        setError(err instanceof Error ? err.message : "Erreur lors du chargement du tableau de bord.")
+        if (mobileGlobalCache) {
+          console.warn("Background mobile refresh failed:", err)
+        } else {
+          setError(err instanceof Error ? err.message : "Erreur lors du chargement du tableau de bord.")
+        }
       } finally {
         if (active) setLoading(false)
       }
@@ -144,6 +172,7 @@ const OwnerDashboard: React.FC = () => {
       window.clearInterval(interval)
     }
   }, [token])
+
 
   const stats = useMemo<DashboardStats>(() => {
     const ownedProperties = properties.filter((property) => {
@@ -176,7 +205,15 @@ const OwnerDashboard: React.FC = () => {
     { label: "Messages", action: () => history.push("/messages"), icon: chatbubblesOutline },
   ]
 
-  const previewProperties = useMemo(() => properties.slice(0, 3), [properties])
+  const myProperties = useMemo(() => {
+    return properties.filter((property) => {
+      const ownerId = typeof property.owner === "string" ? property.owner : property.owner?._id || ""
+      return Boolean(ownerId && currentOwnerId && String(ownerId) === String(currentOwnerId))
+    })
+  }, [currentOwnerId, properties])
+
+  const previewProperties = useMemo(() => myProperties.slice(0, 3), [myProperties])
+
 
   const mappableProperties = useMemo(
     () =>
@@ -481,9 +518,10 @@ const OwnerDashboard: React.FC = () => {
 
                       <section className="owner-preview-section">
                         <div className="owner-section-copy">
-                          <h3>All Properties</h3>
-                          <p>Parcourez vos biens et ceux des autres proprietaires avec des indicateurs clairs sur les droits de gestion.</p>
+                          <h3>My Properties</h3>
+                          <p>Gérez vos biens immobiliers et suivez leur statut en temps réel.</p>
                         </div>
+
                         {previewProperties.length === 0 ? (
                           <div className="owner-panel muted">No properties yet</div>
                         ) : (
