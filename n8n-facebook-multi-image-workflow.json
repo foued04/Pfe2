@@ -1,0 +1,357 @@
+{
+  "name": "Facebook Auto Post - Multi-Image v2 (Fixed)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "*/5 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-every-5-min",
+      "name": "Every 5 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "aggregate",
+        "collection": "properties",
+        "query": "[\n  {\n    \"$match\": {\n      \"moderationStatus\": \"approved\",\n      \"$or\": [\n        { \"facebookPostPublished\": { \"$exists\": false } },\n        { \"facebookPostPublished\": false }\n      ]\n    }\n  },\n  {\n    \"$lookup\": {\n      \"from\": \"users\",\n      \"localField\": \"owner\",\n      \"foreignField\": \"_id\",\n      \"as\": \"ownerData\"\n    }\n  },\n  {\n    \"$unwind\": {\n      \"path\": \"$ownerData\",\n      \"preserveNullAndEmptyArrays\": true\n    }\n  },\n  {\n    \"$project\": {\n      \"_id\": { \"$toString\": \"$_id\" },\n      \"title\": 1,\n      \"description\": 1,\n      \"city\": 1,\n      \"address\": 1,\n      \"rent\": 1,\n      \"deposit\": 1,\n      \"type\": 1,\n      \"surface\": 1,\n      \"bedrooms\": 1,\n      \"bathrooms\": 1,\n      \"availability\": 1,\n      \"status\": 1,\n      \"coverImage\": \"$images.cover\",\n      \"gallery\": \"$images.gallery\",\n      \"ownerName\": \"$ownerData.fullName\",\n      \"createdAt\": 1\n    }\n  },\n  {\n    \"$sort\": {\n      \"createdAt\": -1\n    }\n  }\n]\n"
+      },
+      "id": "find-properties",
+      "name": "Find Approved Unposted Properties",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1,
+      "position": [
+        -950,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(({ json }) => {\n  const typeMap = {\n    s0: 'Studio S0',\n    s1: 'Appartement S1',\n    s2: 'Appartement S2',\n    s3: 'Appartement S3',\n    s4: 'Appartement S4',\n    villa: 'Villa',\n  };\n\n  const clean = (value) => (value ?? '').toString().trim();\n  const truncate = (value, max) => {\n    const text = clean(value);\n    return text.length > max ? `${text.slice(0, max - 3)}...` : text;\n  };\n\n  const propertyType = typeMap[json.type] || clean(json.type) || 'Bien immobilier';\n  const title = clean(json.title) || 'Nouvelle propriété disponible';\n  const city = clean(json.city);\n  const address = clean(json.address);\n  const ownerName = clean(json.ownerName);\n  const price = Number(json.rent || 0);\n  const deposit = Number(json.deposit || 0);\n  const bedrooms = Number(json.bedrooms || 0);\n  const bathrooms = Number(json.bathrooms || 0);\n  const surface = Number(json.surface || 0);\n  const availability = clean(json.availability);\n  \n  const propertyUrl = clean($env.PUBLIC_PROPERTY_BASE_URL) ? `${clean($env.PUBLIC_PROPERTY_BASE_URL).replace(/\\/$/, '')}/${json._id}` : '';\n\n  const lines = [\n    `🏡 Nouveau bien disponible à ${city || 'Tunisie'} !`,\n    '',\n    `${propertyType}: ${title}`,\n    address ? `📍 Adresse: ${address}` : '',\n    price ? `💰 Loyer: ${price} TND / mois` : '',\n    deposit ? `🛡️ Caution: ${deposit} TND` : '',\n    bedrooms ? `🛏️ Chambres: ${bedrooms}` : '',\n    bathrooms ? `🚿 Salles de bain: ${bathrooms}` : '',\n    surface ? `📐 Surface: ${surface} m²` : '',\n    availability ? `🗓️ Disponible à partir du: ${availability}` : '',\n    ownerName ? `👤 Propriétaire: ${ownerName}` : '',\n    '',\n    truncate(json.description, 250),\n    '',\n    propertyUrl ? `🔗 Voir le bien: ${propertyUrl}` : 'Contactez-nous en message privé pour plus de détails.',\n    '',\n    '#immobilier #location #tunisie #appartement #villa #immosmart'\n  ].filter(Boolean);\n\n  const message = lines.join('\\n');\n\n  // Collect all images into a flat array\n  const allImages = [\n    json.coverImage,\n    ...(Array.isArray(json.gallery) ? json.gallery : []),\n  ].filter(img => img && img.startsWith('http'));\n\n  return {\n    json: {\n      ...json,\n      postMessage: message,\n      allImages,\n      pageId: 'YOUR_PAGE_ID_HERE',\n      pageAccessToken: 'YOUR_PAGE_ACCESS_TOKEN_HERE',\n    },\n  };\n});"
+      },
+      "id": "build-post-data",
+      "name": "Build Post Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -700,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "allImages",
+        "options": {
+          "includeOtherFields": true
+        }
+      },
+      "id": "split-images",
+      "name": "Split Out Images",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -200,
+        150
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v23.0/{{ $json.pageId }}/photos",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "={{ $json.allImages }}"
+            },
+            {
+              "name": "published",
+              "value": "false"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $json.pageAccessToken }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "upload-unpublished-photo",
+      "name": "Upload Unpublished Photo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        150
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "aggregate",
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "field": "id",
+              "renameField": "photoId"
+            }
+          ]
+        },
+        "groupByFields": [
+          "_id"
+        ],
+        "options": {}
+      },
+      "id": "aggregate-photo-ids",
+      "name": "Aggregate Photo IDs",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        200,
+        150
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const photoIds = item.json.photoId || [];\n  const attachedMedia = photoIds.map(id => ({\n    media_fbid: id\n  }));\n\n  return {\n    json: {\n      ...item.json,\n      attached_media: attachedMedia\n    }\n  };\n});"
+      },
+      "id": "build-attached-media",
+      "name": "Build Attached Media",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        150
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v23.0/{{ $json.pageId }}/feed",
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "message",
+              "value": "={{ $json.postMessage }}"
+            },
+            {
+              "name": "attached_media",
+              "value": "={{ $json.attached_media }}"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $json.pageAccessToken }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "post-to-feed",
+      "name": "Post to Feed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        600,
+        250
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "collection": "properties",
+        "updateKey": "_id",
+        "fields": "={{ $json._id }}",
+        "updateData": "={\n  \"$set\": {\n    \"facebookPostPublished\": true,\n    \"facebookPostId\": \"{{$json.id}}\",\n    \"facebookPostedAt\": \"{{new Date().toISOString()}}\"\n  }\n}"
+      },
+      "id": "mark-as-posted",
+      "name": "Mark Property as Posted",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1,
+      "position": [
+        800,
+        250
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.allImages.length > 0 }}"
+            }
+          ]
+        }
+      },
+      "id": "has-images",
+      "name": "Has Images?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v23.0/{{ $json.pageId }}/feed",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "message",
+              "value": "={{ $json.postMessage }}"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $json.pageAccessToken }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "post-text-only",
+      "name": "Post Text Only",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -200,
+        450
+      ]
+    }
+  ],
+  "connections": {
+    "Every 5 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Find Approved Unposted Properties",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Approved Unposted Properties": {
+      "main": [
+        [
+          {
+            "node": "Build Post Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Post Data": {
+      "main": [
+        [
+          {
+            "node": "Has Images?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Images?": {
+      "main": [
+        [
+          {
+            "node": "Split Out Images",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Post Text Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out Images": {
+      "main": [
+        [
+          {
+            "node": "Upload Unpublished Photo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Unpublished Photo": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Photo IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Photo IDs": {
+      "main": [
+        [
+          {
+            "node": "Build Attached Media",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Attached Media": {
+      "main": [
+        [
+          {
+            "node": "Post to Feed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post to Feed": {
+      "main": [
+        [
+          {
+            "node": "Mark Property as Posted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post Text Only": {
+      "main": [
+        [
+          {
+            "node": "Mark Property as Posted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

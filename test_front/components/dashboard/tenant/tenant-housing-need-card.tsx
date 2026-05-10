@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
+import { TUNISIA_LOCATIONS } from "@/lib/tunisia-locations"
 
 type HousingNeed = {
   _id?: string
@@ -139,7 +140,8 @@ export function TenantHousingNeedCard({
     if (!need) return []
 
     return [
-      need.desiredCity ? `Ville: ${need.desiredCity}` : null,
+      need.desiredCity ? `Gouvernorat: ${need.desiredCity}` : null,
+      need.department ? `Delegation: ${need.department}` : null,
       need.maxBudget ? `Budget max: ${need.maxBudget} TND` : null,
       need.propertyType ? `Type: ${need.propertyType.toUpperCase()}` : null,
       need.bedrooms ? `Chambres: ${need.bedrooms}` : null,
@@ -260,27 +262,48 @@ export function TenantHousingNeedCard({
           <form onSubmit={handleSubmit} className="space-y-6 rounded-3xl border border-border/70 bg-background p-5">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="need-city">Ville souhaitee</Label>
-                <div className="relative">
-                  <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="need-city"
-                    value={formData.desiredCity}
-                    onChange={(event) => updateField("desiredCity", event.target.value)}
-                    className="pl-10"
-                    placeholder="Tunis, Sousse, Monastir..."
-                    required
-                  />
-                </div>
+                <Label htmlFor="need-city">Gouvernorat souhaite</Label>
+                <Select
+                  value={formData.desiredCity}
+                  onValueChange={(value) => {
+                    updateField("desiredCity", value)
+                    updateField("department", "") // Reset delegation when governorate changes
+                  }}
+                >
+                  <SelectTrigger id="need-city" className="w-full">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                      <SelectValue placeholder="Choisir un gouvernorat" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.keys(TUNISIA_LOCATIONS).sort().map((gov) => (
+                      <SelectItem key={gov} value={gov}>
+                        {gov}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="need-department">Quartier / zone</Label>
-                <Input
-                  id="need-department"
+                <Label htmlFor="need-department">Delegation</Label>
+                <Select
                   value={formData.department}
-                  onChange={(event) => updateField("department", event.target.value)}
-                  placeholder="Lac 2, La Marsa, Centre ville..."
-                />
+                  onValueChange={(value) => updateField("department", value)}
+                  disabled={!formData.desiredCity}
+                >
+                  <SelectTrigger id="need-department" className="w-full">
+                    <SelectValue placeholder={formData.desiredCity ? "Choisir une delegation" : "Choisir d'abord un gouvernorat"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {formData.desiredCity &&
+                      TUNISIA_LOCATIONS[formData.desiredCity]?.map((del) => (
+                        <SelectItem key={del} value={del}>
+                          {del}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="need-min-budget">Budget minimum</Label>

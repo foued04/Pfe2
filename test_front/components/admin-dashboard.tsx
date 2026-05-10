@@ -39,7 +39,8 @@ import {
   MoreVertical,
   User,
   BookOpen,
-  ShieldCheck
+  ShieldCheck,
+  HousePlus
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { mockProperties } from "@/lib/property-data"
@@ -52,6 +53,7 @@ import { AdminPropertiesManagement } from "./admin-properties-management"
 import { AdminFurnitureManagement } from "./admin-furniture-management"
 import { AdminReports } from "./admin-reports"
 import { AdminVerificationModule } from "./admin-verification-module"
+import { AdminHousingNeedsPage } from "./dashboard/admin/admin-housing-needs-page"
 
 const navItems = [
   { key: "dashboard", icon: LayoutDashboard, label: "Tableau de Bord", labelEn: "Dashboard" },
@@ -60,6 +62,7 @@ const navItems = [
   { key: "furniture", icon: Sofa, label: "Mobilier & Équipements", labelEn: "Furniture & Equipment" },
   { key: "map", icon: Map, label: "Carte Interactive", labelEn: "Interactive Map" },
   { key: "verifications", icon: ShieldCheck, label: "Vérifications", labelEn: "Verifications" },
+  { key: "housing-needs", icon: HousePlus, label: "Besoins Logement", labelEn: "Housing Needs" },
   { key: "reports", icon: TrendingUp, label: "Rapports & Stats", labelEn: "Reports & Analytics" },
   { key: "settings", icon: Settings, label: "Paramètres", labelEn: "Settings" },
 ]
@@ -159,6 +162,7 @@ export function AdminDashboard({
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null)
   const [pendingVerificationsCount, setPendingVerificationsCount] = useState(0)
   const [pendingFurniture, setPendingFurniture] = useState<any[]>([])
+  const [recentHousingNeeds, setRecentHousingNeeds] = useState<any[]>([])
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
 
@@ -220,6 +224,14 @@ export function AdminDashboard({
       if (furnitureResp.ok) {
         const furnData = await furnitureResp.json()
         setPendingFurniture(furnData.filter((i: any) => i.status === "pending"))
+      }
+
+      const housingResp = await fetch(`${API_URL}/housing-needs/all`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
+      })
+      if (housingResp.ok) {
+        const housingData = await housingResp.json()
+        setRecentHousingNeeds(housingData.slice(0, 5))
       }
     } catch (error) {
       console.error("Error fetching dashboard stats:", error)
@@ -586,6 +598,8 @@ export function AdminDashboard({
         return <AdminReports />
       case "verifications":
         return <AdminVerificationModule />
+      case "housing-needs":
+        return <AdminHousingNeedsPage />
       case "profil":
         return (
           <main className="p-8 space-y-8 animate-in fade-in duration-700">
@@ -778,95 +792,42 @@ export function AdminDashboard({
                 </div>
               </Card>
 
-              {/* Pending Properties Table */}
-              <Card className="rounded-[2rem] border border-slate-200/70 bg-white/95 p-8 shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
-                <CardHeader className="px-0 pt-0 mb-8 border-b border-border/50 pb-4">
-                  <div className="flex items-center justify-between">
+              {/* Recent Housing Needs */}
+              <Card 
+                onClick={() => setActiveSection("housing-needs")}
+                className="rounded-[2rem] border border-slate-200/70 bg-white/95 p-8 shadow-[0_24px_60px_rgba(15,23,42,0.08)] cursor-pointer hover:border-primary/30 transition-all group lg:col-span-2"
+              >
+                <CardHeader className="px-0 pt-0 mb-8 border-b border-border/50 pb-4 flex flex-row items-center justify-between">
                     <div>
-                      <CardTitle className="text-xl font-black text-primary">Biens en attente</CardTitle>
-                      <p className="text-xs text-muted-foreground font-bold mt-1">Modération des annonces prioritaires</p>
+                      <CardTitle className="text-xl font-black text-primary group-hover:text-primary/80">Nouveaux Besoins Logement</CardTitle>
+                      <p className="text-xs text-muted-foreground font-bold mt-1">Dernières demandes soumises par les locataires</p>
                     </div>
-                    <Badge className="bg-orange-500 text-white border-none font-black px-3 py-1 rounded-full text-[11px] animate-pulse">
-                      {pendingProperties.length} À TRAITER
+                    <Badge className="bg-primary/10 text-primary border-none font-black px-3 py-1 rounded-full text-[11px]">
+                      {recentHousingNeeds.length} RÉCENTS
                     </Badge>
-                  </div>
                 </CardHeader>
-                <div className="space-y-5">
-                  {pendingProperties.map((property) => (
-                    <div
-                      key={property.id}
-                      className="group flex items-center gap-5 rounded-[1.75rem] border border-slate-200/70 bg-slate-50/55 p-4 hover:border-primary/20 hover:bg-white transition-all duration-300"
-                    >
-                      <div
-                        className="h-20 w-28 flex-shrink-0 rounded-2xl bg-cover bg-center shadow-lg group-hover:scale-105 transition-transform duration-500"
-                        style={{ backgroundImage: property.images?.cover ? `url(${property.images.cover})` : undefined }}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-black text-foreground text-sm line-clamp-1 mb-1 tracking-tight">{property.title}</h4>
-                        <div className="flex items-center gap-2 mb-2">
-                           <Badge variant="outline" className="text-[9px] font-black uppercase rounded-sm border-primary/20 text-primary">
-                             {property.rent} DT
-                           </Badge>
-                           <span className="text-[10px] font-bold text-muted-foreground opacity-60 uppercase">{property.ownerName}</span>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {recentHousingNeeds.length === 0 ? (
+                    <div className="text-center py-10 opacity-30 italic font-medium col-span-full">Aucune demande récente</div>
+                  ) : (
+                    recentHousingNeeds.map((need, index) => (
+                      <div key={index} className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50/50 hover:bg-slate-100/50 transition-colors">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                          {need.tenant?.fullName?.[0] || "L"}
                         </div>
-                        {((property as any).moderationStatus || "pending") === "pending" ? (
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              disabled={moderatingPropertyId === property.id}
-                              onClick={() => handleModerateProperty(property.id, "approved")}
-                              className="h-8 flex-1 rounded-xl bg-emerald-50 text-emerald-700 border-emerald-200 border-2 font-black text-[10px] uppercase tracking-tighter hover:bg-emerald-100 disabled:opacity-60"
-                            >
-                               {moderatingPropertyId === property.id ? "..." : "Approuver"}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              disabled={moderatingPropertyId === property.id}
-                              onClick={() => handleModerateProperty(property.id, "rejected")}
-                              className="h-8 flex-1 rounded-xl bg-red-50 text-red-600 border-red-200 border-2 font-black text-[10px] uppercase tracking-tighter hover:bg-red-100 disabled:opacity-60"
-                            >
-                               {moderatingPropertyId === property.id ? "..." : "Rejeter"}
-                            </Button>
-                          </div>
-                        ) : null}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-foreground truncate">{need.tenant?.fullName}</p>
+                          <p className="text-xs text-muted-foreground truncate">{need.desiredCity} ({need.department})</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs font-bold text-primary">{need.maxBudget || '---'} TND</p>
+                          <p className="text-[9px] text-muted-foreground">{new Date(need.updatedAt).toLocaleDateString()}</p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                  {pendingProperties.length === 0 && (
-                    <div className="rounded-3xl border border-dashed border-border/40 bg-muted/10 px-6 py-10 text-center">
-                      <p className="text-sm font-black text-foreground">Aucun bien en attente</p>
-                      <p className="mt-1 text-xs font-medium text-muted-foreground">
-                        Toutes les annonces ont deja ete moderees.
-                      </p>
-                    </div>
+                    ))
                   )}
-                  <Button variant="ghost" className="h-12 w-full rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 font-semibold text-[11px] uppercase tracking-[0.18em] text-slate-500 hover:bg-slate-100">
-                    Gérer tout le catalogue
-                  </Button>
                 </div>
               </Card>
-            </div>
-
-            {/* Diagnostic Summary Section */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                 {[
-                 { label: "Taux d'occupation", value: `${statsData[0]?.change || "0%"}`, icon: TrendingUp, color: "text-emerald-600" },
-                 { label: "Demandes / Semaine", value: `${statsData[2]?.change || "0"}`, icon: MessageSquare, color: "text-primary" },
-                 { label: "Biens loués", value: `${statsData[3]?.change || "0"}`, icon: Activity, color: "text-orange-500" },
-                 { label: "Propriétés actives", value: `${statsData[3]?.value || "0"}`, icon: Star, color: "text-orange-400" },
-               ].map((item, i) => (
-                 <div key={i} className="rounded-[1.75rem] border border-slate-200/70 bg-white/85 p-5 flex items-center gap-4 shadow-sm transition-all hover:bg-white hover:shadow-md">
-                   <div className={cn("p-3 rounded-2xl bg-background shadow-inner", item.color)}>
-                     <item.icon className="w-5 h-5" />
-                   </div>
-                   <div>
-                     <p className="text-xl font-black text-foreground leading-none">{item.value}</p>
-                     <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mt-1 opacity-50">{item.label}</p>
-                   </div>
-                 </div>
-               ))}
             </div>
           </main>
         )

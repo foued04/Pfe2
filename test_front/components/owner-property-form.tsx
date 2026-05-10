@@ -163,7 +163,14 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
         bedroom: images.bedroom,
         livingRoom: images.livingRoom,
         exterior: images.exterior,
-        gallery: images.gallery,
+        gallery: [
+          images.kitchen,
+          images.bathroom,
+          images.bedroom,
+          images.livingRoom,
+          images.exterior,
+          ...images.gallery
+        ].filter(Boolean) as string[],
       }
     }
 

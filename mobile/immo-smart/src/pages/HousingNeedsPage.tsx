@@ -13,6 +13,7 @@ import { useEffect, useMemo, useState } from "react"
 import { fetchMyHousingNeed, saveMyHousingNeed } from "../lib/housing-need-api"
 import { useAuth } from "../lib/auth-context"
 import type { BackendHousingNeed } from "../types/api"
+import { TUNISIA_GOVERNORATES } from "../data/tunisia-locations"
 import "../theme/mobile-theme.css"
 import "./HousingNeedsPage.css"
 
@@ -112,7 +113,8 @@ const HousingNeedsPage: React.FC = () => {
     if (!need) return []
 
     return [
-      need.desiredCity ? `Ville: ${need.desiredCity}` : null,
+      need.desiredCity ? `Gouvernorat: ${need.desiredCity}` : null,
+      need.department ? `Delegation: ${need.department}` : null,
       need.maxBudget ? `Budget max: ${need.maxBudget} TND` : null,
       need.propertyType ? `Type: ${need.propertyType.toUpperCase()}` : null,
       need.bedrooms ? `Chambres: ${need.bedrooms}` : null,
@@ -238,27 +240,44 @@ const HousingNeedsPage: React.FC = () => {
               <form onSubmit={handleSubmit} className="housing-form">
                 <div className="housing-grid">
                   <label className="housing-field">
-                    <span>Ville souhaitee</span>
+                    <span>Gouvernorat souhaite</span>
                     <div className="housing-input-icon-wrap">
                       <IonIcon icon={locateOutline} />
-                      <input
-                        type="text"
+                      <select
                         value={formData.desiredCity}
-                        onChange={(event) => updateField("desiredCity", event.target.value)}
-                        placeholder="Tunis, Sousse, Monastir..."
+                        onChange={(event) => {
+                          updateField("desiredCity", event.target.value)
+                          updateField("department", "") // Reset delegation when governorate changes
+                        }}
                         required
-                      />
+                      >
+                        <option value="">Choisir un gouvernorat</option>
+                        {TUNISIA_GOVERNORATES.map((gov) => (
+                          <option key={gov.name} value={gov.name}>
+                            {gov.name}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </label>
 
                   <label className="housing-field">
-                    <span>Quartier / zone</span>
-                    <input
-                      type="text"
+                    <span>Delegation</span>
+                    <select
                       value={formData.department}
                       onChange={(event) => updateField("department", event.target.value)}
-                      placeholder="Lac 2, La Marsa, Centre ville..."
-                    />
+                      disabled={!formData.desiredCity}
+                    >
+                      <option value="">
+                        {formData.desiredCity ? "Choisir une delegation" : "Choisir d'abord un gouvernorat"}
+                      </option>
+                      {formData.desiredCity &&
+                        TUNISIA_GOVERNORATES.find((g) => g.name === formData.desiredCity)?.delegations.map((del) => (
+                          <option key={del} value={del}>
+                            {del}
+                          </option>
+                        ))}
+                    </select>
                   </label>
 
                   <label className="housing-field">

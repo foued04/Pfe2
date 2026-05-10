@@ -176,3 +176,7 @@ export const createFurnitureChangeRequest = (
 ) => {
   return http.post<BackendFurnitureChangeRequest>("/furniture/change-requests", payload, token)
 }
+
+export const addFurnitureItem = (payload: any, token: string) => {
+  return http.post<BackendFurniture>("/furniture", payload, token)
+}

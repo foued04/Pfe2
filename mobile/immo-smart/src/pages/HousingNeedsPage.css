@@ -263,7 +263,8 @@
   pointer-events: none;
 }
 
-.housing-input-icon-wrap input {
+.housing-input-icon-wrap input,
+.housing-input-icon-wrap select {
   padding-left: 42px;
 }
 

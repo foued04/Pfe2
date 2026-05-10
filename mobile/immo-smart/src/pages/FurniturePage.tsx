@@ -23,6 +23,7 @@ import LoadingSpinner from "../components/LoadingSpinner"
 import MobileFurnitureReceipt from "../components/MobileFurnitureReceipt"
 import { useAuth } from "../lib/auth-context"
 import {
+  addFurnitureItem,
   createFurnitureChangeRequest,
   fetchFurniture,
   fetchFurnitureByProperty,
@@ -92,6 +93,17 @@ const FurniturePage: React.FC = () => {
   const [changeDescription, setChangeDescription] = useState("")
   const [changePhoto, setChangePhoto] = useState("")
   const [currentReceipt, setCurrentReceipt] = useState<ReceiptOrder | null>(null)
+  
+  // Propose Furniture (Owner)
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [newFurniture, setNewFurniture] = useState({
+    name: "",
+    category: "Salon",
+    price: 0,
+    description: "",
+    image: ""
+  })
+  const addPhotoInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const requestedPropertyId = new URLSearchParams(location.search).get("property") || ""
@@ -370,6 +382,43 @@ const FurniturePage: React.FC = () => {
     }
   }
 
+  const handleAddPhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setNewFurniture(prev => ({ ...prev, image: String(reader.result || "") }))
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleProposeFurniture = async () => {
+    if (!token) return
+    if (!newFurniture.name.trim()) {
+      setError("Veuillez entrer un nom pour l'article.")
+      return
+    }
+    if (!newFurniture.image) {
+      setError("Veuillez ajouter une image.")
+      return
+    }
+
+    setLoading(true)
+    setError("")
+    setSuccess("")
+
+    try {
+      await addFurnitureItem(newFurniture, token)
+      setSuccess("Votre proposition a ete envoyee pour validation.")
+      setIsAddModalOpen(false)
+      setNewFurniture({ name: "", category: "Salon", price: 0, description: "", image: "" })
+    } catch (err) {
+      setError("Erreur lors de l'envoi de la proposition.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const openOrderReceipt = (order: ReceiptOrder) => {
     setCurrentReceipt(order)
     setView("receipt")
@@ -412,14 +461,22 @@ const FurniturePage: React.FC = () => {
                 <IonIcon icon={sparklesOutline} />
                 Mobilier premium
               </span>
-              <h1>Equipez votre logement comme sur la version web.</h1>
-              <p>Consultez le catalogue, achetez du mobilier, demandez un changement et recuperez votre bon PDF.</p>
+              <h1>{user?.role === 'owner' ? "Valorisez vos biens immobiliers." : "Equipez votre logement comme sur la version web."}</h1>
+              <p>{user?.role === 'owner' ? "Proposez du mobilier de qualite pour attirer plus de locataires." : "Consultez le catalogue, achetez du mobilier, demandez un changement et recuperez votre bon PDF."}</p>
             </div>
             <div className="furniture-hero-actions">
-              <button type="button" className="furniture-pill-btn" onClick={() => setIsChangeModalOpen(true)}>
-                <IonIcon icon={mailOpenOutline} />
-                Demande de changement
-              </button>
+              {user?.role === 'tenant' && (
+                <button type="button" className="furniture-pill-btn" onClick={() => setIsChangeModalOpen(true)}>
+                  <IonIcon icon={mailOpenOutline} />
+                  Demande de changement
+                </button>
+              )}
+              {user?.role === 'owner' && (
+                <button type="button" className="furniture-pill-btn" onClick={() => setIsAddModalOpen(true)}>
+                  <IonIcon icon={addOutline} />
+                  Proposer un meuble
+                </button>
+              )}
             </div>
           </section>
 
@@ -433,57 +490,7 @@ const FurniturePage: React.FC = () => {
 
           {!loading ? (
             <>
-              <section className="furniture-panel">
-                <div className="furniture-panel-header">
-                  <div>
-                    <h3>Logement concerne</h3>
-                    <p>Utilise la meme source de donnees locataire que la version web.</p>
-                  </div>
-                </div>
-                <select
-                  className="furniture-select"
-                  value={selectedPropertyId}
-                  onChange={(event) => setSelectedPropertyId(event.target.value)}
-                >
-                  <option value="">Choisir un logement</option>
-                  {rentals.map((property) => (
-                    <option key={property._id} value={property._id}>
-                      {property.title}
-                    </option>
-                  ))}
-                </select>
-              </section>
 
-              <section className="furniture-panel">
-                <div className="furniture-panel-header">
-                  <div>
-                    <h3>Mobilier actuellement installe</h3>
-                    <p>Articles deja presents dans votre logement.</p>
-                  </div>
-                  <span className="furniture-count-pill">{existingFurniture.length}</span>
-                </div>
-                {existingLoading ? (
-                  <LoadingSpinner message="Chargement du mobilier installe..." />
-                ) : existingFurniture.length === 0 ? (
-                  <EmptyState
-                    icon={bedOutline}
-                    title="Aucun mobilier installe"
-                    message="Aucun article confirme n'est encore rattache a ce logement."
-                  />
-                ) : (
-                  <div className="furniture-existing-grid">
-                    {existingFurniture.map((item, index) => (
-                      <article key={`${item.id}-${index}`} className="furniture-existing-item">
-                        <img src={item.image || getFurnitureFallbackImage(item)} alt={item.name} />
-                        <div>
-                          <strong>{item.name}</strong>
-                          <span>{item.category}</span>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                )}
-              </section>
 
               <section className="furniture-panel">
                 <div className="furniture-panel-header">
@@ -788,6 +795,74 @@ const FurniturePage: React.FC = () => {
                 <button type="button" className="furniture-primary-btn" disabled={changeBusy} onClick={handleSubmitChangeRequest}>
                   <IonIcon icon={mailOpenOutline} />
                   {changeBusy ? "Envoi..." : "Envoyer la demande"}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {isAddModalOpen ? (
+          <div className="furniture-overlay" role="presentation" onClick={() => setIsAddModalOpen(false)}>
+            <div className="furniture-modal" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+              <button type="button" className="furniture-modal-close" onClick={() => setIsAddModalOpen(false)}>
+                <IonIcon icon={closeOutline} />
+              </button>
+              <div className="furniture-modal-body">
+                <h3>Proposer un meuble</h3>
+                <p>Votre suggestion sera validee par un administrateur avant d'apparaitre dans le catalogue.</p>
+
+                <label className="furniture-field">
+                  <span>Nom du meuble</span>
+                  <input
+                    value={newFurniture.name}
+                    onChange={(event) => setNewFurniture(prev => ({ ...prev, name: event.target.value }))}
+                    placeholder="Ex: Canape Scandinave"
+                  />
+                </label>
+
+                <label className="furniture-field">
+                  <span>Categorie</span>
+                  <select 
+                    value={newFurniture.category} 
+                    onChange={(event) => setNewFurniture(prev => ({ ...prev, category: event.target.value }))}
+                  >
+                    {categories.filter(c => c !== 'Tous').map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="furniture-field">
+                  <span>Prix estime (DT)</span>
+                  <input
+                    type="number"
+                    value={newFurniture.price}
+                    onChange={(event) => setNewFurniture(prev => ({ ...prev, price: Number(event.target.value) }))}
+                  />
+                </label>
+
+                <label className="furniture-field">
+                  <span>Description</span>
+                  <textarea
+                    value={newFurniture.description}
+                    onChange={(event) => setNewFurniture(prev => ({ ...prev, description: event.target.value }))}
+                    placeholder="Details du meuble..."
+                  />
+                </label>
+
+                <div className="furniture-upload-box" onClick={() => addPhotoInputRef.current?.click()}>
+                  <IonIcon icon={cameraOutline} />
+                  <span>{newFurniture.image ? "Photo ajoutee" : "Ajouter une photo"}</span>
+                  <input ref={addPhotoInputRef} type="file" accept="image/*" className="hidden" onChange={handleAddPhotoUpload} />
+                </div>
+
+                {newFurniture.image ? <img className="furniture-upload-preview" src={newFurniture.image} alt="Preview" /> : null}
+
+                <button type="button" className="furniture-primary-btn" onClick={handleProposeFurniture}>
+                  <IonIcon icon={addOutline} />
+                  Envoyer la proposition
                 </button>
               </div>
             </div>

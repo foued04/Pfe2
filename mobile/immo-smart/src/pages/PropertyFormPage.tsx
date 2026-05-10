@@ -129,6 +129,13 @@ const PropertyFormPage: React.FC = () => {
           ...(bedroomImage ? { bedroom: bedroomImage } : {}),
           ...(livingRoomImage ? { livingRoom: livingRoomImage } : {}),
           ...(exteriorImage ? { exterior: exteriorImage } : {}),
+          gallery: [
+            kitchenImage,
+            bathroomImage,
+            bedroomImage,
+            livingRoomImage,
+            exteriorImage,
+          ].filter(Boolean),
         } 
       } : {}),
     }

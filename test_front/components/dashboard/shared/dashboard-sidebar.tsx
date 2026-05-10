@@ -58,6 +58,7 @@ const adminItems: NavItem[] = [
   { href: "/dashboard/admin/furniture", label: "Furniture", icon: Sofa },
   { href: "/dashboard/admin/map", label: "Map", icon: Map },
   { href: "/dashboard/admin/verifications", label: "Verifications", icon: ShieldCheck },
+  { href: "/dashboard/admin/housing-needs", label: "Housing Needs", icon: HousePlus },
   { href: "/dashboard/admin/reports", label: "Reports", icon: TrendingUp },
 ]
 

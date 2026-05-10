@@ -33,6 +33,7 @@ import FavoritesPage from "./pages/FavoritesPage"
 import FurniturePage from "./pages/FurniturePage"
 import MaintenancePage from "./pages/MaintenancePage"
 import HousingNeedsPage from "./pages/HousingNeedsPage"
+import AdminHousingNeedsPage from "./pages/AdminHousingNeedsPage"
 import MessagesPage from "./pages/MessagesPage"
 import MobileChatbot from "./components/MobileChatbot"
 import VerifyEmailPage from "./pages/VerifyEmailPage"
@@ -118,6 +119,9 @@ const AppTabs: React.FC = () => (
       </Route>
       <Route exact path="/housing-needs">
         <ProtectedRoute component={HousingNeedsPage} />
+      </Route>
+      <Route exact path="/admin/housing-needs">
+        <ProtectedRoute component={AdminHousingNeedsPage} />
       </Route>
       <Route exact path="/">
         <Redirect to="/tab1" />

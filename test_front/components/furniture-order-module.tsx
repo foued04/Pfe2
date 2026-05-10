@@ -362,7 +362,7 @@ export function FurnitureOrderModule({ initialPropertyId }: FurnitureOrderModule
                         <Plus className="w-5 h-5" /> Proposer un meuble
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[500px] rounded-[2rem] p-8 border-none shadow-2xl">
+                    <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto rounded-[2rem] p-8 border-none shadow-2xl custom-scrollbar">
                       <DialogHeader>
                         <DialogTitle className="text-2xl font-black text-primary uppercase tracking-tight">Proposer du Mobilier</DialogTitle>
                         <p className="text-xs text-muted-foreground font-medium">Votre suggestion sera validée par un administrateur.</p>
@@ -506,12 +506,14 @@ export function FurnitureOrderModule({ initialPropertyId }: FurnitureOrderModule
                   </Dialog>
                 )}
 
-                <Button 
-                  onClick={() => setIsChangeModalOpen(true)}
-                  className="bg-white text-blue-700 hover:bg-white/90 rounded-xl gap-2 font-bold px-6 shadow-xl shadow-black/10 transition-all active:scale-95 border border-blue-100"
-                >
-                  <Plus className="w-5 h-5" /> {lang === "fr" ? "Changer un meuble" : "Change Furniture"}
-                </Button>
+                {user?.role === 'tenant' && (
+                  <Button 
+                    onClick={() => setIsChangeModalOpen(true)}
+                    className="bg-white text-blue-700 hover:bg-white/90 rounded-xl gap-2 font-bold px-6 shadow-xl shadow-black/10 transition-all active:scale-95 border border-blue-100"
+                  >
+                    <Plus className="w-5 h-5" /> {lang === "fr" ? "Changer un meuble" : "Change Furniture"}
+                  </Button>
+                )}
               </div>
             </div>
             

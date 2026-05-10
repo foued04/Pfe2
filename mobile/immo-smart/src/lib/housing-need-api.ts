@@ -24,3 +24,7 @@ export const saveMyHousingNeed = (
 ) => {
   return http.post<BackendHousingNeedResponse>("/housing-needs/me", data, token)
 }
+
+export const fetchAllHousingNeeds = (token: string) => {
+  return http.get<BackendHousingNeed[]>("/housing-needs/all", token)
+}

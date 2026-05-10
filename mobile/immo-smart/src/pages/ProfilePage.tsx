@@ -406,6 +406,29 @@ const ProfilePage: React.FC = () => {
             </div>
           ) : null}
 
+          {user?.role === "admin" && (
+            <div className="tab-contents">
+              <div className="web-like-card">
+                <div className="card-header">
+                  <h3 className="card-title">Administration</h3>
+                  <p className="card-subtitle">Gerez les demandes globales de la plateforme.</p>
+                </div>
+                <div className="documents-section">
+                  <button type="button" className="document-slot-card filled" onClick={() => history.push("/admin/housing-needs")}>
+                    <div className="document-slot-icon primary">
+                      <IonIcon icon={homeOutline} />
+                    </div>
+                    <div className="document-slot-text">
+                      <h4>Besoins Logement</h4>
+                      <p>Consulter toutes les demandes des locataires</p>
+                    </div>
+                    <IonIcon icon={chevronForwardOutline} className="text-primary" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="logout-section mt-4">
             <button className="logout-btn-full" onClick={handleLogout}>
               <IonIcon icon={logOutOutline} />

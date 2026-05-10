@@ -15,7 +15,13 @@ import {
   Trash2,
   Image as ImageIcon,
   Loader2,
-  Clock
+  Clock,
+  Info,
+  Layers,
+  User,
+  Tag,
+  Hash,
+  MessageSquare
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { fetchFurniture, FurnitureItem, FurnitureCategory, addFurnitureItem, deleteFurnitureItem, updateFurnitureStatus as apiUpdateStatus } from "@/lib/furniture-data"
@@ -75,16 +81,6 @@ export function AdminFurnitureManagement() {
     loadItems()
   }, [])
 
-  useEffect(() => {
-    if (!selectedItem) return
-
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = "hidden"
-
-    return () => {
-      document.body.style.overflow = previousOverflow
-    }
-  }, [selectedItem])
 
   const filteredItems = items.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(filter.search.toLowerCase()) || 
@@ -374,45 +370,59 @@ export function AdminFurnitureManagement() {
                   </div>
 
                   {selectedItem?.id === item.id ? (
-                    <div className="mt-6 space-y-4 rounded-[2rem] border border-slate-200/80 bg-slate-50/70 p-4 shadow-inner">
-                      <div className="grid gap-3 lg:grid-cols-[1fr_1fr_1fr]">
-                        <Button
-                          onClick={() => item.id && handleApprove(item.id)}
-                          className="h-12 rounded-2xl bg-emerald-500 font-black uppercase tracking-[0.12em] text-white shadow-lg shadow-emerald-100 hover:bg-emerald-600"
-                        >
-                          <Check className="mr-2 h-4 w-4" />
-                          Approuver
-                        </Button>
-                        <Button
-                          onClick={() => item.id && handleReject(item.id)}
-                          variant="outline"
-                          className="h-12 rounded-2xl border-red-200 bg-red-50 font-black uppercase tracking-[0.12em] text-red-600 hover:bg-red-100"
-                        >
-                          <X className="mr-2 h-4 w-4" />
-                          Rejeter
-                        </Button>
+                    <div className="mt-6 space-y-4 animate-in slide-in-from-top-4 duration-500">
+                      <div className="flex flex-col gap-3">
+                        {(item.status === 'pending' || item.status === 'requested') && (
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={() => item.id && handleApprove(item.id)}
+                              className="flex-1 h-11 rounded-2xl bg-emerald-500 font-bold uppercase tracking-wider text-white shadow-lg shadow-emerald-100 hover:bg-emerald-600 transition-all hover:scale-[1.02]"
+                            >
+                              <Check className="mr-2 h-4 w-4" />
+                              Approuver
+                            </Button>
+                            <Button
+                              onClick={() => item.id && handleReject(item.id)}
+                              variant="outline"
+                              className="flex-1 h-11 rounded-2xl border-red-200 bg-red-50 font-bold uppercase tracking-wider text-red-600 hover:bg-red-100 transition-all hover:scale-[1.02]"
+                            >
+                              <X className="mr-2 h-4 w-4" />
+                              Rejeter
+                            </Button>
+                          </div>
+                        )}
                         <Button
                           type="button"
                           onClick={() => setSelectedItem(null)}
                           variant="outline"
-                          className="h-12 rounded-2xl border-slate-200 bg-white font-black uppercase tracking-[0.12em] text-slate-700 hover:bg-slate-100"
+                          className="w-full h-10 rounded-2xl border-slate-200 bg-white font-bold uppercase tracking-wider text-slate-500 hover:bg-slate-50"
                         >
-                          Masquer les details
+                          Masquer les détails
                         </Button>
                       </div>
 
-                      <div className="grid gap-3 rounded-[2rem] border border-slate-200/80 bg-white/90 p-4 md:grid-cols-3">
-                        <FurnitureInlineDetail
-                          label="Description"
-                          value={item.description || "Aucune description fournie pour cet article."}
-                          className="md:col-span-3"
-                        />
-                        <FurnitureInlineDetail label="Categorie" value={item.category} />
-                        <FurnitureInlineDetail label="Statut" value={item.status || "pending"} />
-                        <FurnitureInlineDetail label="Prix unitaire" value={`${item.price} DT`} />
-                        <FurnitureInlineDetail label="Quantite" value={String(item.quantity ?? 1)} />
-                        <FurnitureInlineDetail label="Demandeur" value={item.requesterName || "Proprietaire"} />
-                        <FurnitureInlineDetail label="Type" value={item.requesterType === "tenant" ? "Locataire" : "Proprietaire"} />
+                      <div className="rounded-[2rem] border border-slate-200/80 bg-slate-50/50 p-1 shadow-inner">
+                        <div className="max-h-[350px] overflow-y-auto scrollbar-hide p-4 space-y-3">
+                          <div className="flex items-center gap-2 px-2 mb-2">
+                            <div className="h-4 w-1 bg-primary rounded-full" />
+                            <span className="text-[10px] font-black uppercase tracking-widest text-primary">Fiche Technique</span>
+                          </div>
+
+                          <FurnitureInlineDetail
+                            label="Description"
+                            value={item.description || "Aucune description fournie pour cet article."}
+                            icon={MessageSquare}
+                          />
+                          
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <FurnitureInlineDetail label="Catégorie" value={item.category} icon={Layers} />
+                            <FurnitureInlineDetail label="Prix Unitaire" value={`${item.price} DT`} icon={DollarSign} />
+                            <FurnitureInlineDetail label="Quantité" value={String(item.quantity ?? 1)} icon={Hash} />
+                            <FurnitureInlineDetail label="Statut" value={item.status || "pending"} icon={Info} />
+                            <FurnitureInlineDetail label="Demandeur" value={item.requesterName || "Propriétaire"} icon={User} />
+                            <FurnitureInlineDetail label="Type" value={item.requesterType === "tenant" ? "Locataire" : "Propriétaire"} icon={Tag} />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ) : null}
@@ -439,18 +449,25 @@ export function AdminFurnitureManagement() {
 function FurnitureInlineDetail({
   label,
   value,
+  icon: Icon,
   className,
 }: {
   label: string
   value: string
+  icon: any
   className?: string
 }) {
   const isLongText = label === "Description"
 
   return (
-    <div className={cn("rounded-2xl border border-slate-200 bg-white px-4 py-3", className)}>
-      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{label}</p>
-      <p className={cn("mt-2 text-sm leading-relaxed text-foreground", isLongText ? "whitespace-pre-wrap font-semibold" : "font-bold")}>{value}</p>
+    <div className={cn("rounded-2xl border border-slate-200 bg-white p-3 shadow-sm hover:shadow-md transition-shadow", className)}>
+      <div className="flex items-center gap-2 mb-2">
+        <div className="p-1.5 rounded-lg bg-slate-50 text-primary">
+          <Icon className="w-3 h-3" />
+        </div>
+        <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">{label}</p>
+      </div>
+      <p className={cn("text-sm leading-relaxed text-foreground", isLongText ? "whitespace-pre-wrap font-semibold" : "font-bold")}>{value}</p>
     </div>
   )
 }
