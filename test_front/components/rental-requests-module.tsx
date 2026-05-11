@@ -28,7 +28,8 @@ import {
   AlertCircle,
   AlertTriangle,
   Home,
-  ChevronRight
+  ChevronRight,
+  CreditCard
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "./ui/button"
@@ -441,6 +442,7 @@ export function RentalRequestsModule() {
     { key: "pending", label_fr: "En attente", label_en: "Pending", value: stats.pending, icon: Clock, color: "text-amber-600", bg: "bg-amber-50" },
     { key: "furniture", label_fr: "Mobilier", label_en: "Furniture", value: stats.furniture, icon: ShoppingCart, color: "text-orange-600", bg: "bg-orange-50" },
     { key: "contracts", label_fr: "Contrats", label_en: "Contracts", value: stats.contractGenerated + stats.active, icon: FileSignature, color: "text-blue-600", bg: "bg-blue-50" },
+    { key: "payments", label_fr: "Paiements", label_en: "Payments", value: 0, icon: CreditCard, color: "text-emerald-600", bg: "bg-emerald-50" },
   ]
 
   // Filter tabs
@@ -563,17 +565,17 @@ export function RentalRequestsModule() {
           {lang === "fr" ? "Module Demandes" : "Requests Module"}
         </div>
         <h2 className="text-3xl font-black text-foreground tracking-tight">
-          {lang === "fr" ? "Demandes de Location" : "Rental Requests"}
+          {lang === "fr" ? "Demandes" : "Requests"}
         </h2>
         <p className="text-muted-foreground max-w-xl">
           {lang === "fr" 
-            ? "Gérez les demandes de location reçues et suivez vos suggestions de mobilier." 
-            : "Manage incoming rental requests and track your furniture suggestions."}
+            ? "Gérez l'ensemble de vos demandes : locations, mobilier et suivi des paiements." 
+            : "Manage all your requests: rentals, furniture, and payment tracking."}
         </p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {statCards.map(card => {
           const Icon = card.icon
           return (

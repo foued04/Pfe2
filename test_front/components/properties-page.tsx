@@ -84,6 +84,7 @@ export function PropertiesPage() {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Rechercher par titre, ville ou adresse"
+              suppressHydrationWarning={true}
               style={{
                 width: "100%",
                 borderRadius: "16px",

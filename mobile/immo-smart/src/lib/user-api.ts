@@ -26,3 +26,10 @@ export const uploadVerificationDocument = (
     token,
   )
 }
+export const fetchAdminUsers = (role: string, search: string, token: string) => {
+  return http.get<any[]>(`/users?role=${role}&search=${search}`, token)
+}
+
+export const deleteUserByAdmin = (userId: string, token: string) => {
+  return http.delete<{ message: string }>(`/users/${userId}`, token)
+}

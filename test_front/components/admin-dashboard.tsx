@@ -40,7 +40,9 @@ import {
   User,
   BookOpen,
   ShieldCheck,
-  HousePlus
+  HousePlus,
+  RotateCcw,
+  Trash2
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { mockProperties } from "@/lib/property-data"
@@ -48,12 +50,14 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, BarChart, Bar
 } from "recharts"
+import { useToast } from "@/components/ui/use-toast"
 import { AdminProfile } from "./admin-profile"
 import { AdminPropertiesManagement } from "./admin-properties-management"
 import { AdminFurnitureManagement } from "./admin-furniture-management"
 import { AdminReports } from "./admin-reports"
 import { AdminVerificationModule } from "./admin-verification-module"
 import { AdminHousingNeedsPage } from "./dashboard/admin/admin-housing-needs-page"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
 
 const navItems = [
   { key: "dashboard", icon: LayoutDashboard, label: "Tableau de Bord", labelEn: "Dashboard" },
@@ -84,7 +88,7 @@ const initialPropertyTypeData = [
 ]
 
 const initialUserRoleData = [
-  { name: "Propriétaires", value: 423, color: "#158C96" },
+  { name: "Locateurs", value: 423, color: "#158C96" },
   { name: "Locataires", value: 2424, color: "#2EC4C7" },
 ]
 
@@ -99,7 +103,7 @@ const initialStatsData = [
     color: "text-orange-600 bg-orange-100",
   },
   {
-    label: { fr: "Propriétaires", en: "Owners" },
+    label: { fr: "Locateurs", en: "Owners" },
     value: "423",
     change: "+8.2%",
     trend: "up",
@@ -142,10 +146,11 @@ export function AdminDashboard({
   standaloneLayout?: boolean
 }) {
   const { t, lang, setLang } = useI18n()
+  const { toast } = useToast()
   const { user, logout } = useAuth()
   const [activeSection, setActiveSection] = useState(initialSection)
   const [users, setUsers] = useState<any[]>([])
-  const [userFilters, setUserFilters] = useState({ search: "", role: "all", status: "all" })
+  const [userFilters, setUserFilters] = useState({ search: "", role: "owner", status: "all" })
 
   useEffect(() => {
     setActiveSection(initialSection)
@@ -188,7 +193,7 @@ export function AdminDashboard({
           color: "text-orange-600 bg-orange-100",
         },
         {
-          label: { fr: "Propriétaires", en: "Owners" },
+          label: { fr: "Locateurs", en: "Owners" },
           value: (data.totals?.owners || 0).toLocaleString("fr-FR"),
           change: `${data.totals?.availableProperties || 0}`,
           trend: "up",
@@ -282,7 +287,7 @@ export function AdminDashboard({
   }
 
   useEffect(() => {
-    if (activeSection === "dashboard") {
+    if (activeSection === "dashboard" || activeSection === "users") {
       fetchDashboardStats()
     }
     fetchPendingVerificationsCount()
@@ -350,6 +355,61 @@ export function AdminDashboard({
     }
   }
 
+  const handleDeleteUser = async (userId: string) => {
+    if (!userId) return
+    
+    const confirmation = window.confirm(
+      "ATTENTION: Êtes-vous sûr de vouloir supprimer DÉFINITIVEMENT cet utilisateur ?\n\n" +
+      "Cette action est irréversible et supprimera TOUTES les données associées :\n" +
+      "- Propriétés et annonces\n" +
+      "- Demandes de location et contrats\n" +
+      "- Messages et conversations\n" +
+      "- Notifications et alertes\n\n" +
+      "L'utilisateur perdra tout accès immédiatement. Voulez-vous continuer ?"
+    )
+
+    if (!confirmation) return
+    
+    setUpdatingUserId(userId)
+    try {
+      const response = await fetch(`${API_URL}/users/${userId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+        }
+      })
+
+      const data = await response.json().catch(() => null)
+
+      if (!response.ok) {
+        toast({
+          variant: "destructive",
+          title: "Erreur de suppression",
+          description: data?.message || "Une erreur est survenue lors de la suppression de l'utilisateur."
+        })
+        return
+      }
+
+      setUsers((prev) => prev.filter((user) => user._id !== userId))
+      
+      toast({
+        title: "Utilisateur supprimé",
+        description: "Le compte et toutes ses données associées ont été effacés définitivement.",
+      })
+
+      fetchDashboardStats()
+    } catch (error) {
+      console.error("Error deleting user:", error)
+      toast({
+        variant: "destructive",
+        title: "Erreur de connexion",
+        description: "Impossible de joindre le serveur pour effectuer la suppression."
+      })
+    } finally {
+      setUpdatingUserId(null)
+    }
+  }
+
   const owners = users.filter(u => u.role === 'owner')
   const tenants = users.filter(u => u.role === 'tenant')
   const admins = users.filter(u => u.role === 'admin')
@@ -380,17 +440,28 @@ export function AdminDashboard({
         return (
           <div className="p-8 space-y-8 animate-in fade-in duration-500">
             {/* Header */}
-            <div>
-              <h1 className="text-3xl font-black text-foreground tracking-tight">Gestion des utilisateurs</h1>
-              <p className="text-muted-foreground font-medium">Consultez et gérez tous les comptes de la plateforme</p>
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+              <div>
+                <h1 className="text-3xl font-black text-foreground tracking-tight">Gestion des utilisateurs</h1>
+                <p className="text-muted-foreground font-medium">Consultez et gérez tous les comptes de la plateforme par catégorie</p>
+              </div>
+              <div className="relative w-full md:w-96">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input 
+                  type="text" 
+                  placeholder="Rechercher par nom, email..."
+                  className="w-full pl-10 pr-4 py-2 rounded-xl bg-card border-none shadow-sm text-sm focus:ring-2 focus:ring-primary/20"
+                  value={userFilters.search}
+                  onChange={(e) => setUserFilters({ ...userFilters, search: e.target.value })}
+                />
+              </div>
             </div>
 
-            {/* Stats Cards */}
             <div className="grid gap-6 sm:grid-cols-3">
               {[
-                { label: "Total Utilisateurs", value: users.length, icon: Users, color: "text-primary bg-primary/10" },
-                { label: "Propriétaires", value: owners.length, icon: Building, color: "text-primary bg-primary/10" },
-                { label: "Locataires", value: tenants.length, icon: UserCheck, color: "text-emerald-600 bg-emerald-50" },
+                { label: "Total Utilisateurs", value: statsData[0]?.value || "0", icon: Users, color: "text-primary bg-primary/10" },
+                { label: "Locateurs", value: statsData[1]?.value || "0", icon: Building, color: "text-primary bg-primary/10" },
+                { label: "Locataires", value: statsData[2]?.value || "0", icon: UserCheck, color: "text-emerald-600 bg-emerald-50" },
               ].map((stat, i) => (
                 <Card key={i} className="border-none shadow-lg bg-card p-6 flex items-center gap-5">
                    <div className={cn("p-4 rounded-2xl", stat.color)}>
@@ -404,43 +475,47 @@ export function AdminDashboard({
               ))}
             </div>
 
-            {/* Filters */}
-            <Card className="border-none shadow-lg bg-card p-4 flex flex-col md:flex-row gap-4 items-center">
-              <div className="relative flex-1 w-full">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input 
-                  type="text" 
-                  placeholder="Rechercher par nom, email, téléphone..."
-                  className="w-full pl-10 pr-4 py-2 rounded-xl bg-muted/50 border-none text-sm focus:ring-2 focus:ring-primary/20"
-                  value={userFilters.search}
-                  onChange={(e) => setUserFilters({ ...userFilters, search: e.target.value })}
-                />
-              </div>
-              <div className="flex gap-2 w-full md:w-auto">
-                <select 
-                  className="bg-muted/50 border-none rounded-xl px-4 py-2 text-sm font-bold text-muted-foreground"
-                  value={userFilters.role}
-                  onChange={(e) => setUserFilters({ ...userFilters, role: e.target.value })}
+            {/* Tabs for Role Separation */}
+            <Tabs 
+              value={userFilters.role} 
+              onValueChange={(value) => setUserFilters({ ...userFilters, role: value })}
+              className="w-full space-y-8"
+            >
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <TabsList className="bg-muted/50 p-1 rounded-2xl h-auto w-fit border border-border/50">
+                  <TabsTrigger 
+                    value="owner" 
+                    className="rounded-xl px-6 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-white font-bold transition-all"
+                  >
+                    <Building className="w-4 h-4 mr-2" />
+                    Locateurs
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="tenant" 
+                    className="rounded-xl px-6 py-2.5 data-[state=active]:bg-primary data-[state=active]:text-white font-bold transition-all"
+                  >
+                    <UserCheck className="w-4 h-4 mr-2" />
+                    Locataires
+                  </TabsTrigger>
+                </TabsList>
+
+                <Button 
+                  onClick={fetchUsers} 
+                  disabled={isUserLoading} 
+                  variant="outline" 
+                  className="rounded-xl px-6 font-bold border-primary/20 text-primary hover:bg-primary/5"
                 >
-                  <option value="all">Tous les rôles</option>
-                  <option value="owner">Propriétaires</option>
-                  <option value="tenant">Locataires</option>
-                  <option value="admin">Administrateurs</option>
-                </select>
-                <Button onClick={fetchUsers} disabled={isUserLoading} variant="default" className="rounded-xl px-6">
-                  {isUserLoading ? "..." : "Actualiser"}
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  {isUserLoading ? "Mise à jour..." : "Actualiser la liste"}
                 </Button>
               </div>
-            </Card>
 
-            {/* Role Sections */}
-            <div className="space-y-12">
-              {/* Owners Section */}
-              {(userFilters.role === "all" || userFilters.role === "owner") && (
+              {/* Role Sections Content */}
+              <TabsContent value="owner" className="mt-0 outline-none">
                 <div className="space-y-6">
                   <div className="flex items-center gap-3">
                     <div className="h-8 w-1.5 bg-primary rounded-full" />
-                    <h2 className="text-xl font-black text-foreground">Propriétaires ({owners.length})</h2>
+                    <h2 className="text-xl font-black text-foreground">Locateurs ({owners.length})</h2>
                   </div>
                   <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                     {owners.map((user) => (
@@ -456,7 +531,6 @@ export function AdminDashboard({
                             </div>
                           </div>
                           <div className="flex flex-col items-end gap-2">
-                            <Badge className="bg-primary/10 text-primary border-none font-bold text-[10px]">OWNER</Badge>
                             {user.isSuspended && (
                               <Badge className="bg-red-100 text-red-600 border-none font-bold text-[10px]">SUSPENDU</Badge>
                             )}
@@ -489,20 +563,28 @@ export function AdminDashboard({
                            >
                              {updatingUserId === user._id ? "..." : user.isSuspended ? "Reactiver" : "Suspendre"}
                            </Button>
+                           <Button
+                             onClick={() => handleDeleteUser(user._id)}
+                             disabled={updatingUserId === user._id}
+                             variant="outline"
+                             size="sm"
+                             className="rounded-xl border-red-100 text-red-500 hover:bg-red-50 hover:text-red-600"
+                           >
+                             {updatingUserId === user._id ? "..." : <Trash2 className="w-4 h-4" />}
+                           </Button>
                         </div>
                       </Card>
                     ))}
                     {owners.length === 0 && <p className="text-muted-foreground italic col-span-full">Aucun propriétaire trouvé.</p>}
                   </div>
                 </div>
-              )}
+              </TabsContent>
 
-              {/* Tenants Section */}
-              {(userFilters.role === "all" || userFilters.role === "tenant") && (
-                <div className="space-y-6 pt-6 border-t border-border/50">
+              <TabsContent value="tenant" className="mt-0 outline-none">
+                <div className="space-y-6">
                   <div className="flex items-center gap-3">
                     <div className="h-8 w-1.5 bg-primary rounded-full" />
-                    <h2 className="text-xl font-black text-foreground">Locataires ({tenants.length})</h2>
+                    <h2 className="text-xl font-black text-foreground">Locataires enregistrés ({tenants.length})</h2>
                   </div>
                   <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                     {tenants.map((user) => (
@@ -557,36 +639,12 @@ export function AdminDashboard({
                     {tenants.length === 0 && <p className="text-muted-foreground italic col-span-full">Aucun locataire trouvé.</p>}
                   </div>
                 </div>
-              )}
+              </TabsContent>
 
-              {/* Admins Section */}
-              {(userFilters.role === "all" || userFilters.role === "admin") && admins.length > 0 && (
-                <div className="space-y-6 pt-6 border-t border-border/50">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-1.5 bg-gray-800 rounded-full" />
-                    <h2 className="text-xl font-black text-foreground">Administrateurs ({admins.length})</h2>
-                  </div>
-                  <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-                    {admins.map((user) => (
-                      <Card key={user._id} className="border-none shadow-xl bg-card p-6">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-black text-xl">
-                              {user.fullName[0].toUpperCase()}
-                            </div>
-                            <div>
-                              <h3 className="font-black text-foreground text-base tracking-tight">{user.fullName}</h3>
-                              <p className="text-xs text-muted-foreground font-medium">{user.email}</p>
-                            </div>
-                          </div>
-                          <Badge className="bg-primary/10 text-primary border-none font-bold text-[10px]">ADMIN</Badge>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+              <TabsContent value="admin" className="mt-0 outline-none">
+                {/* Section Administrateur supprimée selon la demande */}
+              </TabsContent>
+            </Tabs>
           </div>
         )
       case "properties":
@@ -783,7 +841,7 @@ export function AdminDashboard({
                             <Badge variant="secondary" className="px-2 py-0 h-4 text-[9px] font-black uppercase tracking-tighter rounded-sm">
                               {activity.category}
                             </Badge>
-                            <p className="text-[10px] font-bold text-muted-foreground opacity-60 uppercase">{activity.requesterName || "Propriétaire"}</p>
+                            <p className="text-[10px] font-bold text-muted-foreground opacity-60 uppercase">{activity.requesterName || "Locateur"}</p>
                           </div>
                         </div>
                       </div>

@@ -122,6 +122,7 @@ const PropertyDetailPage: React.FC = () => {
 
   const isOwner = user?.role === "owner"
   const isTenant = user?.role === "tenant"
+  const isAdmin = user?.role === "admin"
   const ownerId = typeof property?.owner === "string" ? property.owner : property?.owner?._id
   const isMyProperty = isOwner && ownerId === user?.id
 
@@ -329,7 +330,7 @@ const PropertyDetailPage: React.FC = () => {
             <p>{property.description}</p>
           </div>
 
-          {isOwner ? (
+          {isOwner || isAdmin ? (
             <div className="detail-owner-info">
               <h3>Informations Proprietaire</h3>
               <div className="owner-info-grid">
@@ -378,7 +379,7 @@ const PropertyDetailPage: React.FC = () => {
             </button>
           ) : null}
 
-          {isMyProperty ? (
+          {isMyProperty || isAdmin ? (
             <>
               <button
                 type="button"

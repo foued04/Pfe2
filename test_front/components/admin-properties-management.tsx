@@ -21,6 +21,7 @@ import {
   Search,
   ShieldCheck,
   Sofa,
+  Trash2,
   User,
   X,
 } from "lucide-react"
@@ -203,6 +204,38 @@ export function AdminPropertiesManagement() {
     }
 
     await updateModerationStatus(property.id, "rejected", trimmedReason)
+  }
+  
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Etes-vous sur de vouloir supprimer DEFINITIVEMENT cette propriete ? Cette action est irreversible.")) {
+      return
+    }
+
+    setUpdatingId(id)
+    try {
+      const response = await fetch(`${API_URL}/properties/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+      })
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => null)
+        throw new Error(error?.message || "Erreur lors de la suppression.")
+      }
+
+      setProperties((prev) => prev.filter((p) => p.id !== id))
+      if (selectedProperty?.id === id) {
+        closeProperty()
+      }
+      alert("Propriete supprimee avec succes.")
+    } catch (error) {
+      console.error("Error deleting property:", error)
+      alert(error instanceof Error ? error.message : "Erreur lors de la suppression.")
+    } finally {
+      setUpdatingId(null)
+    }
   }
 
   const openProperty = (property: ManagedProperty) => {
@@ -410,6 +443,15 @@ export function AdminPropertiesManagement() {
                     >
                       <ChevronDown className={cn("mr-2 h-4 w-4 transition-transform", expandedPropertyId === property.id ? "rotate-180" : "")} />
                       {expandedPropertyId === property.id ? "Masquer les details" : "Voir les details"}
+                    </Button>
+
+                    <Button
+                      onClick={() => handleDelete(property.id)}
+                      disabled={updatingId === property.id}
+                      variant="outline"
+                      className="h-11 rounded-2xl border-red-200 bg-red-50 px-5 font-black uppercase tracking-[0.12em] text-red-600 hover:bg-red-100"
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
 
                   </div>

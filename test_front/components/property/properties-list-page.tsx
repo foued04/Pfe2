@@ -41,7 +41,7 @@ export function PropertiesListPage({ headingTag: Heading = "h1" }: PropertiesLis
         <Card className="mt-8 border-border/70 p-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher par titre, ville ou adresse" className="pl-10" />
+            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher par titre, ville ou adresse" className="pl-10" suppressHydrationWarning={true} />
           </div>
         </Card>
 

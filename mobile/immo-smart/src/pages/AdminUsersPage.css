@@ -1,0 +1,40 @@
+.immosmart-user-item {
+  --padding-start: 0;
+  --inner-padding-end: 0;
+  margin-bottom: 12px;
+  --background: var(--ion-card-background);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  background: var(--ion-color-primary-transparent);
+  color: var(--ion-color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 1.2rem;
+  border-radius: 50%;
+}
+
+.immosmart-user-item IonLabel h2 {
+  font-weight: 800;
+  color: var(--ion-text-color);
+  margin-bottom: 4px;
+}
+
+.immosmart-user-item IonLabel p {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.alert-danger {
+  color: var(--ion-color-danger) !important;
+  font-weight: 800 !important;
+}

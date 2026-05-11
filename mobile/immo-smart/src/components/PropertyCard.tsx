@@ -85,6 +85,11 @@ const PropertyCard: React.FC<Props> = ({ property }) => {
         <span className={`status-pill ${property.status}`}>
           {statusLabel[property.status] || property.status}
         </span>
+        {user?.role === "admin" && property.moderationStatus && property.moderationStatus !== "approved" && (
+          <span className={`status-pill moderation-${property.moderationStatus}`} style={{ top: 40 }}>
+            {property.moderationStatus === "pending" ? "En attente" : "Rejete"}
+          </span>
+        )}
         {isTenant ? (
           <button
             type="button"

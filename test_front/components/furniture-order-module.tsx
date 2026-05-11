@@ -260,6 +260,11 @@ export function FurnitureOrderModule({ initialPropertyId }: FurnitureOrderModule
   const handleCheckout = async () => {
     if (cartItems.length === 0) return
     
+    if (!selectedPropertyId || selectedPropertyId.trim() === "" || selectedPropertyId.startsWith('prop-') || ["1", "2", "3"].includes(selectedPropertyId)) {
+      alert(lang === "fr" ? "Veuillez sélectionner un bien immobilier valide parmi vos propriétés." : "Please select a valid property from your list.")
+      return
+    }
+
     if (!paymentMethod || paymentMethod.trim() === "") {
       alert(lang === "fr" ? "Veuillez sélectionner ou saisir un mode de paiement." : "Please select or type a payment method.")
       return
@@ -270,12 +275,18 @@ export function FurnitureOrderModule({ initialPropertyId }: FurnitureOrderModule
       
       const orderPayload = {
         propertyId: selectedPropertyId,
-        items: cartItems.map(item => ({
-          name: item.name,
-          category: item.category,
-          price: item.price,
-          quantity: item.quantity
-        })),
+        items: cartItems.map(item => {
+          // Only send furniture ID if it's a valid MongoDB ObjectId (doesn't start with 'catalog-')
+          const isRealFurniture = item.id && !item.id.startsWith('catalog-');
+          return {
+            furniture: isRealFurniture ? item.id : undefined,
+            name: item.name,
+            category: item.category,
+            price: item.price,
+            quantity: item.quantity,
+            image: item.image
+          };
+        }),
         total: cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
         paymentMethod: paymentMethod
       }
@@ -296,9 +307,13 @@ export function FurnitureOrderModule({ initialPropertyId }: FurnitureOrderModule
       setValidatedOrder(newOrder)
       setView("receipt")
       setCartItems([]) // Clear cart after successful checkout
-    } catch (error) {
+      // Refresh orders list
+      if (user?.role === 'tenant') fetchTenantOrders()
+    } catch (error: any) {
       console.error("Error submitting order:", error)
-      alert(lang === "fr" ? "Erreur lors de la validation de la commande" : "Error validating order")
+      alert(lang === "fr" 
+        ? (error.message || "Erreur lors de la validation de la commande") 
+        : (error.message || "Error validating order"))
     }
   }
 

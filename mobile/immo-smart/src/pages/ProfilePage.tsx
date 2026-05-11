@@ -13,6 +13,8 @@ import {
   refreshOutline,
   saveOutline,
   shieldCheckmarkOutline,
+  chevronForwardOutline,
+  homeOutline,
 } from "ionicons/icons"
 import { useEffect, useRef, useState } from "react"
 import { useHistory } from "react-router-dom"
@@ -421,6 +423,17 @@ const ProfilePage: React.FC = () => {
                     <div className="document-slot-text">
                       <h4>Besoins Logement</h4>
                       <p>Consulter toutes les demandes des locataires</p>
+                    </div>
+                    <IonIcon icon={chevronForwardOutline} className="text-primary" />
+                  </button>
+
+                  <button type="button" className="document-slot-card filled mt-3" onClick={() => history.push("/admin/users")}>
+                    <div className="document-slot-icon primary">
+                      <IonIcon icon={personOutline} />
+                    </div>
+                    <div className="document-slot-text">
+                      <h4>Gestion Utilisateurs</h4>
+                      <p>Gérer les comptes locateurs et locataires</p>
                     </div>
                     <IonIcon icon={chevronForwardOutline} className="text-primary" />
                   </button>

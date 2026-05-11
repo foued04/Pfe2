@@ -130,9 +130,9 @@ export function FurnitureCart({
                       <SelectItem key={p.id || p._id} value={p.id || p._id} className="rounded-lg">{p.title}</SelectItem>
                     ))
                   ) : (
-                    mockProperties.map(p => (
-                      <SelectItem key={p.id} value={p.id} className="rounded-lg">{p.title}</SelectItem>
-                    ))
+                    <SelectItem value="none" disabled className="text-muted-foreground italic">
+                      {lang === 'fr' ? "Aucune propriété trouvée" : "No properties found"}
+                    </SelectItem>
                   )}
                 </SelectContent>
               </Select>

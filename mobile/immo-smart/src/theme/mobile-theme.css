@@ -2793,3 +2793,13 @@
     background: #ffffff;
   }
 }
+
+.status-pill.moderation-pending {
+  background: #f59e0b;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.status-pill.moderation-rejected {
+  background: #ef4444;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}

@@ -195,10 +195,9 @@ const Tab1: React.FC = () => {
           <main className="home-public-main">
             <section id="accueil" className="home-hero-section">
               <div className="home-hero-copy">
-                <h1>Une plateforme immobiliere claire, routee comme une vraie app.</h1>
+                <h1>La plateforme immobilière nouvelle génération, fluide et intuitive.</h1>
                 <p>
-                  ImmoSmart connecte locataires, proprietaires et administrateurs dans une experience moderne avec
-                  navigation reelle, dashboards dedies et modules metier unifies.
+                  ImmoSmart connecte locataires, propriétaires et administrateurs au sein d&apos;une expérience moderne et simplifiée pour une gestion optimale de votre patrimoine immobilier.
                 </p>
                 <div className="home-hero-actions">
                   <button type="button" className="home-action-button home-primary-button" onClick={() => history.push("/tab2")}>
@@ -287,8 +286,8 @@ const Tab1: React.FC = () => {
                 <span className="home-section-pill">Contact</span>
                 <h2>Parlons de votre projet immobilier</h2>
                 <p>
-                  Contactez l'equipe ImmoSmart pour l'accompagnement produit, la publication de biens, l'ameublement
-                  et toute question liee a la plateforme.
+                  Contactez l&apos;équipe ImmoSmart pour l&apos;accompagnement produit, la publication de biens, l&apos;ameublement
+                  et toute question liée à la plateforme.
                 </p>
               </div>
 
@@ -316,8 +315,8 @@ const Tab1: React.FC = () => {
                   <h3>ImmoSmart</h3>
                 </div>
                 <p>
-                  Une plateforme SaaS immobiliere moderne pour rechercher, gerer et suivre le cycle de location entre
-                  locataires, proprietaires et administrateurs.
+                  Une plateforme SaaS immobilière moderne pour rechercher, gérer et suivre le cycle de location entre
+                  locataires, propriétaires et administrateurs.
                 </p>
               </div>
 
@@ -349,7 +348,7 @@ const Tab1: React.FC = () => {
               </div>
             </div>
 
-            <div className="home-footer-bottom">© 2026 ImmoSmart. Tous droits reserves.</div>
+            <div className="home-footer-bottom">© 2026 ImmoSmart. Tous droits réservés.</div>
           </footer>
         </div>
       </IonContent>

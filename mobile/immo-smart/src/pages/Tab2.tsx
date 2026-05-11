@@ -97,7 +97,7 @@ const Tab2: React.FC = () => {
         if (!active) return
 
         const visibleProperties = (Array.isArray(data) ? data : []).filter(
-          (property) => property.moderationStatus === "approved" && property.status === "available"
+          (property) => user?.role === "admin" || (property.moderationStatus === "approved" && property.status === "available")
         )
         setProperties(visibleProperties)
       } catch (err) {

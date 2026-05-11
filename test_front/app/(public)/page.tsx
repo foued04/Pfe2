@@ -17,10 +17,10 @@ export default function HomeRoute() {
       <section id="accueil" className="mx-auto grid max-w-7xl scroll-mt-28 gap-10 px-4 py-16 md:grid-cols-2 md:px-6 md:py-24">
         <div className="space-y-6">
           <h1 className="text-4xl font-black tracking-tight text-foreground sm:text-5xl md:text-6xl">
-            Une plateforme immobiliere claire, routee comme une vraie app.
+            La plateforme immobilière nouvelle génération, fluide et intuitive.
           </h1>
           <p className="max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg sm:leading-8">
-            ImmoSmart connecte locataires, proprietaires et administrateurs dans une experience moderne avec navigation reelle, dashboards dedies et modules metier unifies.
+            ImmoSmart connecte locataires, propriétaires et administrateurs au sein d&apos;une expérience moderne et simplifiée pour une gestion optimale de votre patrimoine immobilier.
           </p>
           <div className="flex flex-wrap gap-3">
             <Button asChild size="lg">
@@ -51,7 +51,7 @@ export default function HomeRoute() {
           </span>
           <h2 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl md:text-5xl">Parlons de votre projet immobilier</h2>
           <p className="mt-4 text-base leading-7 text-muted-foreground sm:text-lg sm:leading-8">
-            Contactez l'equipe ImmoSmart pour l'accompagnement produit, la publication de biens, l'ameublement et toute question liee a la plateforme.
+            Contactez l&apos;équipe ImmoSmart pour l&apos;accompagnement produit, la publication de biens, l&apos;ameublement et toute question liée à la plateforme.
           </p>
         </div>
         <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
