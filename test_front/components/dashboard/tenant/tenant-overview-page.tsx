@@ -13,8 +13,10 @@ import { TenantPropertyCard } from "@/components/tenant-property-card"
 import { PropertyDetailPage } from "@/components/property/property-detail-page"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { useI18n } from "@/lib/i18n"
 
 export function TenantOverviewPage() {
+  const { t } = useI18n()
   const { properties, isLoading, error } = useProperties({ auth: true })
   const { homes: myHomes, isLoading: isHomesLoading } = useTenantHomes()
   const { favoriteIds, toggleFavorite } = useFavorites()
@@ -29,7 +31,7 @@ export function TenantOverviewPage() {
       <div className="space-y-6">
         <Button variant="outline" onClick={() => setSelectedProperty(null)} className="gap-2">
           <ArrowLeft className="h-4 w-4" />
-          Back to homes
+          {t("general.back")}
         </Button>
         <PropertyDetailPage propertyId={selectedProperty.id} />
       </div>
@@ -38,36 +40,40 @@ export function TenantOverviewPage() {
 
   return (
     <div className="space-y-8">
-      <PageHeader eyebrow="Tenant" title="Tenant Dashboard" description="Accedez rapidement a vos demandes, favoris et notifications depuis un tableau de bord clair." />
+      <PageHeader
+        eyebrow={t("role.tenant")}
+        title={t("tenant.title")}
+        description={t("tenant.subtitle") || "Accédez rapidement à vos demandes, favoris et notifications depuis un tableau de bord clair."}
+      />
       <StatsGrid
         stats={[
-          { label: "Properties available", value: availableProperties.length, icon: Home },
-          { label: "My home", value: isHomesLoading ? "-" : myHomes.length, icon: Home },
-          { label: "Map", value: "-", icon: Map },
-          { label: "Requests", value: "-", icon: FileText },
-          { label: "Reclamation", value: "-", icon: Megaphone },
-          { label: "Favorites", value: "-", icon: Heart },
-          { label: "Furniture", value: "-", icon: ShoppingBag },
-          { label: "Notifications", value: "-", icon: Bell },
+          { label: t("dashboard.availableProperties"), value: availableProperties.length, icon: Home },
+          { label: t("sidebar.myHome"), value: isHomesLoading ? "-" : myHomes.length, icon: Home },
+          { label: t("sidebar.map"), value: "-", icon: Map },
+          { label: t("sidebar.requests"), value: "-", icon: FileText },
+          { label: t("sidebar.reclamation"), value: "-", icon: Megaphone },
+          { label: t("sidebar.favorites"), value: "-", icon: Heart },
+          { label: t("sidebar.furniture"), value: "-", icon: ShoppingBag },
+          { label: t("sidebar.notifications"), value: "-", icon: Bell },
         ]}
       />
       <Card className="rounded-3xl">
         <CardContent className="flex flex-wrap gap-3 p-6 text-sm">
-          <Link href="/dashboard/tenant/map" className="rounded-full bg-muted px-4 py-2 font-medium hover:bg-primary/10 hover:text-primary">Map</Link>
-          <Link href="/dashboard/tenant/my-home" className="rounded-full bg-primary px-4 py-2 font-medium text-primary-foreground hover:bg-primary/90">My home</Link>
-          <Link href="/dashboard/tenant/requests" className="rounded-full bg-muted px-4 py-2 font-medium hover:bg-primary/10 hover:text-primary">My requests</Link>
-          <Link href="/dashboard/tenant/reclamations" className="rounded-full bg-muted px-4 py-2 font-medium hover:bg-primary/10 hover:text-primary">Reclamation</Link>
-          <Link href="/dashboard/tenant/favorites" className="rounded-full bg-muted px-4 py-2 font-medium hover:bg-primary/10 hover:text-primary">My favorites</Link>
-          <Link href="/dashboard/tenant/furniture" className="rounded-full bg-muted px-4 py-2 font-medium hover:bg-primary/10 hover:text-primary">Furniture</Link>
-          <Link href="/dashboard/tenant/notifications" className="rounded-full bg-muted px-4 py-2 font-medium hover:bg-primary/10 hover:text-primary">Notifications</Link>
+          <Link href="/dashboard/tenant/map" className="rounded-full bg-muted px-4 py-2 font-medium hover:bg-primary/10 hover:text-primary">{t("sidebar.map")}</Link>
+          <Link href="/dashboard/tenant/my-home" className="rounded-full bg-primary px-4 py-2 font-medium text-primary-foreground hover:bg-primary/90">{t("sidebar.myHome")}</Link>
+          <Link href="/dashboard/tenant/requests" className="rounded-full bg-muted px-4 py-2 font-medium hover:bg-primary/10 hover:text-primary">{t("sidebar.requests")}</Link>
+          <Link href="/dashboard/tenant/reclamations" className="rounded-full bg-muted px-4 py-2 font-medium hover:bg-primary/10 hover:text-primary">{t("sidebar.reclamation")}</Link>
+          <Link href="/dashboard/tenant/favorites" className="rounded-full bg-muted px-4 py-2 font-medium hover:bg-primary/10 hover:text-primary">{t("sidebar.favorites")}</Link>
+          <Link href="/dashboard/tenant/furniture" className="rounded-full bg-muted px-4 py-2 font-medium hover:bg-primary/10 hover:text-primary">{t("sidebar.furniture")}</Link>
+          <Link href="/dashboard/tenant/notifications" className="rounded-full bg-muted px-4 py-2 font-medium hover:bg-primary/10 hover:text-primary">{t("sidebar.notifications")}</Link>
         </CardContent>
       </Card>
       {myHomes.length > 0 && (
         <section className="space-y-4">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">Locataire</p>
-            <h2 className="text-2xl font-bold">Mon logement</h2>
-            <p className="text-sm text-muted-foreground">Votre logement loué après signature du contrat.</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">{t("role.tenant")}</p>
+            <h2 className="text-2xl font-bold">{t("sidebar.myHome")}</h2>
+            <p className="text-sm text-muted-foreground">{t("tenant.myHomeDesc") || "Votre logement loué après signature du contrat."}</p>
           </div>
           <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
             {myHomes.map((property) => (
@@ -86,14 +92,14 @@ export function TenantOverviewPage() {
         </section>
       )}
       {isLoading ? (
-        <Card><CardContent className="p-8 text-sm text-muted-foreground">Chargement des proprietes...</CardContent></Card>
+        <Card><CardContent className="p-8 text-sm text-muted-foreground">{t("general.loading")}</CardContent></Card>
       ) : error ? (
         <Card><CardContent className="p-8 text-sm text-destructive">{error}</CardContent></Card>
       ) : (
         <section className="space-y-4">
           <div>
-            <h2 className="text-2xl font-bold">Logements disponibles</h2>
-            <p className="text-sm text-muted-foreground">Les annonces encore disponibles a la location.</p>
+            <h2 className="text-2xl font-bold">{t("tenant.availableHomes") || "Logements disponibles"}</h2>
+            <p className="text-sm text-muted-foreground">{t("tenant.availableHomesDesc") || "Les annonces encore disponibles à la location."}</p>
           </div>
           <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
             {availableProperties.slice(0, 3).map((property) => (

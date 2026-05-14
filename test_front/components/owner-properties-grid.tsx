@@ -6,6 +6,7 @@ import { useI18n } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 import {
   Armchair,
+  Bath,
   Bed,
   Building2,
   Eye,
@@ -35,7 +36,7 @@ interface OwnerPropertyCardProps {
 
 function OwnerPropertyCard({ property, onManageFurniture, onEdit, onDelete }: OwnerPropertyCardProps) {
   const { user } = useAuth()
-  const { lang } = useI18n()
+  const { t } = useI18n()
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
@@ -49,13 +50,13 @@ function OwnerPropertyCard({ property, onManageFurniture, onEdit, onDelete }: Ow
   }
 
   const statusLabels: Record<string, string> = {
-    available: "Disponible",
-    rented: "Loue",
-    maintenance: "Maintenance",
+    available: t("status.available"),
+    rented: t("status.rented"),
+    maintenance: t("status.maintenance"),
   }
 
   const handleDelete = () => {
-    if (window.confirm(lang === "fr" ? "Etes-vous sur de vouloir supprimer ce bien ?" : "Are you sure you want to delete this property?")) {
+    if (window.confirm(t("general.confirmDelete") || "Etes-vous sur de vouloir supprimer ce bien ?")) {
       setIsDeleting(true)
       onDelete(property.id || property._id)
     }
@@ -88,7 +89,7 @@ function OwnerPropertyCard({ property, onManageFurniture, onEdit, onDelete }: Ow
                   statusStyles[property.status] || "bg-gray-100 text-gray-700 hover:bg-gray-100",
                 )}
               >
-                {statusLabels[property.status] || property.status || "Disponible"}
+                {statusLabels[property.status] || property.status || t("status.available")}
               </Badge>
               <Badge
                 className={cn(
@@ -98,33 +99,33 @@ function OwnerPropertyCard({ property, onManageFurniture, onEdit, onDelete }: Ow
                     : "border-border bg-background/90 text-foreground",
                 )}
               >
-                {isOwnProperty ? "My property" : "Other owner"}
+                {isOwnProperty ? t("dashboard.myProperty") : t("dashboard.otherOwner")}
               </Badge>
             </div>
 
             {isFurnished ? (
               <Badge className="flex items-center gap-1.5 border-none bg-background/90 px-3 py-1 text-foreground shadow-sm backdrop-blur-md">
                 <Armchair className="h-3.5 w-3.5" />
-                {lang === "fr" ? "Meuble" : "Furnished"}
+                {t("general.furnished")}
               </Badge>
             ) : null}
           </div>
 
           <div className="absolute bottom-3 left-3 rounded-xl border border-white/10 bg-black/80 px-4 py-2 text-sm font-black text-white shadow-lg backdrop-blur-md">
-            {property.rent?.toLocaleString() || 0} TND <span className="text-xs font-normal opacity-70">/mois</span>
+            {property.rent?.toLocaleString() || 0} TND <span className="text-xs font-normal opacity-70">/{t("general.month")}</span>
           </div>
         </div>
 
         <div className="space-y-4 p-5">
           <div>
-            <h3 className="line-clamp-1 text-lg font-black tracking-tight text-foreground">{property.title || "Sans Titre"}</h3>
+            <h3 className="line-clamp-1 text-lg font-black tracking-tight text-foreground">{property.title || t("general.untitled")}</h3>
             <div className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
               <MapPin className="h-3.5 w-3.5 text-primary" />
-              {property.address || property.city || "Adresse non specifiee"}
+              {property.address || property.city || t("general.noAddress")}
             </div>
             {(property.ownerName || property.ownerPhone || property.ownerEmail) && (
               <div className="mt-2 text-xs font-medium text-muted-foreground">
-                {property.ownerName || "Owner"}
+                {property.ownerName || t("role.owner")}
                 {property.ownerPhone && property.ownerPhone !== "-" ? ` • ${property.ownerPhone}` : ""}
               </div>
             )}
@@ -142,7 +143,13 @@ function OwnerPropertyCard({ property, onManageFurniture, onEdit, onDelete }: Ow
                 <div className="rounded-md bg-muted p-1">
                   <Bed className="h-3.5 w-3.5" />
                 </div>
-                {property.bedrooms || 0} ch.
+                {property.bedrooms || 0} {t("property.bedroomsShort") || "br."}
+              </div>
+              <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
+                <div className="rounded-md bg-muted p-1">
+                  <Bath className="h-3.5 w-3.5" />
+                </div>
+                {property.bathrooms || 0} {t("property.bathroomsShort") || "ba."}
               </div>
             </div>
 
@@ -155,14 +162,14 @@ function OwnerPropertyCard({ property, onManageFurniture, onEdit, onDelete }: Ow
               <DropdownMenuContent align="end" className="w-56 p-1">
                 <DropdownMenuItem className="cursor-pointer gap-2 py-2" onClick={() => setIsDetailsOpen(true)}>
                   <Eye className="h-4 w-4 text-muted-foreground" />
-                  {lang === "fr" ? "Voir details" : "View details"}
+                  {t("general.viewDetails")}
                 </DropdownMenuItem>
 
                 {isOwnProperty ? (
                   <>
                     <DropdownMenuItem className="cursor-pointer gap-2 py-2" onClick={() => onEdit(property)}>
                       <Pencil className="h-4 w-4 text-muted-foreground" />
-                      {lang === "fr" ? "Modifier" : "Edit"}
+                      {t("general.edit")}
                     </DropdownMenuItem>
 
                     <DropdownMenuSeparator />
@@ -172,7 +179,7 @@ function OwnerPropertyCard({ property, onManageFurniture, onEdit, onDelete }: Ow
                       onClick={() => onManageFurniture(property.id || property._id)}
                     >
                       <Armchair className="h-4 w-4 text-primary" />
-                      {lang === "fr" ? "Gerer les meubles" : "Manage furniture"}
+                      {t("dashboard.manageFurniture")}
                     </DropdownMenuItem>
 
                     <DropdownMenuSeparator />
@@ -182,13 +189,13 @@ function OwnerPropertyCard({ property, onManageFurniture, onEdit, onDelete }: Ow
                       onClick={handleDelete}
                     >
                       <Trash2 className="h-4 w-4" />
-                      {lang === "fr" ? "Supprimer le bien" : "Delete property"}
+                      {t("general.deleteProperty")}
                     </DropdownMenuItem>
                   </>
                 ) : (
                   <DropdownMenuItem className="gap-2 py-2 text-muted-foreground focus:text-muted-foreground">
                     <Building2 className="h-4 w-4" />
-                    {lang === "fr" ? "Lecture seule" : "Read only"}
+                    {t("general.readOnly")}
                   </DropdownMenuItem>
                 )}
               </DropdownMenuContent>
@@ -197,9 +204,7 @@ function OwnerPropertyCard({ property, onManageFurniture, onEdit, onDelete }: Ow
 
           {!isOwnProperty && (
             <div className="rounded-xl border border-dashed border-border bg-muted/30 px-3 py-2 text-xs font-medium text-muted-foreground">
-              {lang === "fr"
-                ? "Ce bien appartient a un autre proprietaire. Visible uniquement."
-                : "This property belongs to another owner. View only."}
+              {t("dashboard.otherOwnerNotice")}
             </div>
           )}
         </div>
@@ -226,7 +231,7 @@ interface OwnerPropertiesGridProps {
 }
 
 export function OwnerPropertiesGrid({ properties, onManageFurniture, onEdit, onDelete }: OwnerPropertiesGridProps) {
-  const { lang } = useI18n()
+  const { t } = useI18n()
 
   if (!properties || properties.length === 0) {
     return (
@@ -235,12 +240,10 @@ export function OwnerPropertiesGrid({ properties, onManageFurniture, onEdit, onD
           <Building2 className="h-12 w-12 text-muted-foreground" />
         </div>
         <h3 className="mb-2 text-lg font-semibold text-foreground">
-          {lang === "fr" ? "Aucune propriete trouvee" : "No properties found"}
+          {t("general.noProperties")}
         </h3>
         <p className="mx-auto max-w-sm text-muted-foreground">
-          {lang === "fr"
-            ? "Aucun bien n'est disponible pour le moment."
-            : "No properties are available right now."}
+          {t("general.noPropertiesDesc")}
         </p>
       </div>
     )

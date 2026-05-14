@@ -18,15 +18,15 @@ import type { BackendProperty } from "../types/api"
 import "./Tab1.css"
 
 const contactCards = [
-  { icon: callOutline, title: "Telephone", value: "+216 73 461 000" },
+  { icon: callOutline, title: "Téléphone", value: "+216 73 461 000" },
   { icon: mailOutline, title: "Email", value: "contact@immosmart.tn" },
   { icon: locationOutline, title: "Localisation", value: "Monastir, Tunisie" },
-  { icon: timeOutline, title: "Disponibilite", value: "Lundi - Samedi, 8h00 - 18h00" },
+  { icon: timeOutline, title: "Disponibilité", value: "Lundi - Samedi, 8h00 - 18h00" },
 ]
 
 const statusLabels: Record<string, string> = {
   available: "Disponible",
-  rented: "Loue",
+  rented: "Loué",
   maintenance: "Maintenance",
 }
 
@@ -61,7 +61,7 @@ const Tab1: React.FC = () => {
         setProperties(approvedProperties)
       } catch (err) {
         if (!active) return
-        setError(err instanceof Error ? err.message : "Impossible de charger les proprietes.")
+        setError(err instanceof Error ? err.message : "Impossible de charger les propriétés.")
       } finally {
         if (active) {
           setLoading(false)
@@ -88,7 +88,7 @@ const Tab1: React.FC = () => {
 
   const navItems = [
     { label: "Accueil", action: () => window.scrollTo({ top: 0, behavior: "smooth" }) },
-    { label: "Proprietes", action: () => history.push("/tab2") },
+    { label: "Biens", action: () => history.push("/tab2") },
     { label: "Meubles", action: () => history.push("/furniture") },
     { label: "Contact", action: () => document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" }) },
   ]
@@ -197,11 +197,11 @@ const Tab1: React.FC = () => {
               <div className="home-hero-copy">
                 <h1>La plateforme immobilière nouvelle génération, fluide et intuitive.</h1>
                 <p>
-                  ImmoSmart connecte locataires, propriétaires et administrateurs au sein d&apos;une expérience moderne et simplifiée pour une gestion optimale de votre patrimoine immobilier.
+                  ImmoSmart connecte locataires, locateurs et administrateurs au sein d&apos;une expérience moderne et simplifiée pour une gestion optimale de votre patrimoine immobilier.
                 </p>
                 <div className="home-hero-actions">
                   <button type="button" className="home-action-button home-primary-button" onClick={() => history.push("/tab2")}>
-                    Explorer les proprietes
+                    Explorer les propriétés
                     <IonIcon icon={arrowForwardOutline} />
                   </button>
                   <button type="button" className="home-action-button home-outline-button" onClick={() => history.push("/furniture")}>
@@ -221,10 +221,10 @@ const Tab1: React.FC = () => {
             <section id="properties" className="home-properties-section">
               <div className="home-section-heading">
                 <span className="home-section-pill">Catalogue</span>
-                <h2>Explorez les proprietes disponibles</h2>
+                <h2>Explorez les propriétés disponibles</h2>
                 <p>
-                  Une experience de recherche claire, structuree comme une vraie application SaaS, avec des pages
-                  dediees et une navigation stable.
+                  Une expérience de recherche claire, structurée comme une vraie application SaaS, avec des pages
+                  dédiées et une navigation stable.
                 </p>
               </div>
 
@@ -238,11 +238,11 @@ const Tab1: React.FC = () => {
               </div>
 
               {loading ? (
-                <div className="home-feedback-card">Chargement des proprietes approuvees...</div>
+                <div className="home-feedback-card">Chargement des propriétés approuvées...</div>
               ) : error ? (
                 <div className="home-feedback-card home-error-card">{error}</div>
               ) : filteredProperties.length === 0 ? (
-                <div className="home-feedback-card">Aucune propriete trouvee. Essayez un autre mot-cle.</div>
+                <div className="home-feedback-card">Aucune propriété trouvée. Essayez un autre mot-clé.</div>
               ) : (
                 <div className="home-properties-grid">
                   {filteredProperties.map((property) => (
@@ -316,7 +316,7 @@ const Tab1: React.FC = () => {
                 </div>
                 <p>
                   Une plateforme SaaS immobilière moderne pour rechercher, gérer et suivre le cycle de location entre
-                  locataires, propriétaires et administrateurs.
+                  locataires, locateurs et administrateurs.
                 </p>
               </div>
 
@@ -327,7 +327,7 @@ const Tab1: React.FC = () => {
                     Accueil
                   </button>
                   <button type="button" onClick={() => history.push("/tab2")}>
-                    Properties
+                    Biens
                   </button>
                   <button type="button" onClick={() => history.push("/furniture")}>
                     Meubles

@@ -20,7 +20,7 @@ export default function HomeRoute() {
             La plateforme immobilière nouvelle génération, fluide et intuitive.
           </h1>
           <p className="max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg sm:leading-8">
-            ImmoSmart connecte locataires, propriétaires et administrateurs au sein d&apos;une expérience moderne et simplifiée pour une gestion optimale de votre patrimoine immobilier.
+            ImmoSmart connecte locataires, locateurs et administrateurs au sein d&apos;une expérience moderne et simplifiée pour une gestion optimale de votre patrimoine immobilier.
           </p>
           <div className="flex flex-wrap gap-3">
             <Button asChild size="lg">

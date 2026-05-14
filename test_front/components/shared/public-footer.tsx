@@ -13,7 +13,7 @@ export function PublicFooter() {
             <h3 className="text-xl font-black text-foreground">ImmoSmart</h3>
           </div>
           <p className="mt-4 max-w-sm text-sm leading-7 text-muted-foreground">
-            Une plateforme SaaS immobiliere moderne pour rechercher, gerer et suivre le cycle de location entre locataires, proprietaires et administrateurs.
+            Une plateforme SaaS immobiliere moderne pour rechercher, gerer et suivre le cycle de location entre locataires, locateurs et administrateurs.
           </p>
         </div>
         <div>

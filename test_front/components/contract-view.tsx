@@ -119,7 +119,13 @@ export function ContractView({ contract, onBack, onOwnerSign, onTenantSign, onSe
               (userRole === "tenant" && (contract.status === "SentToTenant" || contract.status === "SignedByTenant") && contract.tenantSignature)) && (
               <Dialog open={isSendDialogOpen} onOpenChange={setIsSendDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button className="h-10 w-full gap-2 rounded-xl bg-indigo-600 px-5 text-white shadow-lg shadow-indigo-600/20 transition-all hover:scale-[1.02] hover:bg-indigo-700 active:scale-[0.98] sm:w-auto">
+                  <Button 
+                    disabled={userRole === "owner" && !contract.ownerSignature}
+                    className={cn(
+                      "h-10 w-full gap-2 rounded-xl bg-indigo-600 px-5 text-white shadow-lg transition-all active:scale-[0.98] sm:w-auto",
+                      userRole === "owner" && !contract.ownerSignature ? "opacity-50 cursor-not-allowed" : "shadow-indigo-600/20 hover:scale-[1.02] hover:bg-indigo-700"
+                    )}
+                  >
                     <Send className="h-4 w-4" />
                     <span className="font-bold">
                       {userRole === "owner" 
@@ -140,7 +146,7 @@ export function ContractView({ contract, onBack, onOwnerSign, onTenantSign, onSe
                       {lang === "fr" 
                         ? (userRole === "owner" 
                             ? "Authentifiez et envoyez ce contrat au locataire pour signature."
-                            : "Veuillez confirmer l'envoi de votre signature au propriétaire.")
+                             : "Veuillez confirmer l'envoi de votre signature au locateur.")
                         : (userRole === "owner"
                             ? "Authenticate and send this contract to the tenant for signature."
                             : "Please confirm the delivery of your signature to the landlord.")}
@@ -176,7 +182,7 @@ export function ContractView({ contract, onBack, onOwnerSign, onTenantSign, onSe
               <span className="font-bold">{lang === "fr" ? "Imprimer" : "Print"}</span>
             </Button>
 
-            {contract.status === "SignedByBoth" && (
+            {contract.status !== "Rejected" && (
               <Button 
                 className="h-10 w-full gap-2 rounded-xl bg-emerald-600 px-5 text-white shadow-lg shadow-emerald-600/20 transition-all hover:scale-[1.02] hover:bg-emerald-700 active:scale-[0.98] sm:w-auto"
                 onClick={handleDownloadPDF}
@@ -348,7 +354,7 @@ export function ContractView({ contract, onBack, onOwnerSign, onTenantSign, onSe
             <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
               <div className="space-y-4">
                 <SignaturePad
-                  label={lang === "fr" ? "Le Propriétaire" : "The Owner"}
+                  label={lang === "fr" ? "Le Locateur" : "The Owner"}
                   existingSignature={contract.ownerSignature}
                   onSign={onOwnerSign}
                   disabled={contract.status !== "Draft" || userRole !== "owner"}

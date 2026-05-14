@@ -103,7 +103,7 @@ const initialStatsData = [
     color: "text-orange-600 bg-orange-100",
   },
   {
-    label: { fr: "Locateurs", en: "Owners" },
+    label: { fr: "Locateur", en: "Locateurs" },
     value: "423",
     change: "+8.2%",
     trend: "up",
@@ -129,7 +129,7 @@ const initialStatsData = [
 ]
 
 const recentActivities = [
-  { type: "property", message: { fr: "Nouvelle propriete ajoutee par Mohamed Ben Ali", en: "New property added by Mohamed Ben Ali" }, time: { fr: "Il y a 5 min", en: "5 min ago" }, status: "pending" },
+  { type: "property", message: { fr: "Nouvelle propriete ajoutee par un locateur", en: "New property added by Mohamed Ben Ali" }, time: { fr: "Il y a 5 min", en: "5 min ago" }, status: "pending" },
   { type: "user", message: { fr: "Nouvel utilisateur inscrit: Sarra Bouaziz", en: "New user registered: Sarra Bouaziz" }, time: { fr: "Il y a 12 min", en: "12 min ago" }, status: "success" },
   { type: "request", message: { fr: "Demande de location pour Villa Kantaoui", en: "Rental request for Villa Kantaoui" }, time: { fr: "Il y a 25 min", en: "25 min ago" }, status: "pending" },
   { type: "property", message: { fr: "Propriete mise a jour: S+2 Marina", en: "Property updated: S+2 Marina" }, time: { fr: "Il y a 1h", en: "1h ago" }, status: "success" },
@@ -193,7 +193,7 @@ export function AdminDashboard({
           color: "text-orange-600 bg-orange-100",
         },
         {
-          label: { fr: "Locateurs", en: "Owners" },
+          label: { fr: "Locateur", en: "Locateurs" },
           value: (data.totals?.owners || 0).toLocaleString("fr-FR"),
           change: `${data.totals?.availableProperties || 0}`,
           trend: "up",
@@ -575,7 +575,7 @@ export function AdminDashboard({
                         </div>
                       </Card>
                     ))}
-                    {owners.length === 0 && <p className="text-muted-foreground italic col-span-full">Aucun propriétaire trouvé.</p>}
+                    {owners.length === 0 && <p className="text-muted-foreground italic col-span-full">Aucun locateur trouvé.</p>}
                   </div>
                 </div>
               </TabsContent>
@@ -807,7 +807,7 @@ export function AdminDashboard({
                 <CardHeader className="px-0 pt-0 mb-8 border-b border-border/50 pb-4 flex flex-row items-center justify-between">
                     <div>
                       <CardTitle className="text-xl font-black text-primary group-hover:text-primary/80">Suggestions Mobilier</CardTitle>
-                      <p className="text-xs text-muted-foreground font-bold mt-1">Nouvelles propositions des propriétaires</p>
+                      <p className="text-xs text-muted-foreground font-bold mt-1">Nouvelles propositions des locateurs</p>
                     </div>
                     <Badge className="bg-orange-100 text-orange-600 border-none font-black px-3 py-1 rounded-full text-[11px] animate-pulse">
                       {pendingFurniture.length} À VALIDER
@@ -958,7 +958,7 @@ export function AdminDashboard({
               className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-white/85 transition-all duration-200 hover:bg-red-500/20 hover:text-red-100"
             >
               <LogOut className="h-5 w-5" />
-              <span>{lang === "fr" ? "Deconnexion" : "Logout"}</span>
+              <span>{t("auth.deconnection")}</span>
             </button>
           </div>
         </div>
@@ -998,7 +998,7 @@ export function AdminDashboard({
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-xs font-black uppercase tracking-widest text-primary">
-                    {selectedUser.role === "owner" ? "Proprietaire" : selectedUser.role === "tenant" ? "Locataire" : "Administrateur"}
+                    {selectedUser.role === "owner" ? "Locateur" : selectedUser.role === "tenant" ? "Locataire" : "Administrateur"}
                   </p>
                   <h3 className="mt-2 text-2xl font-black text-foreground">{selectedUser.fullName}</h3>
                   <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
@@ -1063,7 +1063,6 @@ export function AdminDashboard({
           </Card>
         </div>
       )}
-
     </div>
   )
 }

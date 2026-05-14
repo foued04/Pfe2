@@ -147,7 +147,7 @@ export function mapBackendProperty(p: any): Property {
     },
     owner: p.owner && typeof p.owner === 'object' ? p.owner : undefined,
     ownerId: typeof p.owner === "string" ? p.owner : p.owner?._id,
-    ownerName: p.owner?.fullName || p.ownerName || "Propriétaire",
+    ownerName: p.owner?.fullName || p.ownerName || "Locateur",
     ownerEmail: p.owner?.email || p.ownerEmail || "-",
     ownerPhone: p.owner?.phone || p.ownerPhone || "-",
     lat: coordinates.lat,

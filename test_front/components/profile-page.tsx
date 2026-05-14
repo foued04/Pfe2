@@ -22,7 +22,7 @@ export function ProfilePage() {
     case "admin":
       return <AdminDashboard initialSection="profil" />
     case "owner":
-      return <div className="p-6 text-sm text-muted-foreground">Redirection vers votre profil proprietaire...</div>
+      return <div className="p-6 text-sm text-muted-foreground">Redirection vers votre profil locateur...</div>
     case "tenant":
       return <div className="p-6 text-sm text-muted-foreground">Redirection vers votre profil locataire...</div>
     default:

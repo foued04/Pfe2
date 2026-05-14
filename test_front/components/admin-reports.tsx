@@ -34,7 +34,7 @@ type PaymentStatus = "payé" | "en attente" | "en retard"
 interface ClientRequest {
   id: string
   clientName: string
-  role: "locataire" | "propriétaire"
+  role: "locataire" | "locateur"
   type: string
   description: string
   date: string
@@ -58,10 +58,10 @@ interface TenantPayment {
 // Mock Data
 const mockRequests: ClientRequest[] = [
   { id: "1", clientName: "Sarra Bouaziz", role: "locataire", type: "maintenance", description: "Problème de plomberie dans la salle de bain, fuite sous le lavabo.", date: "2024-03-28", priority: "urgente", status: "nouveau", property: "Appartement S+2, Marina" },
-  { id: "2", clientName: "Mohamed Ben Ali", role: "propriétaire", type: "meuble", description: "Demande d'ajout d'un nouveau canapé pour le salon avant la prochaine location.", date: "2024-03-27", priority: "moyenne", status: "en cours", property: "Villa Jasmin, Kantaoui" },
+  { id: "2", clientName: "Mohamed Ben Ali", role: "locateur", type: "meuble", description: "Demande d'ajout d'un nouveau canapé pour le salon avant la prochaine location.", date: "2024-03-27", priority: "moyenne", status: "en cours", property: "Villa Jasmin, Kantaoui" },
   { id: "3", clientName: "Amine Sassi", role: "locataire", type: "information", description: "Question concernant le renouvellement du contrat et les conditions de caution.", date: "2024-03-26", priority: "faible", status: "traité", property: "Studio, Centre Ville" },
   { id: "4", clientName: "Yassine Mansour", role: "locataire", type: "maintenance", description: "Climatiseur ne refroidit plus correctement dans la chambre principale.", date: "2024-03-25", priority: "moyenne", status: "nouveau", property: "Appartement, Skanes" },
-  { id: "5", clientName: "Olfa Rekik", role: "propriétaire", type: "reclamation", description: "Retards répétés de paiement signalés par le système pour mon bien à Sousse.", date: "2024-03-24", priority: "urgente", status: "en cours" },
+  { id: "5", clientName: "Olfa Rekik", role: "locateur", type: "reclamation", description: "Retards répétés de paiement signalés par le système pour mon bien à Sousse.", date: "2024-03-24", priority: "urgente", status: "en cours" },
 ]
 
 const mockPayments: TenantPayment[] = [

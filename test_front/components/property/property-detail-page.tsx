@@ -164,7 +164,7 @@ export function PropertyDetailPage({ propertyId }: { propertyId: string }) {
               <div>
                 <h2 className="text-xl font-bold">Demande de location</h2>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Envoyez votre demande directement au proprietaire de ce logement.
+                  Envoyez votre demande directement au locateur de ce logement.
                 </p>
               </div>
 
@@ -206,7 +206,7 @@ export function PropertyDetailPage({ propertyId }: { propertyId: string }) {
             <DialogHeader>
               <DialogTitle>Envoyer une demande</DialogTitle>
               <DialogDescription>
-                Choisissez la duree souhaitee et le message que le proprietaire verra.
+                Choisissez la duree souhaitee et le message que le locateur verra.
               </DialogDescription>
             </DialogHeader>
 
@@ -234,11 +234,11 @@ export function PropertyDetailPage({ propertyId }: { propertyId: string }) {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-semibold">Message pour le proprietaire</label>
+                <label className="text-sm font-semibold">Message pour le locateur</label>
                 <Textarea
                   value={message}
                   onChange={(event) => setMessage(event.target.value)}
-                  placeholder="Ajoutez le message que le proprietaire verra..."
+                  placeholder="Ajoutez le message que le locateur verra..."
                   className="min-h-28 resize-none"
                 />
               </div>

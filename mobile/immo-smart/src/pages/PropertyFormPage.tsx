@@ -18,6 +18,65 @@ const typeOptions: { value: PropertyType; label: string }[] = [
   { value: "villa", label: "Villa" },
 ]
 
+const normalizeText = (value: string) =>
+  value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase()
+
+const findMatchingGovernorate = (value: string) =>
+  TUNISIA_GOVERNORATES.find((governorate) => normalizeText(governorate.name) === normalizeText(value))
+
+const findMatchingDelegation = (governorateName: string, value: string) =>
+  TUNISIA_GOVERNORATES.find((governorate) => governorate.name === governorateName)?.delegations.find(
+    (delegation) => normalizeText(delegation) === normalizeText(value)
+  )
+
+const findGovernorateByDelegation = (value: string) =>
+  TUNISIA_GOVERNORATES.find((governorate) =>
+    governorate.delegations.some((delegation) => normalizeText(delegation) === normalizeText(value))
+  )
+
+const resolveLocation = (property: { department?: string; city?: string }) => {
+  const rawDepartment = typeof property.department === "string" ? property.department : ""
+  const rawCity = typeof property.city === "string" ? property.city : ""
+
+  const departmentAsGovernorate = rawDepartment ? findMatchingGovernorate(rawDepartment) : undefined
+  const cityAsGovernorate = rawCity ? findMatchingGovernorate(rawCity) : undefined
+
+  if (departmentAsGovernorate) {
+    const matchedDelegation = rawCity ? findMatchingDelegation(departmentAsGovernorate.name, rawCity) : undefined
+    return {
+      department: departmentAsGovernorate.name,
+      city: matchedDelegation || rawCity,
+    }
+  }
+
+  if (cityAsGovernorate) {
+    const matchedDelegation = rawDepartment ? findMatchingDelegation(cityAsGovernorate.name, rawDepartment) : undefined
+    return {
+      department: cityAsGovernorate.name,
+      city: matchedDelegation || rawDepartment,
+    }
+  }
+
+  const inferredGovernorate = rawCity
+    ? findGovernorateByDelegation(rawCity)
+    : rawDepartment
+      ? findGovernorateByDelegation(rawDepartment)
+      : undefined
+
+  if (inferredGovernorate) {
+    const matchedDelegation = findMatchingDelegation(inferredGovernorate.name, rawCity || rawDepartment)
+    return {
+      department: inferredGovernorate.name,
+      city: matchedDelegation || rawCity || rawDepartment,
+    }
+  }
+
+  return {
+    department: rawDepartment,
+    city: rawCity,
+  }
+}
+
 const PropertyFormPage: React.FC = () => {
   const { id } = useParams<{ id?: string }>()
   const isEdit = Boolean(id)
@@ -60,10 +119,12 @@ const PropertyFormPage: React.FC = () => {
       try {
         const p = await fetchProperty(id, token)
         if (!active) return
+        const resolvedLocation = resolveLocation(p)
         setTitle(p.title)
         setDescription(p.description)
-        setDepartment(p.department || "")
-        setCity(p.city)
+        setDepartment(resolvedLocation.department)
+        setCity(resolvedLocation.city)
+
         setAddress(p.address)
         setRent(String(p.rent))
         setDeposit(String(p.deposit))

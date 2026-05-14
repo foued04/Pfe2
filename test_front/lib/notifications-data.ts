@@ -1,5 +1,5 @@
 export type NotificationType = "Réclamation" | "Contrat" | "Système" | "Mobilier"
-export type NotificationStatus = "Vue par le propriétaire" | "En attente"
+export type NotificationStatus = "Vue par le locateur" | "En attente"
 
 export interface NotificationIntervention {
   date: string
@@ -72,10 +72,10 @@ export const mockNotifications: TenantNotification[] = [
     id: "notif-1",
     type: "Réclamation",
     title: "Problème Plomberie Cuisine",
-    preview: "Votre demande de maintenance a été traitée par le propriétaire.",
+    preview: "Votre demande de maintenance a été traitée par le locateur.",
     date: "2024-03-31T10:00:00Z",
     content: "Bonjour, j'ai une fuite au niveau de l'évier de la cuisine depuis ce matin. J'ai coupé l'eau en attendant.",
-    status: "Vue par le propriétaire",
+    status: "Vue par le locateur",
     isRead: false,
     claimResponse: {
       message: "Bonjour. D'accord, j'ai appelé le plombier. Il passera cet après-midi pour réparer la fuite.",
@@ -92,8 +92,8 @@ export const mockNotifications: TenantNotification[] = [
     title: "Contrat de location accepté",
     preview: "Félicitations ! Votre contrat pour l'appartement S+2 Monastir a été accepté.",
     date: "2024-03-30T15:30:00Z",
-    content: "Le propriétaire a validé votre dossier de location. Le contrat est prêt à être consulté et signé.",
-    status: "Vue par le propriétaire",
+    content: "Le locateur a validé votre dossier de location. Le contrat est prêt à être consulté et signé.",
+    status: "Vue par le locateur",
     isRead: true,
     contractData: {
       propertyTitle: "Appartement Moderne S+2 Centre Monastir",
@@ -111,14 +111,14 @@ export const mockNotifications: TenantNotification[] = [
     preview: "Votre compte locataire a été activé avec succès.",
     date: "2024-03-25T09:00:00Z",
     content: "L'équipe ImmoSmart vous souhaite la bienvenue ! Vous pouvez désormais explorer les offres et soumettre vos demandes de location.",
-    status: "Vue par le propriétaire", // Doesn't really apply to system, but keeping consistency
+    status: "Vue par le locateur", // Doesn't really apply to system, but keeping consistency
     isRead: true
   },
   {
     id: "notif-4",
     type: "Réclamation",
     title: "Panne de Climatisation",
-    preview: "Votre réclamation est en attente de lecture par le propriétaire.",
+    preview: "Votre réclamation est en attente de lecture par le locateur.",
     date: "2024-03-31T18:45:00Z",
     content: "Le climatiseur du salon ne refroidit plus. Il fait beaucoup de bruit quand il est allumé.",
     status: "En attente",

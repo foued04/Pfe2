@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { resolveApiUrl } from "@/lib/api/client"
 import { RentalRequest } from "@/lib/requests-data"
@@ -18,6 +19,141 @@ import { Button } from "./ui/button"
 import { RentalRequestDetailsModal } from "./rental-request-details-modal"
 import { ContractView } from "./contract-view"
 import { Contract } from "@/lib/rental-request-data"
+import { CreditCard, Receipt } from "lucide-react"
+import { Badge } from "./ui/badge"
+import { cn } from "@/lib/utils"
+
+export interface Payment {
+  id: string
+  propertyTitle: string
+  amount: number
+  date: string
+  status: "Payé" | "En attente" | "Refusé" | "En retard"
+  method: "Carte Bancaire" | "Virement" | "Espèces"
+  invoiceUrl?: string
+}
+
+const mockTenantPayments: Payment[] = [
+  {
+    id: "FAC-2026-001",
+    propertyTitle: "Villa Luxe S+4 Khnis",
+    amount: 1500,
+    date: "2026-04-01",
+    status: "Payé",
+    method: "Virement",
+    invoiceUrl: "#"
+  },
+  {
+    id: "FAC-2026-003",
+    propertyTitle: "Villa Luxe S+4 Khnis",
+    amount: 1500,
+    date: "2026-05-01",
+    status: "Payé",
+    method: "Carte Bancaire",
+    invoiceUrl: "#"
+  },
+  {
+    id: "FAC-2026-004",
+    propertyTitle: "Duplex Standing S+3 Skanes",
+    amount: 1200,
+    date: "2026-05-05",
+    status: "Refusé",
+    method: "Carte Bancaire"
+  },
+  {
+    id: "FAC-2026-005",
+    propertyTitle: "Villa Luxe S+4 Khnis",
+    amount: 1500,
+    date: "2026-06-01",
+    status: "En attente",
+    method: "Carte Bancaire"
+  }
+]
+
+const demoTenantRequests: any[] = [
+  {
+    id: "demo-req-1",
+    status: "active",
+    property: {
+      id: "p1",
+      title: "Appartement S+2 Monastir Centre",
+      address: "Rue de la Plage, Monastir",
+      rent: 850,
+      images: { cover: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&h=300&fit=crop" }
+    },
+    price: 850,
+    createdAt: "2026-04-10",
+    startDate: "2026-04-15",
+    duration: "12 mois",
+    message: "Contrat actif et signé."
+  },
+  {
+    id: "demo-req-2",
+    status: "contract_in_progress",
+    property: {
+      id: "p2",
+      title: "Villa Luxe S+4 Khnis",
+      address: "Cité des Jardins, Khnis",
+      rent: 1500,
+      images: { cover: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&h=300&fit=crop" }
+    },
+    price: 1500,
+    createdAt: "2026-05-01",
+    startDate: "2026-05-15",
+    duration: "24 mois",
+    message: "En attente de signature du contrat."
+  }
+]
+
+const demoTenantContracts: Contract[] = [
+  {
+    id: "DEMO-CTR-001",
+    requestId: "demo-req-1",
+    propertyId: "p1",
+    propertyTitle: "Appartement S+2 Monastir Centre",
+    propertyAddress: "Rue de la Plage, Monastir",
+    propertyType: "Appartement S+2",
+    propertySurface: 85,
+    propertyRent: 850,
+    propertyDeposit: 1700,
+    ownerName: "Mohamed Ben Ali",
+    ownerEmail: "owner@email.com",
+    ownerPhone: "+216 73 461 234",
+    tenantName: "Utilisateur", // Will be replaced by actual name if available
+    tenantEmail: "tenant@email.com",
+    tenantPhone: "+216 22 123 456",
+    startDate: "2026-04-15",
+    endDate: "2027-04-14",
+    duration: "12 mois",
+    status: "SignedByBoth",
+    ownerSignature: "signed",
+    tenantSignature: "signed",
+    createdAt: "2026-04-10"
+  },
+  {
+    id: "DEMO-CTR-002",
+    requestId: "demo-req-2",
+    propertyId: "p2",
+    propertyTitle: "Villa Luxe S+4 Khnis",
+    propertyAddress: "Cité des Jardins, Khnis",
+    propertyType: "Villa Luxe S+4",
+    propertySurface: 220,
+    propertyRent: 1500,
+    propertyDeposit: 3000,
+    ownerName: "Mohamed Ben Ali",
+    ownerEmail: "owner@email.com",
+    ownerPhone: "+216 73 461 234",
+    tenantName: "Utilisateur",
+    tenantEmail: "tenant@email.com",
+    tenantPhone: "+216 55 987 654",
+    startDate: "2026-05-15",
+    endDate: "2028-05-14",
+    duration: "24 mois",
+    status: "SignedByOwner",
+    ownerSignature: "signed",
+    createdAt: "2026-05-01"
+  }
+]
 
 interface TenantRequestsModuleProps {
   autoOpenRequestId?: string | null
@@ -27,8 +163,11 @@ interface TenantRequestsModuleProps {
 export function TenantRequestsModule({ autoOpenRequestId, onAutoOpenHandled }: TenantRequestsModuleProps) {
   const { lang } = useI18n()
   const { user } = useAuth()
+  const searchParams = useSearchParams()
+  const initialFilter = searchParams.get("tab") || "all"
+
   const [requests, setRequests] = useState<RentalRequest[]>([])
-  const [filter, setFilter] = useState<string>("all")
+  const [filter, setFilter] = useState<string>(initialFilter)
   const [searchQuery, setSearchQuery] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -53,26 +192,28 @@ export function TenantRequestsModule({ autoOpenRequestId, onAutoOpenHandled }: T
       })
       if (response.ok) {
         const data = await response.json()
-        const mapped = data.map((r: any) => ({
-          id: r._id,
-          status: mapStatus(r.status),
-          property: {
-            id: r.property?._id,
-            title: r.property?.title || "Propriété inconnue",
-            address: r.property?.address || "Adresse inconnue",
-            rent: r.property?.rent || 0,
-            owner: r.property?.owner, // Crucial for ChatModule
-            images: {
-              cover: r.property?.images?.cover || "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80",
-            }
-          },
-          price: r.property?.rent || 0,
-          createdAt: r.date || new Date().toLocaleDateString(),
-          startDate: r.date || new Date().toLocaleDateString(), // Use date as fallback
-          duration: r.duration || "12 mois",
-          message: r.message || ""
-        }))
-        setRequests(mapped)
+        setRequests(prev => {
+          const merged = data.map((r: any) => ({
+            id: r._id,
+            status: mapStatus(r.status),
+            property: {
+              id: r.property?._id,
+              title: r.property?.title || "Propriété inconnue",
+              address: r.property?.address || "Adresse inconnue",
+              rent: r.property?.rent || 0,
+              owner: r.property?.owner, // Crucial for ChatModule
+              images: {
+                cover: r.property?.images?.cover || "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80",
+              }
+            },
+            price: r.property?.rent || 0,
+            createdAt: r.date || new Date().toLocaleDateString(),
+            startDate: r.date || new Date().toLocaleDateString(), // Use date as fallback
+            duration: r.duration || "12 mois",
+            message: r.message || ""
+          }))
+          return merged
+        })
       } else {
         setError("Erreur lors du chargement de vos demandes")
       }
@@ -114,6 +255,7 @@ export function TenantRequestsModule({ autoOpenRequestId, onAutoOpenHandled }: T
     pending: requests.filter((r) => r.status === "pending").length,
     accepted: requests.filter((r) => r.status === "accepted" || r.status === "contract_in_progress").length,
     refused: requests.filter((r) => r.status === "refused").length,
+    payments: 0,
   }
 
   const filteredRequests = requests.filter((r) => {
@@ -249,7 +391,7 @@ export function TenantRequestsModule({ autoOpenRequestId, onAutoOpenHandled }: T
               if (response.ok) {
                 const updated = await response.json()
                 setViewingContract(prev => prev ? { ...prev, status: updated.status || "SignedByTenant" } : null)
-                alert(lang === "fr" ? "Contrat renvoyé au propriétaire." : "Contract sent back to owner.")
+                alert(lang === "fr" ? "Contrat renvoyé au locateur." : "Contract sent back to owner.")
                 fetchRequests()
               }
             } catch (err) {
@@ -277,18 +419,25 @@ export function TenantRequestsModule({ autoOpenRequestId, onAutoOpenHandled }: T
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {[
-            { label: "Total", value: stats.total, icon: FileText, color: "bg-blue-500", shadow: "shadow-blue-100", delay: "delay-100" },
-            { label: lang === "fr" ? "En attente" : "Pending", value: stats.pending, icon: Clock, color: "bg-yellow-500", shadow: "shadow-yellow-100", delay: "delay-150" },
-            { label: lang === "fr" ? "Acceptées" : "Accepted", value: stats.accepted, icon: CheckCircle, color: "bg-green-500", shadow: "shadow-green-100", delay: "delay-200" },
-            { label: lang === "fr" ? "Refusées" : "Refused", value: stats.refused, icon: XCircle, color: "bg-red-500", shadow: "shadow-red-100", delay: "delay-250" },
+            { key: "all", label: "Total", value: stats.total, icon: FileText, color: "bg-blue-500", shadow: "shadow-blue-100", delay: "delay-100" },
+            { key: "pending", label: lang === "fr" ? "En attente" : "Pending", value: stats.pending, icon: Clock, color: "bg-yellow-500", shadow: "shadow-yellow-100", delay: "delay-150" },
+            { key: "accepted", label: lang === "fr" ? "Acceptées" : "Accepted", value: stats.accepted, icon: CheckCircle, color: "bg-green-500", shadow: "shadow-green-100", delay: "delay-200" },
+            { key: "refused", label: lang === "fr" ? "Refusées" : "Refused", value: stats.refused, icon: XCircle, color: "bg-red-500", shadow: "shadow-red-100", delay: "delay-250" },
+            { key: "payments", label: lang === "fr" ? "Paiements" : "Payments", value: stats.payments, icon: CreditCard, color: "bg-emerald-500", shadow: "shadow-emerald-100", delay: "delay-300" },
           ].map((stat, i) => (
             <div 
               key={i} 
-              className={`bg-card border border-border/50 p-5 rounded-2xl flex items-center gap-4 shadow-sm hover:shadow-md transition-all duration-300 animate-in fade-in zoom-in-95 ${stat.delay} ${stat.shadow}`}
+              onClick={() => setFilter(stat.key)}
+              className={cn(
+                "bg-card border p-5 rounded-2xl flex items-center gap-4 shadow-sm hover:shadow-md transition-all duration-300 animate-in fade-in zoom-in-95 cursor-pointer group",
+                stat.delay, 
+                stat.shadow,
+                filter === stat.key ? "border-primary ring-1 ring-primary/20" : "border-border/50"
+              )}
             >
-              <div className={`${stat.color} p-3 rounded-xl text-white shadow-lg`}>
+              <div className={`${stat.color} p-3 rounded-xl text-white shadow-lg group-hover:scale-110 transition-transform`}>
                 <stat.icon className="w-5 h-5" />
               </div>
               <div>
@@ -345,10 +494,18 @@ export function TenantRequestsModule({ autoOpenRequestId, onAutoOpenHandled }: T
           >
             Refusées
           </Button>
+          <Button 
+            variant={filter === "payments" ? "default" : "outline"} 
+            size="sm" 
+            onClick={() => setFilter("payments")}
+            className="rounded-full px-5 font-bold"
+          >
+            {lang === "fr" ? "Paiements" : "Payments"}
+          </Button>
         </div>
       </div>
 
-      {/* Requests Grid */}
+      {/* Content Area */}
       <div className="grid grid-cols-1 gap-6 pb-12">
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
@@ -356,6 +513,56 @@ export function TenantRequestsModule({ autoOpenRequestId, onAutoOpenHandled }: T
           </div>
         ) : error ? (
           <div className="py-20 text-center text-destructive bg-destructive/5 rounded-3xl border border-dashed border-destructive/20">{error}</div>
+        ) : filter === "payments" ? (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[].map((payment, idx) => (
+                <div key={payment.id} className="bg-card border border-border/50 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                         <CreditCard className="w-4 h-4 text-primary" />
+                         <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{payment.id}</span>
+                      </div>
+                      <h3 className="text-lg font-black text-foreground tracking-tight">{payment.propertyTitle}</h3>
+                    </div>
+                    <Badge className={cn(
+                      "text-[10px] font-black uppercase px-3 py-1 border-none",
+                      payment.status === "Payé" ? "bg-emerald-100 text-emerald-700" : 
+                      payment.status === "Refusé" ? "bg-red-100 text-red-700" : 
+                      payment.status === "En retard" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700"
+                    )}>
+                      {payment.status}
+                    </Badge>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="bg-accent/30 p-3 rounded-2xl">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{lang === "fr" ? "Montant" : "Amount"}</p>
+                      <p className="text-xl font-black text-primary">{payment.amount} DT</p>
+                    </div>
+                    <div className="bg-accent/30 p-3 rounded-2xl">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Date</p>
+                      <p className="text-sm font-bold text-foreground">{new Date(payment.date).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-4 border-t border-border/30">
+                    <div className="flex items-center gap-2">
+                       <span className="text-[10px] font-black uppercase text-slate-400">{lang === "fr" ? "Méthode" : "Method"}:</span>
+                       <span className="text-xs font-bold text-foreground">{payment.method}</span>
+                    </div>
+                    {payment.status === "Payé" && (
+                      <Button variant="ghost" size="sm" className="h-8 rounded-xl text-[10px] font-black uppercase gap-2 hover:bg-primary/10 hover:text-primary">
+                        <Receipt className="w-3.5 h-3.5" />
+                        {lang === "fr" ? "Consulter Reçu" : "View Receipt"}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         ) : filteredRequests.length > 0 ? (
           filteredRequests.map((request, idx) => (
             <div

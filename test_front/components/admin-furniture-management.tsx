@@ -305,7 +305,7 @@ export function AdminFurnitureManagement() {
             onChange={(e) => setFilter({ ...filter, status: e.target.value })}
           >
             <option value="all">Tous les statuts</option>
-            <option value="pending">⚠️ À valider (Propriétaires)</option>
+            <option value="pending">⚠️ À valider (Locateurs)</option>
             <option value="requested">📩 Demandes (Locataires)</option>
             <option value="approved">✅ Approuvés</option>
             <option value="rejected">❌ Rejetés</option>
@@ -419,8 +419,8 @@ export function AdminFurnitureManagement() {
                             <FurnitureInlineDetail label="Prix Unitaire" value={`${item.price} DT`} icon={DollarSign} />
                             <FurnitureInlineDetail label="Quantité" value={String(item.quantity ?? 1)} icon={Hash} />
                             <FurnitureInlineDetail label="Statut" value={item.status || "pending"} icon={Info} />
-                            <FurnitureInlineDetail label="Demandeur" value={item.requesterName || "Propriétaire"} icon={User} />
-                            <FurnitureInlineDetail label="Type" value={item.requesterType === "tenant" ? "Locataire" : "Propriétaire"} icon={Tag} />
+                            <FurnitureInlineDetail label="Demandeur" value={item.requesterName || "Locateur"} icon={User} />
+                            <FurnitureInlineDetail label="Type" value={item.requesterType === "tenant" ? "Locataire" : "Locateur"} icon={Tag} />
                           </div>
                         </div>
                       </div>

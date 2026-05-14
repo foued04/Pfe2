@@ -4,19 +4,21 @@ import { useState } from "react"
 import { MapPin } from "lucide-react"
 import type { Property } from "@/lib/property-data"
 import { useProperties } from "@/hooks/api/use-properties"
+import { useI18n } from "@/lib/i18n"
 import { PageHeader } from "@/components/dashboard/shared/page-header"
 import { PropertyMap } from "@/components/property-map"
 import { Card, CardContent } from "@/components/ui/card"
 
 export function OwnerMapPage() {
+  const { t } = useI18n()
   const { properties, isLoading, error } = useProperties({ auth: true })
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null)
 
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Owner"
-        title="Map"
+        eyebrow={t("role.owner")}
+        title={t("nav.map")}
         description="Visualisez vos biens sur la carte et controlez rapidement leur localisation."
       />
 

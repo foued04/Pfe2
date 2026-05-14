@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useEffect, useRef, useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth, type UserRole } from "@/lib/auth-context"
+import { useI18n } from "@/lib/i18n"
 import { ArrowRight, BadgeCheck, Building2, Eye, EyeOff, Home, KeyRound, ShieldCheck, Sparkles, X } from "lucide-react"
 import { useGoogleLogin } from "@react-oauth/google"
 import { ImageCaptcha } from "./image-captcha"
@@ -111,6 +112,7 @@ function GoogleButton({ view, onClick }: { view: View; onClick: () => void }) {
 export function AuthForms({ initialView = "login", onClose }: { initialView?: View; onClose?: () => void }) {
   const { login, register, loginWithGoogle } = useAuth()
   const router = useRouter()
+  const { t } = useI18n()
   const [view, setView] = useState<View>(initialView)
   const [role, setRole] = useState<UserRole>("tenant")
   const [isAdminLogin, setIsAdminLogin] = useState(false)
@@ -270,12 +272,12 @@ export function AuthForms({ initialView = "login", onClose }: { initialView?: Vi
 
   if (!isMounted) return null
 
-  const title = view === "login" ? (isAdminLogin ? "Acces administrateur" : "Connexion") : view === "register" ? "Creer un compte" : view === "forgot-password" ? "Mot de passe oublie" : view === "verify-code" ? "Verification du code" : "Nouveau mot de passe"
-  const text = view === "login" ? (isAdminLogin ? "Acces reserve a l'administration ImmoSmart." : "Connectez-vous a votre espace immobilier.") : view === "register" ? "Creez votre compte pour gerer vos locations et vos biens." : view === "forgot-password" ? "Recevez un code par email pour recuperer votre acces." : view === "verify-code" ? "Entrez le code recu par email." : "Choisissez un nouveau mot de passe securise."
+  const title = view === "login" ? (isAdminLogin ? t("auth.adminAccess") : t("nav.login")) : view === "register" ? t("nav.register") : view === "forgot-password" ? t("auth.forgotPassword") : view === "verify-code" ? t("auth.verifyCode") : t("auth.newPassword")
+  const text = view === "login" ? (isAdminLogin ? t("auth.adminLoginDesc") : t("auth.loginDesc")) : view === "register" ? t("auth.registerDesc") : view === "forgot-password" ? t("auth.forgotDesc") : view === "verify-code" ? t("auth.verifyDesc") : t("auth.newPasswordDesc")
   const heroMetrics = [
-    { value: "150+", label: "Biens verifies" },
-    { value: "98%", label: "Clients satisfaits" },
-    { value: "24h", label: "Reponse moyenne" },
+    { value: "150+", label: t("auth.verifiedProperties") },
+    { value: "98%", label: t("auth.satisfiedClients") },
+    { value: "24h", label: t("auth.averageResponse") },
   ]
 
   return (
@@ -288,15 +290,15 @@ export function AuthForms({ initialView = "login", onClose }: { initialView?: Vi
               <span className={styles.badgeText}>ImmoSmart</span>
             </Link>
             <div className={styles.hero}>
-              <p className={styles.kicker}>Plateforme immobiliere</p>
+              <p className={styles.kicker}>{t("auth.platformKicker")}</p>
               <h2>
-                Trouvez votre bien
+                {t("auth.heroLine1")}
                 <br />
-                avec une
+                {t("auth.heroLine2")}
                 <br />
-                <span className={styles.highlight}>experience premium</span>
+                <span className={styles.highlight}>{t("auth.heroLine3Highlight")}</span>
               </h2>
-              <p className={styles.copy}>Locations, annonces et contrats dans une interface claire, moderne et inspiree de l'univers ImmoSmart.</p>
+              <p className={styles.copy}>{t("auth.platformDesc")}</p>
               <div className={styles.metrics}>
                 {heroMetrics.map((metric) => (
                   <div key={metric.label} className={styles.metric}>
@@ -313,34 +315,34 @@ export function AuthForms({ initialView = "login", onClose }: { initialView?: Vi
           <div className={styles.card}>
             {onClose ? <button type="button" className={styles.close} onClick={() => { resetFields(); onClose() }}><X size={18} /></button> : null}
             <div className={styles.header}>
-              <div className={styles.eyebrow}><Sparkles size={14} /> {isAdminLogin ? "Espace securise" : "Bienvenue"}</div>
+              <div className={styles.eyebrow}><Sparkles size={14} /> {isAdminLogin ? t("auth.secureSpace") : t("auth.welcome")}</div>
               <h1>{title}</h1>
               <p>{text}</p>
             </div>
 
             {(view === "login" || view === "register") && (
               <div className={styles.tabs}>
-                <button type="button" className={view === "login" ? styles.tabActive : styles.tab} onClick={() => setView("login")}>Connexion</button>
-                {!isAdminLogin && <button type="button" className={view === "register" ? styles.tabActive : styles.tab} onClick={() => setView("register")}>Inscription</button>}
+                <button type="button" className={view === "login" ? styles.tabActive : styles.tab} onClick={() => setView("login")}>{t("nav.login")}</button>
+                {!isAdminLogin && <button type="button" className={view === "register" ? styles.tabActive : styles.tab} onClick={() => setView("register")}>{t("nav.register")}</button>}
               </div>
             )}
 
             <form className={styles.form} onSubmit={submit}>
-              {view === "register" && <Field label="Nom complet" value={name} onChange={handleFieldChange(setName)} placeholder="Ex: Mohamed Ben Ali" icon={<BadgeCheck size={18} />} autoComplete="name" />}
-              {(view === "login" || view === "register" || view === "forgot-password") && <Field label="Email" value={email} onChange={handleFieldChange(setEmail)} placeholder={isAdminLogin ? ADMIN_EMAIL : "votre@email.tn"} type="email" icon={<Home size={18} />} autoComplete="email" />}
-              {(view === "login" || view === "register") && <Field label="Mot de passe" value={password} onChange={handleFieldChange(setPassword)} placeholder="6 caracteres minimum" type={showPassword ? "text" : "password"} icon={<KeyRound size={18} />} autoComplete={view === "login" ? "current-password" : "new-password"} action={<button type="button" className={styles.eye} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>} />}
-              {view === "register" && <Field label="Confirmer le mot de passe" value={confirmPassword} onChange={handleFieldChange(setConfirmPassword)} placeholder="Repetez le mot de passe" type={showConfirmPassword ? "text" : "password"} icon={<ShieldCheck size={18} />} autoComplete="new-password" action={<button type="button" className={styles.eye} onClick={() => setShowConfirmPassword(!showConfirmPassword)}>{showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>} />}
-              {view === "register" && <Field label="Telephone" value={phone} onChange={(val) => handleFieldChange(setPhone)(val.replace(/\D/g, "").slice(0, 8))} placeholder="Ex: 22 333 444" type="tel" icon={<Building2 size={18} />} autoComplete="tel" />}
-              {view === "login" && !isAdminLogin && <div className={styles.rowRight}><button type="button" className={styles.link} onClick={() => { setView("forgot-password"); setError(""); setSuccessMsg("") }}>Mot de passe oublie ?</button></div>}
+              {view === "register" && <Field label={t("auth.fullName")} value={name} onChange={handleFieldChange(setName)} placeholder={t("auth.fullNamePlaceholder")} icon={<BadgeCheck size={18} />} autoComplete="name" />}
+              {(view === "login" || view === "register" || view === "forgot-password") && <Field label={t("auth.email")} value={email} onChange={handleFieldChange(setEmail)} placeholder={isAdminLogin ? ADMIN_EMAIL : t("auth.emailPlaceholder")} type="email" icon={<Home size={18} />} autoComplete="email" />}
+              {(view === "login" || view === "register") && <Field label={t("auth.password")} value={password} onChange={handleFieldChange(setPassword)} placeholder={t("auth.passwordPlaceholder")} type={showPassword ? "text" : "password"} icon={<KeyRound size={18} />} autoComplete={view === "login" ? "current-password" : "new-password"} action={<button type="button" className={styles.eye} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>} />}
+              {view === "register" && <Field label={t("auth.confirmPassword")} value={confirmPassword} onChange={handleFieldChange(setConfirmPassword)} placeholder={t("auth.confirmPasswordPlaceholder")} type={showConfirmPassword ? "text" : "password"} icon={<ShieldCheck size={18} />} autoComplete="new-password" action={<button type="button" className={styles.eye} onClick={() => setShowConfirmPassword(!showConfirmPassword)}>{showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>} />}
+              {view === "register" && <Field label={t("auth.phone")} value={phone} onChange={(val) => handleFieldChange(setPhone)(val.replace(/\D/g, "").slice(0, 8))} placeholder={t("auth.phonePlaceholder")} type="tel" icon={<Building2 size={18} />} autoComplete="tel" />}
+              {view === "login" && !isAdminLogin && <div className={styles.rowRight}><button type="button" className={styles.link} onClick={() => { setView("forgot-password"); setError(""); setSuccessMsg("") }}>{t("auth.forgotPasswordQuest")}</button></div>}
               {view === "verify-code" && <CodeInput value={resetCode} onChange={handleFieldChange(setResetCode)} />}
-              {view === "reset-password" && <Field label="Nouveau mot de passe" value={newPassword} onChange={handleFieldChange(setNewPassword)} placeholder="Nouveau mot de passe" type={showPassword ? "text" : "password"} icon={<KeyRound size={18} />} autoComplete="new-password" action={<button type="button" className={styles.eye} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>} />}
-              {view === "reset-password" && <Field label="Confirmer le nouveau mot de passe" value={confirmNewPassword} onChange={handleFieldChange(setConfirmNewPassword)} placeholder="Confirmez le mot de passe" type={showConfirmNewPassword ? "text" : "password"} icon={<ShieldCheck size={18} />} autoComplete="new-password" action={<button type="button" className={styles.eye} onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}>{showConfirmNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>} />}
+              {view === "reset-password" && <Field label={t("auth.newPassword")} value={newPassword} onChange={handleFieldChange(setNewPassword)} placeholder={t("auth.newPassword")} type={showPassword ? "text" : "password"} icon={<KeyRound size={18} />} autoComplete="new-password" action={<button type="button" className={styles.eye} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>} />}
+              {view === "reset-password" && <Field label={t("auth.confirmNewPassword")} value={confirmNewPassword} onChange={handleFieldChange(setConfirmNewPassword)} placeholder={t("auth.confirmNewPassword")} type={showConfirmNewPassword ? "text" : "password"} icon={<ShieldCheck size={18} />} autoComplete="new-password" action={<button type="button" className={styles.eye} onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}>{showConfirmNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>} />}
               {view === "register" && !isAdminLogin && (
                 <label className={styles.field}>
-                  <span className={styles.label}>Type de compte</span>
+                  <span className={styles.label}>{t("auth.accountType")}</span>
                   <select className={styles.input} value={role} onChange={(e) => setRole(e.target.value as UserRole)}>
-                    <option value="tenant">Locataire</option>
-                    <option value="owner">Locateur</option>
+                    <option value="tenant">{t("role.tenant")}</option>
+                    <option value="owner">{t("role.owner")}</option>
                   </select>
                 </label>
               )}
@@ -348,22 +350,22 @@ export function AuthForms({ initialView = "login", onClose }: { initialView?: Vi
               {successMsg ? <div className={`${styles.notice} ${styles.success}`}>{successMsg}</div> : null}
               {view === "register" && (
                 <div className={styles.checks}>
-                  <label><input type="checkbox" checked={agreesToTerms} onChange={(e) => setAgreesToTerms(e.target.checked)} /> J'accepte les conditions d'utilisation et la politique de confidentialite.</label>
-                  <label><input type="checkbox" checked={wantsMarketing} onChange={(e) => setWantsMarketing(e.target.checked)} /> Je souhaite recevoir les nouveautes et offres d'ImmoSmart.</label>
+                  <label><input type="checkbox" checked={agreesToTerms} onChange={(e) => setAgreesToTerms(e.target.checked)} /> {t("auth.acceptTermsLabel")}</label>
+                  <label><input type="checkbox" checked={wantsMarketing} onChange={(e) => setWantsMarketing(e.target.checked)} /> {t("auth.wantsMarketingLabel")}</label>
                 </div>
               )}
               <button type="submit" className={`${styles.submit} ${isAdminLogin ? styles.submitAdmin : ""}`} disabled={isLoading || (view === "register" && !agreesToTerms)}>
-                {isLoading ? "Traitement..." : view === "login" ? "Se connecter" : view === "register" ? "Creer mon compte" : view === "forgot-password" ? "Envoyer le code" : view === "verify-code" ? "Verifier le code" : "Confirmer"}
+                {isLoading ? t("general.processing") : view === "login" ? t("nav.login") : view === "register" ? t("auth.createAccount") : view === "forgot-password" ? t("general.sendCode") : view === "verify-code" ? t("auth.verifyCode") : t("general.confirm")}
                 {!isLoading && (view === "login" || view === "register") ? <ArrowRight size={18} /> : null}
               </button>
               {(view === "login" || view === "register") && !isAdminLogin && <>
-                <div className={styles.divider}><span>ou</span></div>
+                <div className={styles.divider}><span>{t("general.or") || "ou"}</span></div>
                 <GoogleButton view={view} onClick={handleGoogleAuthClick} />
               </>}
               <div className={styles.footer}>
-                {view === "login" && !isAdminLogin && <p>Pas encore inscrit ? <button type="button" className={styles.linkAccent} onClick={() => { setView("register"); setError("") }}>Creer un compte</button></p>}
-                {view === "register" && <p>Vous avez deja un compte ? <button type="button" className={styles.linkAccent} onClick={() => { setView("login"); setError("") }}>Se connecter</button></p>}
-                {(view === "forgot-password" || view === "verify-code" || view === "reset-password") && <button type="button" className={styles.back} onClick={() => { setView("login"); setError(""); setSuccessMsg("") }}>Retour a la connexion</button>}
+                {view === "login" && !isAdminLogin && <p>{t("auth.notRegistered")} <button type="button" className={styles.linkAccent} onClick={() => { setView("register"); setError("") }}>{t("auth.createAccountLink")}</button></p>}
+                {view === "register" && <p>{t("auth.alreadyRegistered")} <button type="button" className={styles.linkAccent} onClick={() => { setView("login"); setError("") }}>{t("nav.login")}</button></p>}
+                {(view === "forgot-password" || view === "verify-code" || view === "reset-password") && <button type="button" className={styles.back} onClick={() => { setView("login"); setError(""); setSuccessMsg("") }}>{t("auth.backToLogin")}</button>}
               </div>
               {(view === "login" || view === "register") && <button type="button" className={styles.admin} onClick={() => {
                 const next = !isAdminLogin
@@ -378,7 +380,7 @@ export function AuthForms({ initialView = "login", onClose }: { initialView?: Vi
                   setEmail("")
                   setPassword("")
                 }
-              }}><ShieldCheck size={16} /> {isAdminLogin ? "Retour au portail public" : "Acces reserve a l'administration"}</button>}
+              }}><ShieldCheck size={16} /> {isAdminLogin ? t("auth.backToPublic") : t("auth.adminAccessReserve")}</button>}
             </form>
           </div>
         </section>
@@ -390,8 +392,8 @@ export function AuthForms({ initialView = "login", onClose }: { initialView?: Vi
           <div className={styles.overlayCard}>
             <button type="button" className={styles.close} onClick={() => setShowCaptchaOverlay(false)}><X size={18} /></button>
             <div className={styles.overlayHead}>
-              <p>Verification finale</p>
-              <h3>Confirmez que vous etes une personne reelle</h3>
+              <p>{t("auth.finalVerification")}</p>
+              <h3>{t("auth.confirmRealPerson")}</h3>
             </div>
             <ImageCaptcha onVerify={(ok) => {
               if (!ok) return

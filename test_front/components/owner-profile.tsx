@@ -788,7 +788,7 @@ export function OwnerProfile({ properties = [], requestCount = 0 }: { properties
             <CardHeader>
               <CardTitle className="text-lg">{lang === "fr" ? "Documents & Justificatifs" : "Documents & Proofs"}</CardTitle>
               <CardDescription>
-                {lang === "fr" ? "Gérez les documents d'identité liés à votre profil propriétaire." : "Manage the identity documents linked to your owner profile."}
+                {lang === "fr" ? "Gérez les documents d'identité liés à votre profil locateur." : "Manage the identity documents linked to your owner profile."}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">

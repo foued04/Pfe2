@@ -356,8 +356,8 @@ export function PropertyDetailsModal({
                   <User className="h-6 w-6 text-gray-500" />
                 </div>
                 <div>
-                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Propriétaire</div>
-                  <div className="font-semibold text-gray-900">{property.owner?.fullName || property.ownerName || "Propriétaire"}</div>
+                  <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Locateur</div>
+                  <div className="font-semibold text-gray-900">{property.owner?.fullName || property.ownerName || "Locateur"}</div>
                 </div>
               </div>
               
@@ -374,7 +374,7 @@ export function PropertyDetailsModal({
                 </div>
               ) : (
                 <div className="max-w-xs text-sm text-gray-500">
-                  Les coordonnees du proprietaire ne sont pas visibles pour les utilisateurs standards. Passez par la demande pour continuer.
+                  Les coordonnees du locateur ne sont pas visibles pour les utilisateurs standards. Passez par la demande pour continuer.
                 </div>
               )}
             </div>

@@ -21,7 +21,7 @@ import { AppLogo } from "@/components/shared/app-logo"
 export function PublicNavbar() {
   const pathname = usePathname()
   const { isAuthenticated, isLoading, role } = useAuth()
-  const { lang } = useI18n()
+  const { t } = useI18n()
   const dashboardHref =
     role === "tenant"
       ? "/dashboard/tenant"
@@ -32,10 +32,10 @@ export function PublicNavbar() {
           : "/dashboard"
   const homeHref = isAuthenticated ? dashboardHref : "/"
   const navItems = [
-    { href: homeHref, label: lang === "fr" ? "Accueil" : "Home" },
-    { href: "/properties", label: lang === "fr" ? "Proprietes" : "Properties" },
-    { href: "/ameublement", label: lang === "fr" ? "Meubles" : "Furniture" },
-    { href: "/contact", label: lang === "fr" ? "Contact" : "Contact" },
+    { href: homeHref, label: t("nav.home") },
+    { href: "/properties", label: t("nav.search") },
+    { href: "/ameublement", label: t("nav.furniture") },
+    { href: "/contact", label: t("nav.contact") || "Contact" },
   ]
   const showAccountControls = isAuthenticated && !isLoading
   const showGuestControls = !isAuthenticated && !isLoading
@@ -67,17 +67,17 @@ export function PublicNavbar() {
           {showAccountControls ? (
             <>
               <Button asChild variant="outline" className="h-12 rounded-full px-6 text-base">
-                <Link href={dashboardHref}>{lang === "fr" ? "Tableau de bord" : "Dashboard"}</Link>
+                <Link href={dashboardHref}>{t("nav.dashboard")}</Link>
               </Button>
               <ProfileDropdown />
             </>
           ) : showGuestControls ? (
             <>
               <Button asChild variant="outline" className="h-12 rounded-full px-6 text-base">
-                <Link href="/login">{lang === "fr" ? "Connexion" : "Login"}</Link>
+                <Link href="/login">{t("nav.login") || "Connexion"}</Link>
               </Button>
               <Button asChild className="h-12 rounded-full px-6 text-base">
-                <Link href="/register">{lang === "fr" ? "Inscription" : "Register"}</Link>
+                <Link href="/register">{t("nav.register") || "Inscription"}</Link>
               </Button>
             </>
           ) : (
@@ -94,7 +94,7 @@ export function PublicNavbar() {
             </SheetTrigger>
             <SheetContent side="right" className="w-[min(20rem,calc(100vw-1rem))]">
               <SheetHeader>
-                <SheetTitle>{lang === "fr" ? "Navigation" : "Navigation"}</SheetTitle>
+                <SheetTitle>{t("nav.navigation") || "Navigation"}</SheetTitle>
               </SheetHeader>
               <div className="mt-6 flex flex-col gap-2">
                 {navItems.map((item) => (
@@ -115,7 +115,7 @@ export function PublicNavbar() {
                   {showAccountControls ? (
                     <>
                       <Button asChild variant="outline" className="h-12 text-base">
-                        <Link href={dashboardHref}>{lang === "fr" ? "Tableau de bord" : "Dashboard"}</Link>
+                        <Link href={dashboardHref}>{t("nav.dashboard")}</Link>
                       </Button>
                       <div className="flex justify-start">
                         <ProfileDropdown />
@@ -124,10 +124,10 @@ export function PublicNavbar() {
                   ) : showGuestControls ? (
                     <>
                       <Button asChild variant="outline" className="h-12 text-base">
-                        <Link href="/login">{lang === "fr" ? "Connexion" : "Login"}</Link>
+                        <Link href="/login">{t("nav.login") || "Connexion"}</Link>
                       </Button>
                       <Button asChild className="h-12 text-base">
-                        <Link href="/register">{lang === "fr" ? "Inscription" : "Register"}</Link>
+                        <Link href="/register">{t("nav.register") || "Inscription"}</Link>
                       </Button>
                     </>
                   ) : (

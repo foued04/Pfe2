@@ -8,9 +8,11 @@ import { ChevronLeft, LayoutDashboard, Settings, User } from "lucide-react"
 import { AppLogo } from "@/components/shared/app-logo"
 import { ProfileDropdown } from "@/components/shared/profile-dropdown"
 import { useAuth } from "@/lib/auth-context"
+import { useI18n } from "@/lib/i18n"
 
 export function UserAccountShell({ children }: { children: ReactNode }) {
   const { role } = useAuth()
+  const { t } = useI18n()
   const profileHref = useMemo(() => {
     if (role === "owner") return "/dashboard/owner/profile"
     if (role === "tenant") return "/dashboard/tenant/profile"
@@ -37,10 +39,10 @@ export function UserAccountShell({ children }: { children: ReactNode }) {
 
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-6">
             <nav className="flex flex-wrap items-center gap-2 text-sm">
-              <AccountNavLink href="/dashboard" icon={<LayoutDashboard className="h-4 w-4" />} label="Dashboard" />
-              <AccountNavLink href={profileHref} icon={<User className="h-4 w-4" />} label="Profile" />
-              <AccountNavLink href={settingsHref} icon={<Settings className="h-4 w-4" />} label="Settings" />
-              <AccountNavLink href="/" icon={<ChevronLeft className="h-4 w-4" />} label="Back to site" />
+              <AccountNavLink href="/dashboard" icon={<LayoutDashboard className="h-4 w-4" />} label={t("sidebar.dashboard")} />
+              <AccountNavLink href={profileHref} icon={<User className="h-4 w-4" />} label={t("profile")} />
+              <AccountNavLink href={settingsHref} icon={<Settings className="h-4 w-4" />} label={t("settings")} />
+              <AccountNavLink href="/" icon={<ChevronLeft className="h-4 w-4" />} label={t("general.backToSite") || "Retour au site"} />
             </nav>
 
             <div className="hidden lg:block">

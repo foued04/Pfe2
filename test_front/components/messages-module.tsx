@@ -124,6 +124,8 @@ export function MessagesModule() {
           source: m.source,
           metadata: m.metadata
         })))
+        // Refresh sidebar counts since backend marks messages as read on fetch
+        window.dispatchEvent(new CustomEvent("refresh-dashboard-counts"))
       }
     } catch (err) {
       console.error("Fetch messages error:", err)
@@ -264,7 +266,7 @@ export function MessagesModule() {
       if (response.ok) {
         const updated = await response.json()
         setContractToView(prev => prev ? { ...prev, status: updated.status || "SignedByTenant" } : null)
-        alert(lang === "fr" ? "Contrat renvoyé au propriétaire." : "Contract sent back to owner.")
+        alert(lang === "fr" ? "Contrat renvoyé au locateur." : "Contract sent back to owner.")
       }
     } catch (err) {
       console.error("Send back contract error:", err)

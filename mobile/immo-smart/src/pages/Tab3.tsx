@@ -58,7 +58,7 @@ function CodeInput({ value, onChange }: { value: string; onChange: (value: strin
 
   return (
     <label className="auth-field">
-      <span className="auth-label">Code de verification</span>
+      <span className="auth-label">Code de vérification</span>
       <div
         className="auth-code-row"
         onPaste={(e) => {
@@ -140,9 +140,9 @@ const Tab3: React.FC = () => {
   const [showCaptchaOverlay, setShowCaptchaOverlay] = useState(false)
 
   const heroMetrics = [
-    { value: "150+", label: "Biens verifies" },
+    { value: "150+", label: "Biens vérifiés" },
     { value: "98%", label: "Clients satisfaits" },
-    { value: "24h", label: "Reponse moyenne" },
+    { value: "24h", label: "Réponse moyenne" },
   ]
 
   const handleFieldChange = (setter: (val: string) => void) => (val: string) => {
@@ -223,7 +223,7 @@ const Tab3: React.FC = () => {
 
       if (view === "register") {
         if (password.length < 6) {
-          setError("Le mot de passe doit contenir au moins 6 caracteres.")
+          setError("Le mot de passe doit contenir au moins 6 caractères.")
           return
         }
         if (password !== confirmPassword) {
@@ -266,7 +266,7 @@ const Tab3: React.FC = () => {
 
       if (view === "verify-code") {
         await http.post<{ message: string }>("/auth/verify-reset-code", { email, code: resetCode })
-        setSuccessMsg("Code verifie avec succes.")
+        setSuccessMsg("Code vérifié avec succès.")
         setView("reset-password")
         return
       }
@@ -281,7 +281,7 @@ const Tab3: React.FC = () => {
         code: resetCode,
         newPassword,
       })
-      setSuccessMsg("Mot de passe mis a jour. Vous pouvez vous connecter.")
+      setSuccessMsg("Mot de passe mis à jour. Vous pouvez vous connecter.")
       navigateToAuthRoute("login")
     } catch {
       setError("Une erreur de connexion est survenue")
@@ -315,28 +315,28 @@ const Tab3: React.FC = () => {
   const title =
     view === "login"
       ? isAdminLogin
-        ? "Acces administrateur"
+        ? "Accès administrateur"
         : "Connexion"
       : view === "register"
-        ? "Creer un compte"
+        ? "Créer un compte"
         : view === "forgot-password"
-          ? "Mot de passe oublie"
+          ? "Mot de passe oublié"
           : view === "verify-code"
-            ? "Verification du code"
+            ? "Vérification du code"
             : "Nouveau mot de passe"
 
   const text =
     view === "login"
       ? isAdminLogin
-        ? "Acces reserve a l'administration ImmoSmart."
-        : "Connectez-vous a votre espace immobilier."
+        ? "Accès réservé à l'administration ImmoSmart."
+        : "Connectez-vous à votre espace immobilier."
       : view === "register"
-        ? "Creez votre compte pour gerer vos locations et vos biens."
+        ? "Créez votre compte pour gérer vos locations et vos biens."
         : view === "forgot-password"
-          ? "Recevez un code par email pour recuperer votre acces."
+          ? "Recevez un code par email pour récupérer votre accès."
           : view === "verify-code"
-            ? "Entrez le code recu par email."
-            : "Choisissez un nouveau mot de passe securise."
+            ? "Entrez le code reçu par email."
+            : "Choisissez un nouveau mot de passe sécurisé."
 
   return (
     <IonPage>
@@ -351,16 +351,16 @@ const Tab3: React.FC = () => {
                 </button>
 
                 <div className="auth-hero">
-                  <p className="auth-kicker">Plateforme immobiliere</p>
+                  <p className="auth-kicker">Plateforme immobilière</p>
                   <h2>
                     Trouvez votre bien
                     <br />
                     avec une
                     <br />
-                    <span className="auth-highlight">experience premium</span>
+                    <span className="auth-highlight">expérience premium</span>
                   </h2>
                   <p className="auth-copy">
-                    Locations, annonces et contrats dans une interface claire, moderne et inspiree de l'univers ImmoSmart.
+                    Locations, annonces et contrats dans une interface claire, moderne et inspirée de l'univers ImmoSmart.
                   </p>
 
                   <div className="auth-metrics">
@@ -378,7 +378,7 @@ const Tab3: React.FC = () => {
             <section className="auth-right">
               <div className="auth-card">
                 <div className="auth-header">
-                  <div className="auth-eyebrow">{isAdminLogin ? "Espace securise" : "Bienvenue"}</div>
+                  <div className="auth-eyebrow">{isAdminLogin ? "Espace sécurisé" : "Bienvenue"}</div>
                   <h1>{title}</h1>
                   <p>{text}</p>
                 </div>
@@ -422,7 +422,7 @@ const Tab3: React.FC = () => {
                       label="Mot de passe"
                       value={password}
                       onChange={handleFieldChange(setPassword)}
-                      placeholder="6 caracteres minimum"
+                      placeholder="6 caractères minimum"
                       type={showPassword ? "text" : "password"}
                       icon="*"
                       autoComplete={view === "login" ? "current-password" : "new-password"}
@@ -439,7 +439,7 @@ const Tab3: React.FC = () => {
                       label="Confirmer le mot de passe"
                       value={confirmPassword}
                       onChange={handleFieldChange(setConfirmPassword)}
-                      placeholder="Repetez le mot de passe"
+                      placeholder="Répétez le mot de passe"
                       type={showConfirmPassword ? "text" : "password"}
                       icon="*"
                       autoComplete="new-password"
@@ -453,7 +453,7 @@ const Tab3: React.FC = () => {
 
                   {view === "register" ? (
                     <Field
-                      label="Telephone"
+                      label="Téléphone"
                       value={phone}
                       onChange={(val) => handleFieldChange(setPhone)(val.replace(/\D/g, "").slice(0, 8))}
                       placeholder="Ex: 22 333 444"
@@ -474,7 +474,7 @@ const Tab3: React.FC = () => {
                           setSuccessMsg("")
                         }}
                       >
-                        Mot de passe oublie ?
+                        Mot de passe oublié ?
                       </button>
                     </div>
                   ) : null}
@@ -532,11 +532,11 @@ const Tab3: React.FC = () => {
                     <div className="auth-checks">
                       <label>
                         <input type="checkbox" checked={agreesToTerms} onChange={(e) => setAgreesToTerms(e.target.checked)} />
-                        <span>J'accepte les conditions d'utilisation et la politique de confidentialite.</span>
+                        <span>J'accepte les conditions d'utilisation et la politique de confidentialité.</span>
                       </label>
                       <label>
                         <input type="checkbox" checked={wantsMarketing} onChange={(e) => setWantsMarketing(e.target.checked)} />
-                        <span>Je souhaite recevoir les nouveautes et offres d'ImmoSmart.</span>
+                        <span>Je souhaite recevoir les nouveautés et offres d'ImmoSmart.</span>
                       </label>
                     </div>
                   ) : null}
@@ -547,11 +547,11 @@ const Tab3: React.FC = () => {
                       : view === "login"
                         ? "Se connecter"
                         : view === "register"
-                          ? "Creer mon compte"
+                          ? "Créer mon compte"
                           : view === "forgot-password"
                             ? "Envoyer le code"
                             : view === "verify-code"
-                              ? "Verifier le code"
+                              ? "Vérifier le code"
                               : "Confirmer"}
                   </button>
 
@@ -569,14 +569,14 @@ const Tab3: React.FC = () => {
                       <p>
                         Pas encore inscrit ?{" "}
                         <button type="button" className="auth-link-accent" onClick={() => navigateToAuthRoute("register")}>
-                          Creer un compte
+                          Créer un compte
                         </button>
                       </p>
                     ) : null}
 
                     {view === "register" ? (
                       <p>
-                        Vous avez deja un compte ?{" "}
+                        Vous avez déjà un compte ?{" "}
                         <button type="button" className="auth-link-accent" onClick={() => navigateToAuthRoute("login")}>
                           Se connecter
                         </button>
@@ -593,7 +593,7 @@ const Tab3: React.FC = () => {
                           setSuccessMsg("")
                         }}
                       >
-                        Retour a la connexion
+                        Retour à la connexion
                       </button>
                     ) : null}
                   </div>
@@ -617,7 +617,7 @@ const Tab3: React.FC = () => {
                         }
                       }}
                     >
-                      {isAdminLogin ? "Retour au portail public" : "Acces reserve a l'administration"}
+                      {isAdminLogin ? "Retour au portail public" : "Accès réservé à l'administration"}
                     </button>
                   ) : null}
                 </form>
@@ -630,8 +630,8 @@ const Tab3: React.FC = () => {
               <div className="auth-overlay-bg" onClick={() => setShowCaptchaOverlay(false)} />
               <div className="auth-overlay-card">
                 <div className="auth-overlay-head">
-                  <p>Verification finale</p>
-                  <h3>Confirmez que vous etes une personne reelle</h3>
+                  <p>Vérification finale</p>
+                  <h3>Confirmez que vous êtes une personne réelle</h3>
                 </div>
                 <ImageCaptcha
                   onVerify={(ok) => {

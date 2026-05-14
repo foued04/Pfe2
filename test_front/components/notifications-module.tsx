@@ -118,14 +118,21 @@ export function NotificationsModule() {
   const [isModerating, setIsModerating] = useState(false)
 
   const API_URL = resolveApiUrl()
-  const normalizeType = (type: string) =>
-    type === "RÃ©clamation" || type === "Reclamation"
-      ? "Réclamation"
-      : type === "SystÃ¨me" || type === "Systeme"
-        ? "Système"
-        : type === "VÃ©rification" || type === "Verification"
-          ? "Vérification"
-          : type
+  const normalizeType = (type: string) => {
+    if (!type) return "Système"
+    const isMangledReclamation = type.includes('R\u00c3\u00a9') || type.includes('R\u00e9') || type.toLowerCase() === "reclamation"
+    const isMangledSystem = type.includes('Syst\u00c3\u00a8') || type.includes('Syst\u00e8') || type.toLowerCase() === "systeme" || type.toLowerCase() === "système"
+    const isMangledVerification = type.includes('V\u00c3\u00a9') || type.includes('V\u00e9') || type.toLowerCase() === "verification"
+    const isMangledMobilier = type.toLowerCase() === "mobilier" || type.toLowerCase() === "furniture"
+    const isMangledContrat = type.toLowerCase() === "contrat" || type.toLowerCase() === "contract"
+
+    if (isMangledReclamation) return 'Réclamation'
+    if (isMangledSystem) return 'Système'
+    if (isMangledVerification) return 'Vérification'
+    if (isMangledMobilier) return 'Mobilier'
+    if (isMangledContrat) return 'Contrat'
+    return type
+  }
   const isReclamation = (type: string) => normalizeType(type) === "Réclamation"
 
   const fetchNotifications = async () => {
@@ -303,6 +310,8 @@ export function NotificationsModule() {
         setSelectedRequest(null)
         setNotifications(prev => prev.filter(n => n._id !== activeNotifId))
         setActiveNotifId(null)
+        // Refresh sidebar counts
+        window.dispatchEvent(new CustomEvent("refresh-dashboard-counts"))
       }
     } catch (err) {
       console.error("Reject request error:", err)
@@ -397,8 +406,24 @@ export function NotificationsModule() {
         headers: { Authorization: `Bearer ${token}` }
       })
       setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n))
+      // Refresh sidebar counts immediately
+      window.dispatchEvent(new CustomEvent("refresh-dashboard-counts"))
     } catch (err) {
       console.error("Mark as read error:", err)
+    }
+  }
+
+  const markAllAsRead = async () => {
+    try {
+      const token = localStorage.getItem("accessToken")
+      await fetch(`${API_URL}/notifications/read-all`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
+      window.dispatchEvent(new CustomEvent("refresh-dashboard-counts"))
+    } catch (err) {
+      console.error("Mark all as read error:", err)
     }
   }
 
@@ -596,6 +621,8 @@ export function NotificationsModule() {
       case "Mobilier":
         return { color: "text-orange-700 bg-orange-100 border-orange-200", icon: Home }
       case "Système":
+      case "Systeme" as any:
+        return { color: "text-primary bg-blue-50 border-blue-100", icon: Mail }
       default:
         return { color: "text-slate-700 bg-slate-100 border-slate-200", icon: Info }
     }
@@ -657,7 +684,17 @@ export function NotificationsModule() {
               <Bell className="w-6 h-6 text-primary" />
               {isFr ? "Notifications" : "Notifications"}
             </h2>
-            {isLoading && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />}
+            <div className="flex items-center gap-2">
+              {notifications.some(n => !n.isRead) && (
+                <button 
+                  onClick={markAllAsRead}
+                  className="text-[10px] font-black uppercase tracking-wider text-primary hover:bg-primary/5 px-2 py-1 rounded-md transition-colors"
+                >
+                  {isFr ? "Tout marquer" : "Mark all"}
+                </button>
+              )}
+              {isLoading && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />}
+            </div>
           </div>
           
           <div className="relative">
@@ -862,44 +899,74 @@ export function NotificationsModule() {
                 </div>
               </div>
             ) : (
-              <div className="prose prose-slate max-w-none">
-                <div className="bg-slate-50 border border-slate-100 p-8 rounded-3xl shadow-inner">
-                  <p className="text-lg text-slate-700 leading-relaxed font-medium whitespace-pre-wrap">
-                    {activeNotif.content}
-                  </p>
+              <div className="space-y-6">
+                <div className={cn(
+                  "p-8 rounded-3xl border relative overflow-hidden group",
+                  activeNotif.title === "Nouveau message" ? "bg-blue-50/50 border-blue-100" : "bg-slate-50 border-slate-100"
+                )}>
+                  <div className="absolute right-0 top-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
+                    {activeNotif.title === "Nouveau message" ? <Mail className="w-24 h-24 text-primary" /> : <Info className="w-24 h-24 text-slate-400" />}
+                  </div>
+                  
+                  <div className="relative z-10">
+                    <div className="flex items-center gap-2 mb-4 text-xs font-black text-muted-foreground uppercase tracking-widest">
+                      <Info className="w-4 h-4 text-primary" />
+                      {activeNotif.title === "Nouveau message" ? "Message du locataire" : "Détails de la notification"}
+                    </div>
+                    <p className="text-xl text-slate-700 leading-relaxed font-medium italic">
+                      "{activeNotif.content}"
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
 
             {activeNotif.messageMeta?.conversationId && !isReclamation(activeNotif.type) && (
-              <form onSubmit={handleReplyToMessage} className="rounded-3xl border border-blue-100 bg-blue-50/60 p-5 shadow-sm sm:p-6">
-                <div className="mb-4 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+              <form onSubmit={handleReplyToMessage} className="rounded-3xl border border-border bg-white p-8 shadow-xl shadow-slate-200/50 space-y-6">
+                <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-lg font-black text-slate-950">Repondre au locataire</h4>
-                    <p className="text-sm font-medium text-slate-500">
-                      Votre message sera envoye dans la conversation avec {activeNotif.messageMeta.senderName || "le locataire"}.
+                    <h4 className="text-2xl font-black text-foreground tracking-tight">Répondre</h4>
+                    <p className="mt-1 text-sm text-muted-foreground font-medium">
+                      Votre réponse sera envoyée à <span className="text-primary font-bold">{activeNotif.messageMeta.senderName || "votre locataire"}</span>.
                     </p>
                   </div>
-                  <Send className="h-5 w-5 text-primary" />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    className="rounded-full gap-2 border-primary/20 text-primary hover:bg-primary/5"
+                    onClick={() => window.location.href = '/dashboard/owner/messages'}
+                  >
+                    Ouvrir Messenger
+                    <Send className="w-3 h-3 rotate-45" />
+                  </Button>
                 </div>
+                
                 <textarea
                   value={messageReply}
                   onChange={(event) => setMessageReply(event.target.value)}
-                  className="min-h-28 w-full resize-none rounded-2xl border border-blue-100 bg-white p-4 text-sm font-medium outline-none ring-primary/20 transition focus:ring-4"
-                  placeholder="Ecrivez votre reponse au locataire..."
+                  className="min-h-32 w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 p-4 text-base font-medium outline-none ring-primary/20 transition focus:bg-white focus:ring-4"
+                  placeholder="Tapez votre réponse ici..."
                 />
+                
                 {replyStatus && (
-                  <p className={cn(
-                    "mt-3 text-sm font-bold",
-                    replyStatus.type === "success" ? "text-emerald-600" : "text-destructive"
+                  <div className={cn(
+                    "p-4 rounded-xl text-sm font-bold flex items-center gap-2",
+                    replyStatus.type === "success" ? "bg-emerald-50 border border-emerald-200 text-emerald-700" : "bg-red-50 border border-red-200 text-red-600"
                   )}>
+                    <Info className="w-4 h-4" />
                     {replyStatus.message}
-                  </p>
+                  </div>
                 )}
-                <div className="mt-4 flex justify-end">
-                  <Button type="submit" disabled={isSendingReply} className="w-full rounded-2xl px-6 font-black sm:w-auto">
-                    {isSendingReply ? "Envoi..." : "Envoyer la reponse"}
-                    {!isSendingReply && <ChevronRight className="ml-2 h-4 w-4" />}
+                
+                <div className="flex justify-end pt-2">
+                  <Button 
+                    type="submit" 
+                    disabled={isSendingReply || !messageReply.trim()} 
+                    className="rounded-2xl h-14 px-10 bg-primary text-white font-black uppercase tracking-widest text-sm gap-3 shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:-translate-y-0.5 active:translate-y-0"
+                  >
+                    {isSendingReply ? "Envoi en cours..." : "Envoyer la réponse"}
+                    {!isSendingReply && <Send className="ml-2 h-5 w-5" />}
                   </Button>
                 </div>
               </form>

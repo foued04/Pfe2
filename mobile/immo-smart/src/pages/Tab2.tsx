@@ -40,7 +40,7 @@ const statusColors: Record<string, string> = {
 
 const statusLabels: Record<string, string> = {
   available: "Disponible",
-  rented: "Loue",
+  rented: "Loué",
   maintenance: "Maintenance",
 }
 
@@ -102,7 +102,7 @@ const Tab2: React.FC = () => {
         setProperties(visibleProperties)
       } catch (err) {
         if (!active) return
-        setError(err instanceof Error ? err.message : "Erreur chargement proprietes")
+        setError(err instanceof Error ? err.message : "Erreur chargement propriétés")
       } finally {
         if (!active) return
         setLoading(false)
@@ -202,7 +202,7 @@ const Tab2: React.FC = () => {
       : selectedGovernorate
   const delegationsSummary =
     selectedDelegation === ""
-      ? "Choisir les delegations"
+      ? "Choisir les délégations"
       : selectedDelegation
 
   const openPropertyDetails = (propertyId: string) => {
@@ -218,8 +218,8 @@ const Tab2: React.FC = () => {
             title="Recherche de biens"
             subtitle={
               isOwnerBrowsingCatalog
-                ? "Consultez tous les biens approuves et disponibles de l'application, comme sur la version web."
-                : "Consultez les biens approuves et disponibles avec la meme API que le catalogue existant."
+                ? "Consultez tous les biens approuvés et disponibles de l'application, comme sur la version web."
+                : "Consultez les biens approuvés et disponibles avec la même API que le catalogue existant."
             }
           />
 
@@ -321,7 +321,7 @@ const Tab2: React.FC = () => {
               <div className="tab2-filter-field tab2-filter-field-full">
                 <span>Delegations</span>
                 {selectedGovernorate === "" ? (
-                  <div className="tab2-checkbox-empty">Selectionnez d'abord un gouvernorat.</div>
+                  <div className="tab2-checkbox-empty">Sélectionnez d'abord un gouvernorat.</div>
                 ) : (
                   <>
                     <button
@@ -359,7 +359,7 @@ const Tab2: React.FC = () => {
               <p>{filtered.length} bien(s) disponible(s)</p>
               {hasActiveFilters ? (
                 <button type="button" className="tab2-clear-btn" onClick={resetFilters}>
-                  Reinitialiser
+                  Réinitialiser
                 </button>
               ) : null}
             </div>
@@ -373,8 +373,8 @@ const Tab2: React.FC = () => {
             ) : filtered.length === 0 ? (
               <EmptyState
                 icon={searchOutline}
-                title="Aucun resultat"
-                message="Aucun bien disponible ne correspond a vos filtres actuels."
+                title="Aucun résultat"
+                message="Aucun bien disponible ne correspond à vos filtres actuels."
                 actionLabel={hasActiveFilters ? "Effacer les filtres" : undefined}
                 onAction={hasActiveFilters ? resetFilters : undefined}
               />
@@ -408,7 +408,7 @@ const Tab2: React.FC = () => {
                 <EmptyState
                   icon={mapOutline}
                   title="Aucune position disponible"
-                  message="Les biens filtres n'ont pas encore de position cartographique exploitable."
+                  message="Les biens filtrés n'ont pas encore de position cartographique exploitable."
                 />
               ) : (
                 <div className="tab2-map-shell">
@@ -431,7 +431,7 @@ const Tab2: React.FC = () => {
                         <Popup maxWidth={300}>
                           <div className="tab2-map-popup">
                             <h3>{property.title}</h3>
-                            <p>{property.address || property.city || "Adresse non specifiee"}</p>
+                            <p>{property.address || property.city || "Adresse non spécifiée"}</p>
                             <div className="tab2-map-popup-chips">
                               <span>{property.type.toUpperCase()}</span>
                               {property.bedrooms > 0 ? <span>{property.bedrooms} ch.</span> : null}
@@ -441,14 +441,14 @@ const Tab2: React.FC = () => {
                             <div className="tab2-map-popup-meta">
                               <span>{property.surface} m2</span>
                               {property.parking ? <span>Parking</span> : null}
-                              {property.meuble ? <span>Meuble</span> : null}
+                              {property.meuble ? <span>Meublé</span> : null}
                             </div>
                             <button
                               type="button"
                               className="tab2-map-popup-btn"
                               onClick={() => openPropertyDetails(property._id)}
                             >
-                              Voir details
+                              Voir détails
                             </button>
                           </div>
                         </Popup>

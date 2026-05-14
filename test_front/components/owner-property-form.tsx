@@ -42,32 +42,7 @@ const propertyTypes = [
   { value: "villa", label: "Villa" },
 ]
 
-const TUNISIA_REGIONS: Record<string, string[]> = {
-  "Ariana": ["Ariana Ville", "Ettadhamen", "Kalaat el-Andalous", "Mnihla", "Raoued", "Sidi Thabet", "Soukra"],
-  "Béja": ["Amdoun", "Béja Nord", "Béja Sud", "Goubellat", "Medjez el-Bab", "Nefza", "Téboursouk", "Testour", "Thibar"],
-  "Ben Arous": ["Ben Arous", "Bou Mhel el-Bassatine", "El Mourouj", "Ezzahra", "Fouchana", "Hammam Chott", "Hammam Lif", "Mohamedia", "Medina Jedida", "Megrine", "Mornag", "Radès"],
-  "Bizerte": ["Bizerte Nord", "Bizerte Sud", "El Alia", "Ghar El Melh", "Ghezala", "Joumine", "Mateur", "Menzel Bourguiba", "Menzel Jemil", "Ras Jebel", "Sejnane", "Tinja", "Utique", "Zarzouna"],
-  "Gabès": ["Gabès Médina", "Gabès Ouest", "Gabès Sud", "Ghannouch", "El Hamma", "Matmata", "Mareth", "Menzel Habib", "Métouia", "Nouvelle Matmata"],
-  "Gafsa": ["Belkhir", "El Guettar", "El Ksar", "Gafsa Nord", "Gafsa Sud", "Mdhilla", "Métlaoui", "Oum El Araies", "Redeyef", "Sened", "Sidi Aïch"],
-  "Jendouba": ["Aïn Draham", "Balta-Bou Aouane", "Bou Salem", "Fernana", "Ghardimaou", "Jendouba Sud", "Jendouba Nord", "Oued Meliz", "Tabarka"],
-  "Kairouan": ["Bou Hajla", "Chebika", "Echrarda", "Haffouz", "Hajeb El Ayoun", "Kairouan Nord", "Kairouan Sud", "Nasrallah", "Oueslatia", "Sbikha"],
-  "Kasserine": ["El Ayoun", "Ezzouhour", "Fériana", "Foussana", "Hassi El Ferid", "Jedelienne", "Kasserine Nord", "Kasserine Sud", "Majel Bel Abbès", "Sbeitla", "Sbiba", "Thala"],
-  "Kébili": ["Douz Nord", "Douz Sud", "Faouar", "Kébili Nord", "Kébili Sud", "Souk Lahad"],
-  "Le Kef": ["Dahmani", "Jérissa", "El Ksour", "Sers", "Tajerouine", "Kalaat Senan", "Kalaa Khasba", "Le Kef Est", "Le Kef Ouest", "Nebeur", "Sakiet Sidi Youssef", "Touiref"],
-  "Mahdia": ["Bou Merdes", "Chebba", "Chorbane", "El Jem", "Essouassi", "Hebira", "Ksour Essef", "Mahdia", "Melloulent", "Ouled Chamekh", "Sidi Alouane"],
-  "La Manouba": ["Borj El Amri", "Djedeida", "Douar Hicher", "El Batan", "La Manouba", "Mornaguia", "Oued Ellil", "Tébourba"],
-  "Médenine": ["Ben Gardane", "Beni Khedache", "Djerba Ajim", "Djerba Houmt Souk", "Djerba Midoun", "Médenine Nord", "Médenine Sud", "Sidi Makhlouf", "Zarzis"],
-  "Monastir": ["Bekalta", "Bembla", "Beni Hassen", "Jemmal", "Ksar Hellal", "Ksibet el-Médiouni", "Moknine", "Monastir", "Ouerdanine", "Sahline", "Sayada-Lamta-Bou Hajar", "Téboulba", "Zéramdine"],
-  "Nabeul": ["Béni Khalled", "Béni Khiar", "Bou Argoub", "Dar Chaâbane El Fehri", "El Mida", "Grombalia", "Hammam Ghezèze", "Hammamet", "Kélibia", "Korba", "Menzel Bouzelfa", "Menzel Temime", "Nabeul", "Soliman", "Takelsa"],
-  "Sfax": ["Agareb", "Bir Ali Ben Khalifa", "El Amra", "El Hencha", "Graiba", "Jebiniana", "Kerkennah", "Mahrès", "Menzel Chaker", "Sakiet Eddaïer", "Sakiet Ezzit", "Sfax Ouest", "Sfax Sud", "Sfax Ville", "Skhira", "Thyna"],
-  "Sidi Bouzid": ["Ben Aoun", "Bir El Hafey", "Cebbala Ouled Asker", "Jilma", "Mazzouna", "Meknassy", "Menzel Bouzaiane", "Ouled Haffouz", "Regueb", "Sidi Bouzid Est", "Sidi Bouzid Ouest", "Souk Jedid"],
-  "Siliana": ["Bargou", "Bou Arada", "El Aroussa", "El Krib", "Gaâfour", "Kesra", "Makthar", "Rouhia", "Siliana Nord", "Siliana Sud"],
-  "Sousse": ["Akouda", "Bouficha", "Enfidha", "Hammam Sousse", "Hergla", "Kalaa Kebira", "Kalaa Seghira", "Kondar", "M'saken", "Sidi Bou Ali", "Sidi El Hani", "Sousse Jawhara", "Sousse Médina", "Sousse Riadh", "Sousse Sidi Abdelhamid"],
-  "Tataouine": ["Bir Lahmar", "Dehiba", "Ghomrassen", "Remada", "Smar", "Tataouine Nord", "Tataouine Sud"],
-  "Tozeur": ["Degache", "Hazoua", "Nefta", "Tameghza", "Tozeur"],
-  "Tunis": ["Bab El Bhar", "Bab Souika", "Carthage", "Cité El Khadra", "Djebel Jelloud", "El Menzah", "El Omrane", "El Omrane Supérieur", "El Ouardia", "Ettahrir", "Ezzouhour", "Hraïria", "Kabaria", "La Goulette", "La Marsa", "Le Bardo", "Le Kram", "Médina", "Séjoumi", "Sidi El Béchir", "Sidi Hassine"],
-  "Zaghouan": ["Bir Mcherga", "El Fahs", "Nadhour", "Saouaf", "Zaghouan", "Zriba"]
-}
+import { TUNISIA_LOCATIONS } from "@/lib/tunisia-locations"
 
 interface ImageUploadState {
   cover: string | null
@@ -85,25 +60,88 @@ interface OwnerPropertyFormProps {
   onCancel?: () => void
 }
 
-const createInitialFormData = (initialData?: any) => ({
-  title: initialData?.title || "",
-  description: initialData?.description || "",
-  city: initialData?.city || "",
-  department: initialData?.department || "",
-  address: initialData?.address || "",
-  rent: initialData?.rent?.toString() || "",
-  deposit: initialData?.deposit?.toString() || "",
-  type: initialData?.type || "",
-  surface: initialData?.surface?.toString() || "",
-  bedrooms: initialData?.bedrooms?.toString() || "",
-  bathrooms: initialData?.bathrooms?.toString() || "",
-  livingRooms: initialData?.livingRooms?.toString() || "",
-  equippedKitchen: initialData?.equippedKitchen || false,
-  balcony: initialData?.balcony || false,
-  parking: initialData?.parking || false,
-  meuble: initialData?.meuble || false,
-  status: initialData?.status || "available",
-})
+const normalizeText = (value: string) =>
+  value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase()
+
+const findMatchingGovernorate = (value: string) =>
+  Object.keys(TUNISIA_LOCATIONS).find((gov) => normalizeText(gov) === normalizeText(value))
+
+const findMatchingDelegation = (governorate: string, value: string) =>
+  (TUNISIA_LOCATIONS[governorate] || []).find((delegation) => normalizeText(delegation) === normalizeText(value))
+
+const findGovernorateByDelegation = (value: string) =>
+  Object.keys(TUNISIA_LOCATIONS).find((gov) =>
+    TUNISIA_LOCATIONS[gov].some((delegation) => normalizeText(delegation) === normalizeText(value))
+  )
+
+const resolveLocation = (initialData?: any) => {
+  const rawDepartment = typeof initialData?.department === "string" ? initialData.department : ""
+  const rawCity = typeof initialData?.city === "string" ? initialData.city : ""
+
+  const departmentAsGovernorate = rawDepartment ? findMatchingGovernorate(rawDepartment) : undefined
+  const cityAsGovernorate = rawCity ? findMatchingGovernorate(rawCity) : undefined
+
+  if (departmentAsGovernorate) {
+    const matchedDelegation = rawCity ? findMatchingDelegation(departmentAsGovernorate, rawCity) : undefined
+    return {
+      department: departmentAsGovernorate,
+      city: matchedDelegation || rawCity,
+    }
+  }
+
+  if (cityAsGovernorate) {
+    const matchedDelegation = rawDepartment ? findMatchingDelegation(cityAsGovernorate, rawDepartment) : undefined
+    return {
+      department: cityAsGovernorate,
+      city: matchedDelegation || rawDepartment,
+    }
+  }
+
+  const inferredGovernorate = rawCity
+    ? findGovernorateByDelegation(rawCity)
+    : rawDepartment
+      ? findGovernorateByDelegation(rawDepartment)
+      : undefined
+
+  if (inferredGovernorate) {
+    const matchedDelegation = findMatchingDelegation(inferredGovernorate, rawCity || rawDepartment)
+    return {
+      department: inferredGovernorate,
+      city: matchedDelegation || rawCity || rawDepartment,
+    }
+  }
+
+  return {
+    department: rawDepartment,
+    city: rawCity,
+  }
+}
+
+const createInitialFormData = (initialData?: any) => {
+  const resolvedLocation = resolveLocation(initialData)
+
+  return {
+    title: initialData?.title || "",
+    description: initialData?.description || "",
+    city: resolvedLocation.city,
+    department: resolvedLocation.department,
+    address: initialData?.address || "",
+    rent: initialData?.rent?.toString() || "",
+    deposit: initialData?.deposit?.toString() || "",
+    type: initialData?.type || "",
+    surface: initialData?.surface?.toString() || "",
+    bedrooms: initialData?.bedrooms?.toString() || "",
+    bathrooms: initialData?.bathrooms?.toString() || "",
+    livingRooms: initialData?.livingRooms?.toString() || "",
+    equippedKitchen: initialData?.equippedKitchen || false,
+    balcony: initialData?.balcony || false,
+    parking: initialData?.parking || false,
+    meuble: initialData?.meuble || false,
+    status: initialData?.status || "available",
+    lat: initialData?.lat || 36.8065,
+    lng: initialData?.lng || 10.1815,
+  }
+}
 
 const createInitialImages = (initialData?: any): ImageUploadState => ({
   cover: initialData?.images?.cover || null,
@@ -142,7 +180,7 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
     const uploadedImagesCount = Object.values(images).filter(v => v !== null && (typeof v === 'string' ? v.length > 0 : Array.isArray(v) ? v.length > 0 : false)).length
     
     if (uploadedImagesCount < 3) {
-      setSubmitError("Veuillez uploader au moins 3 images pour votre propriété.")
+      setSubmitError(t("form.minImagesError") || "Veuillez uploader au moins 3 images pour votre propriété.")
       setIsSubmitting(false)
       return
     }
@@ -179,7 +217,7 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
         await onSave(finalData)
       }
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : "Erreur lors de l'enregistrement du bien.")
+      setSubmitError(error instanceof Error ? error.message : (t("general.saveError") || "Erreur lors de l'enregistrement du bien."))
     } finally {
       setIsSubmitting(false)
     }
@@ -265,7 +303,7 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
           ) : (
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
               <Upload className="h-8 w-8 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground text-center px-2">Cliquer pour uploader</span>
+              <span className="text-sm text-muted-foreground text-center px-2">{t("form.clickToUpload") || "Cliquer pour uploader"}</span>
             </div>
           )}
         </div>
@@ -283,12 +321,12 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
             </div>
             <div>
               <CardTitle className="text-xl">
-                {initialData ? (t("lang") === "fr" ? "Modifier la Propriété" : "Edit Property") : "Ajouter une Propriété"}
+                {initialData ? t("form.editPropertyTitle") : t("form.addPropertyTitle")}
               </CardTitle>
               <CardDescription>
                 {initialData 
-                  ? (t("lang") === "fr" ? "Mettez à jour les informations de votre bien" : "Update your property's details")
-                  : "Remplissez les informations de votre bien immobilier"}
+                  ? t("form.editPropertyDesc")
+                  : t("form.addPropertyDesc")}
               </CardDescription>
             </div>
           </div>
@@ -299,7 +337,7 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
             <div className="space-y-4">
               <h3 className="font-semibold text-foreground flex items-center gap-2">
                 <Home className="h-5 w-5 text-primary" />
-                Informations Générales
+                {t("form.generalInfo") || "Informations Générales"}
               </h3>
               <div className="space-y-4">
                 <div className="space-y-2">
@@ -308,7 +346,7 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
                     id="title"
                     value={formData.title}
                     onChange={(e) => updateField("title", e.target.value)}
-                    placeholder="Appartement Moderne S+2 Centre-Ville"
+                    placeholder={t("form.titlePlaceholder") || "Appartement Moderne S+2 Centre-Ville"}
                     required
                   />
                 </div>
@@ -318,7 +356,7 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
                     id="description"
                     value={formData.description}
                     onChange={(e) => updateField("description", e.target.value)}
-                    placeholder="Décrivez votre propriété en détail..."
+                    placeholder={t("form.descriptionPlaceholder") || "Décrivez votre propriété en détail..."}
                     rows={4}
                     required
                   />
@@ -331,7 +369,7 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
                       onValueChange={(value) => updateField("type", value)}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner le type" />
+                        <SelectValue placeholder={t("form.selectType") || "Sélectionner le type"} />
                       </SelectTrigger>
                       <SelectContent>
                         {propertyTypes.map((type) => (
@@ -343,18 +381,18 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Statut <span className="text-destructive">*</span></Label>
+                    <Label>{t("form.status") || "Statut"} <span className="text-destructive">*</span></Label>
                     <Select
                       value={formData.status}
                       onValueChange={(value) => updateField("status", value)}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner le statut" />
+                        <SelectValue placeholder={t("form.selectStatus") || "Sélectionner le statut"} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="available">Disponible</SelectItem>
-                        <SelectItem value="rented">Loué</SelectItem>
-                        <SelectItem value="maintenance">En Maintenance</SelectItem>
+                        <SelectItem value="available">{t("status.available")}</SelectItem>
+                        <SelectItem value="rented">{t("status.rented")}</SelectItem>
+                        <SelectItem value="maintenance">{t("status.maintenance")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -366,11 +404,11 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
             <div className="space-y-4">
               <h3 className="font-semibold text-foreground flex items-center gap-2">
                 <MapPin className="h-5 w-5 text-primary" />
-                Localisation
+                {t("form.location") || "Localisation"}
               </h3>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Gouvernorat <span className="text-destructive">*</span></Label>
+                  <Label>{t("form.governorate") || "Gouvernorat"} <span className="text-destructive">*</span></Label>
                   <Select
                     value={formData.department}
                     onValueChange={(val) => {
@@ -379,27 +417,27 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
                     }}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner le gouvernorat" />
+                      <SelectValue placeholder={t("form.selectGovernorate") || "Sélectionner le gouvernorat"} />
                     </SelectTrigger>
                     <SelectContent>
-                      {Object.keys(TUNISIA_REGIONS).sort().map((gov) => (
+                      {Object.keys(TUNISIA_LOCATIONS).sort().map((gov) => (
                         <SelectItem key={gov} value={gov}>{gov}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Délégation <span className="text-destructive">*</span></Label>
+                  <Label>{t("form.delegation") || "Délégation"} <span className="text-destructive">*</span></Label>
                   <Select
                     value={formData.city}
                     onValueChange={(val) => updateField("city", val)}
                     disabled={!formData.department}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={formData.department ? "Sélectionner la délégation" : "Choisir d'abord un gouvernorat"} />
+                      <SelectValue placeholder={formData.department ? (t("form.selectDelegation") || "Sélectionner la délégation") : (t("form.chooseGovFirst") || "Choisir d'abord un gouvernorat")} />
                     </SelectTrigger>
                     <SelectContent>
-                      {(TUNISIA_REGIONS[formData.department] || []).map((del) => (
+                      {(TUNISIA_LOCATIONS[formData.department] || []).map((del) => (
                         <SelectItem key={del} value={del}>{del}</SelectItem>
                       ))}
                     </SelectContent>
@@ -411,7 +449,7 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
                     id="address"
                     value={formData.address}
                     onChange={(e) => updateField("address", e.target.value)}
-                    placeholder="15 Avenue Habib Bourguiba, Tunis 1000"
+                    placeholder={t("form.addressPlaceholder") || "15 Avenue Habib Bourguiba, Tunis 1000"}
                     required
                   />
                 </div>
@@ -422,7 +460,7 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
             <div className="space-y-4">
               <h3 className="font-semibold text-foreground flex items-center gap-2">
                 <Wallet className="h-5 w-5 text-primary" />
-                Prix
+                {t("form.price") || "Prix"}
               </h3>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
@@ -454,7 +492,7 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
             <div className="space-y-4">
               <h3 className="font-semibold text-foreground flex items-center gap-2">
                 <Bed className="h-5 w-5 text-primary" />
-                Caractéristiques
+                {t("form.features") || "Caractéristiques"}
               </h3>
               <div className="grid gap-4 sm:grid-cols-4">
                 <div className="space-y-2">
@@ -576,10 +614,10 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
             <div className="space-y-4">
               <h3 className="font-semibold text-foreground flex items-center gap-2">
                 <ImageIcon className="h-5 w-5 text-primary" />
-                Images
+                {t("form.images") || "Images"}
               </h3>
               <p className="text-sm text-muted-foreground">
-                Ajoutez les images de votre bien. <span className="font-bold text-primary">Au moins 3 images sont obligatoires</span> pour publier l'annonce.
+                {t("form.imagesDesc") || "Ajoutez les images de votre bien. Au moins 3 images sont obligatoires pour publier l'annonce."}
               </p>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <ImageUploadBox type="cover" label={t("form.coverImage")} image={images.cover} />
@@ -606,7 +644,7 @@ export function OwnerPropertyForm({ initialData, onSave, onCancel }: OwnerProper
                 ) : (
                   <>
                     <Send className="h-4 w-4" />
-                    {"Publier l'annonce"}
+                    {initialData ? t("form.updateProperty") : t("form.publishProperty")}
                   </>
                 )}
               </Button>

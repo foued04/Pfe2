@@ -25,6 +25,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useHistory, useLocation } from "react-router-dom"
 import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet"
 import { useAuth } from "../lib/auth-context"
+import { useI18n } from "../lib/i18n"
 import { http } from "../lib/api"
 import { fetchUnreadMessagesCount } from "../lib/messages-api"
 import { deleteProperty, fetchOwnerDashboardProperties } from "../lib/property-api"
@@ -42,16 +43,10 @@ type DashboardStats = {
 }
 
 type NavItem =
-  | { key: string; label: string; icon: string; type: "section"; section: OwnerSection }
-  | { key: string; label: string; icon: string; type: "route"; href: string }
+  | { key: string; labelKey: string; icon: string; type: "section"; section: OwnerSection }
+  | { key: string; labelKey: string; icon: string; type: "route"; href: string }
 
 type MappableProperty = BackendProperty & { lat: number; lng: number }
-
-const statusLabels: Record<string, string> = {
-  available: "Disponible",
-  rented: "Loue",
-  maintenance: "Maintenance",
-}
 
 const statusTone: Record<string, string> = {
   available: "success",
@@ -60,13 +55,14 @@ const statusTone: Record<string, string> = {
 }
 
 const ownerNavItems: NavItem[] = [
-  { key: "overview", label: "Dashboard", icon: homeOutline, type: "section", section: "overview" },
-  { key: "properties", label: "All Properties", icon: businessOutline, type: "section", section: "properties" },
-  { key: "add-property", label: "Add Property", icon: addOutline, type: "route", href: "/property-form" },
-  { key: "map", label: "Map", icon: mapOutline, type: "section", section: "map" },
-  { key: "requests", label: "Requests", icon: documentTextOutline, type: "route", href: "/rental-requests" },
-  { key: "notifications", label: "Notifications", icon: notificationsOutline, type: "route", href: "/notifications" },
-  { key: "furniture", label: "Furniture", icon: bedOutline, type: "route", href: "/furniture" },
+  { key: "overview", labelKey: "nav.dashboard", icon: homeOutline, type: "section", section: "overview" },
+  { key: "properties", labelKey: "nav.myProperties", icon: businessOutline, type: "section", section: "properties" },
+  { key: "add-property", labelKey: "nav.addProperty", icon: addOutline, type: "route", href: "/property-form" },
+  { key: "map", labelKey: "nav.map", icon: mapOutline, type: "section", section: "map" },
+  { key: "requests", labelKey: "nav.requests", icon: documentTextOutline, type: "route", href: "/rental-requests" },
+  { key: "messages", labelKey: "nav.messages", icon: chatbubblesOutline, type: "route", href: "/messages" },
+  { key: "notifications", labelKey: "nav.notifications", icon: notificationsOutline, type: "route", href: "/notifications" },
+  { key: "furniture", labelKey: "nav.furniture", icon: bedOutline, type: "route", href: "/furniture" },
 ]
 
 const getSectionFromSearch = (search: string): OwnerSection => {
@@ -85,6 +81,7 @@ let mobileGlobalCache: {
 } | null = null;
 
 const OwnerDashboard: React.FC = () => {
+  const { t } = useI18n()
   const history = useHistory()
   const location = useLocation()
   const { token, user } = useAuth()
@@ -100,6 +97,12 @@ const OwnerDashboard: React.FC = () => {
   const [openActionsFor, setOpenActionsFor] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const currentOwnerId = user?.id || ""
+
+  const statusLabels: Record<string, string> = {
+    available: t("status.available"),
+    rented: t("status.rented"),
+    maintenance: t("status.maintenance"),
+  }
 
   const activeSection = getSectionFromSearch(location.search)
 
@@ -157,7 +160,7 @@ const OwnerDashboard: React.FC = () => {
         if (mobileGlobalCache) {
           console.warn("Background mobile refresh failed:", err)
         } else {
-          setError(err instanceof Error ? err.message : "Erreur lors du chargement du tableau de bord.")
+          setError(err instanceof Error ? err.message : t("general.error"))
         }
       } finally {
         if (active) setLoading(false)
@@ -171,7 +174,7 @@ const OwnerDashboard: React.FC = () => {
       active = false
       window.clearInterval(interval)
     }
-  }, [token])
+  }, [token, t])
 
 
   const stats = useMemo<DashboardStats>(() => {
@@ -191,18 +194,18 @@ const OwnerDashboard: React.FC = () => {
   }, [currentOwnerId, properties, requestCount])
 
   const statsCards = [
-    { label: "Total properties", value: stats.total, icon: businessOutline },
-    { label: "Pending requests", value: stats.requestCount, icon: documentTextOutline },
-    { label: "Monthly revenue", value: `${stats.revenue.toLocaleString("fr-TN")} TND`, icon: statsChartOutline },
-    { label: "Available", value: stats.available, icon: homeOutline },
+    { label: t("dashboard.totalProperties"), value: stats.total, icon: businessOutline },
+    { label: t("dashboard.pendingRequests"), value: stats.requestCount, icon: documentTextOutline },
+    { label: t("dashboard.monthlyRevenue"), value: `${stats.revenue.toLocaleString("fr-TN")} TND`, icon: statsChartOutline },
+    { label: t("dashboard.available"), value: stats.available, icon: homeOutline },
   ]
 
   const quickActions = [
-    { label: "View all properties", action: () => changeSection("properties"), icon: businessOutline },
-    { label: "Review requests", action: () => history.push("/rental-requests"), icon: documentTextOutline },
-    { label: "Open map", action: () => changeSection("map"), icon: mapOutline },
-    { label: "Manage furniture", action: () => history.push("/furniture"), icon: bedOutline },
-    { label: "Messages", action: () => history.push("/messages"), icon: chatbubblesOutline },
+    { label: t("dashboard.viewAllProperties"), action: () => changeSection("properties"), icon: businessOutline },
+    { label: t("dashboard.reviewRequests"), action: () => history.push("/rental-requests"), icon: documentTextOutline },
+    { label: t("dashboard.openMap"), action: () => changeSection("map"), icon: mapOutline },
+    { label: t("general.manageFurniture"), action: () => history.push("/furniture"), icon: bedOutline },
+    { label: t("nav.messages"), action: () => history.push("/messages"), icon: chatbubblesOutline },
   ]
 
   const myProperties = useMemo(() => {
@@ -256,7 +259,7 @@ const OwnerDashboard: React.FC = () => {
 
   const handleDelete = async (propertyId: string) => {
     if (!token) return
-    if (!window.confirm("Etes-vous sur de vouloir supprimer ce bien ?")) return
+    if (!window.confirm(t("general.deleteProperty") + " ?")) return
 
     try {
       await deleteProperty(propertyId, token)
@@ -267,9 +270,9 @@ const OwnerDashboard: React.FC = () => {
     }
   }
 
-  const displayName = user?.name || user?.firstName || "Owner"
+  const displayName = user?.name || user?.firstName || t("role.owner")
   const activeTitle =
-    activeSection === "properties" ? "All Properties" : activeSection === "map" ? "Map" : "Owner Dashboard"
+    activeSection === "properties" ? t("general.allProperties") : activeSection === "map" ? t("nav.map") : t("dashboard.owner")
 
   const isOwnedByCurrentUser = (property: BackendProperty) => {
     const ownerId = typeof property.owner === "string" ? property.owner : property.owner?._id || ""
@@ -279,11 +282,11 @@ const OwnerDashboard: React.FC = () => {
   const renderPropertyCard = (property: BackendProperty) => {
     const isMenuOpen = openActionsFor === property._id
     const displayImage = property.images?.cover
-    const statusLabel = statusLabels[property.status] || property.status || "Disponible"
+    const statusLabel = statusLabels[property.status] || property.status || t("status.available")
     const locationLabel = [property.city, property.address].filter(Boolean).join(" - ") || "Adresse non specifiee"
     const propertyType = property.type ? property.type.toUpperCase() : "BIEN"
     const isFurnished = Boolean(property.meuble || property.furnishing?.type)
-    const ownerName = property.ownerName || (typeof property.owner === "object" && property.owner !== null ? property.owner.fullName : "") || "Proprietaire"
+    const ownerName = property.ownerName || (typeof property.owner === "object" && property.owner !== null ? property.owner.fullName : "") || t("role.owner")
     const ownerPhone = property.ownerPhone || (typeof property.owner === "object" && property.owner !== null ? property.owner.phone : "") || ""
     const ownerEmail = property.ownerEmail || (typeof property.owner === "object" && property.owner !== null ? property.owner.email : "") || ""
     const isOwnProperty = isOwnedByCurrentUser(property)
@@ -297,9 +300,9 @@ const OwnerDashboard: React.FC = () => {
             <div className="owner-property-badges">
               <span className={`owner-property-badge ${statusTone[property.status] || "neutral"}`}>{statusLabel}</span>
               <span className={`owner-property-badge ${isOwnProperty ? "ownership-self" : "ownership-other"}`}>
-                {isOwnProperty ? "My property" : "Other owner"}
+                {isOwnProperty ? t("status.myProperty") : t("status.otherOwner")}
               </span>
-              {isFurnished ? <span className="owner-property-badge furnished">Meuble</span> : null}
+              {isFurnished ? <span className="owner-property-badge furnished">{t("status.furnished")}</span> : null}
             </div>
             <div className="owner-property-menu">
               <button type="button" className="owner-icon-btn floating" onClick={() => setOpenActionsFor(isMenuOpen ? null : property._id)}>
@@ -310,27 +313,27 @@ const OwnerDashboard: React.FC = () => {
                 <div className="owner-dropdown-menu">
                   <button type="button" onClick={() => history.push(`/property/${property._id}`)}>
                     <IonIcon icon={eyeOutline} />
-                    Voir details
+                    {t("general.viewDetails")}
                   </button>
                   {isOwnProperty ? (
                     <>
                       <button type="button" onClick={() => history.push(`/property-form/${property._id}`)}>
                         <IonIcon icon={pencilOutline} />
-                        Modifier
+                        {t("general.modify")}
                       </button>
                       <button type="button" onClick={() => history.push(`/furniture?property=${property._id}`)}>
                         <IonIcon icon={bedOutline} />
-                        Gerer les meubles
+                        {t("general.manageFurniture")}
                       </button>
                       <button type="button" className="danger" onClick={() => handleDelete(property._id)}>
                         <IonIcon icon={trashOutline} />
-                        Supprimer le bien
+                        {t("general.deleteProperty")}
                       </button>
                     </>
                   ) : (
                     <button type="button" className="readonly">
                       <IonIcon icon={businessOutline} />
-                      Lecture seule
+                      {t("general.readonly")}
                     </button>
                   )}
                 </div>
@@ -354,7 +357,7 @@ const OwnerDashboard: React.FC = () => {
           </div>
           <div className="owner-property-inline">
             <span className="owner-property-type">{propertyType}</span>
-            {property.deposit ? <span className="owner-property-deposit">Depot {property.deposit.toLocaleString("fr-TN")} TND</span> : null}
+            {property.deposit ? <span className="owner-property-deposit">{t("status.depot")} {property.deposit.toLocaleString("fr-TN")} TND</span> : null}
           </div>
           <div className="owner-property-owner">
             <span>{ownerName}</span>
@@ -375,16 +378,16 @@ const OwnerDashboard: React.FC = () => {
           <div className="owner-property-actions">
             <button type="button" className="owner-outline-btn compact" onClick={() => history.push(`/property/${property._id}`)}>
               <IonIcon icon={eyeOutline} />
-              Voir details
+              {t("general.viewDetails")}
             </button>
             {isOwnProperty ? (
               <button type="button" className="owner-outline-btn compact" onClick={() => history.push(`/property-form/${property._id}`)}>
                 <IonIcon icon={pencilOutline} />
-                Modifier
+                {t("general.modify")}
               </button>
             ) : null}
           </div>
-          {!isOwnProperty ? <div className="owner-readonly-note">Ce bien appartient a un autre proprietaire. Visible uniquement.</div> : null}
+          {!isOwnProperty ? <div className="owner-readonly-note">Ce bien appartient a un autre locateur. Visible uniquement.</div> : null}
         </div>
       </article>
     )
@@ -398,7 +401,7 @@ const OwnerDashboard: React.FC = () => {
             <div className="owner-sidebar-header">
               <div>
                 <div className="owner-sidebar-brand">ImmoSmart</div>
-                <p>Owner Space</p>
+                <p>Espace Locateur</p>
               </div>
               <button type="button" className="owner-icon-btn mobile-only" onClick={() => setSidebarOpen(false)}>
                 <IonIcon icon={closeOutline} />
@@ -416,8 +419,9 @@ const OwnerDashboard: React.FC = () => {
                     onClick={() => handleNavClick(item)}
                   >
                     <IonIcon icon={item.icon} />
-                    <span>{item.label}</span>
+                    <span>{t(item.labelKey)}</span>
                     {item.key === "requests" && requestCount > 0 ? <strong>{requestCount > 99 ? "99+" : requestCount}</strong> : null}
+                    {item.key === "messages" && unreadMessages > 0 ? <strong>{unreadMessages > 99 ? "99+" : unreadMessages}</strong> : null}
                     {item.key === "notifications" && unreadNotifications > 0 ? <strong>{unreadNotifications > 99 ? "99+" : unreadNotifications}</strong> : null}
                   </button>
                 )
@@ -427,7 +431,7 @@ const OwnerDashboard: React.FC = () => {
             <div className="owner-sidebar-footer">
               <button type="button" className="owner-sidebar-link" onClick={() => history.push("/profile")}>
                 <IonIcon icon={settingsOutline} />
-                <span>Settings</span>
+                <span>{t("general.settings")}</span>
               </button>
             </div>
           </aside>
@@ -441,7 +445,7 @@ const OwnerDashboard: React.FC = () => {
                   <IonIcon icon={menuOutline} />
                 </button>
                 <div>
-                  <div className="owner-eyebrow">Tableau de bord</div>
+                  <div className="owner-eyebrow">{t("dashboard.eyebrow")}</div>
                   <h1>{activeTitle}</h1>
                 </div>
               </div>
@@ -449,12 +453,12 @@ const OwnerDashboard: React.FC = () => {
               <div className="owner-topbar-actions">
                 <button type="button" className="owner-pill-btn" onClick={() => history.push("/rental-requests")}>
                   <IonIcon icon={documentTextOutline} />
-                  <span>Demandes</span>
+                  <span>{t("nav.requests")}</span>
                   {requestCount > 0 ? <strong>{requestCount > 99 ? "99+" : requestCount}</strong> : null}
                 </button>
                 <button type="button" className="owner-pill-btn" onClick={() => history.push("/notifications")}>
                   <IonIcon icon={notificationsOutline} />
-                  <span>Notifications</span>
+                  <span>{t("nav.notifications")}</span>
                   {unreadNotifications > 0 ? <strong>{unreadNotifications > 99 ? "99+" : unreadNotifications}</strong> : null}
                 </button>
                 <button type="button" className="owner-profile-btn" onClick={() => history.push("/profile")}>
@@ -467,11 +471,11 @@ const OwnerDashboard: React.FC = () => {
             <main className="owner-main-content">
               <section className="owner-page-header">
                 <div>
-                  <div className="owner-eyebrow">Owner</div>
-                  <h2>{activeSection === "properties" ? "All Properties" : activeSection === "map" ? "Map" : "Owner Dashboard"}</h2>
+                  <div className="owner-eyebrow">{t("dashboard.ownerEyebrow")}</div>
+                  <h2>{activeSection === "properties" ? t("general.allProperties") : activeSection === "map" ? t("nav.map") : t("dashboard.owner")}</h2>
                   <p>
                     {activeSection === "properties"
-                      ? "Consultez toutes les proprietes de l'application. Vos biens restent modifiables, ceux des autres proprietaires sont visibles en lecture seule."
+                      ? "Consultez toutes les proprietes de l'application. Vos biens restent modifiables, ceux des autres locateurs sont visibles en lecture seule."
                       : activeSection === "map"
                         ? "Visualisez l'ensemble des proprietes sur la carte et reperez rapidement vos propres biens."
                         : "Suivez vos indicateurs personnels, accedez a toutes les proprietes et gardez le controle sur vos demandes."}
@@ -479,7 +483,7 @@ const OwnerDashboard: React.FC = () => {
                 </div>
                 <button type="button" className="owner-primary-btn" onClick={() => history.push("/property-form")}>
                   <IonIcon icon={addOutline} />
-                  Add Property
+                  {t("nav.addProperty")}
                 </button>
               </section>
 
@@ -500,7 +504,7 @@ const OwnerDashboard: React.FC = () => {
                   </section>
 
                   {loading ? (
-                    <div className="owner-panel muted">Chargement du tableau de bord...</div>
+                    <div className="owner-panel muted">{t("general.loading")}</div>
                   ) : error ? (
                     <div className="owner-panel error">{error}</div>
                   ) : (
@@ -518,12 +522,12 @@ const OwnerDashboard: React.FC = () => {
 
                       <section className="owner-preview-section">
                         <div className="owner-section-copy">
-                          <h3>My Properties</h3>
+                          <h3>{t("dashboard.myProperties")}</h3>
                           <p>Gérez vos biens immobiliers et suivez leur statut en temps réel.</p>
                         </div>
 
                         {previewProperties.length === 0 ? (
-                          <div className="owner-panel muted">No properties yet</div>
+                          <div className="owner-panel muted">{t("dashboard.noProperties")}</div>
                         ) : (
                           <div className="owner-properties-grid">{previewProperties.map(renderPropertyCard)}</div>
                         )}
@@ -535,11 +539,11 @@ const OwnerDashboard: React.FC = () => {
 
               {activeSection === "properties" ? (
                 loading ? (
-                  <div className="owner-panel muted">Chargement des proprietes...</div>
+                  <div className="owner-panel muted">{t("general.loading")}</div>
                 ) : error ? (
                   <div className="owner-panel error">{error}</div>
                 ) : properties.length === 0 ? (
-                  <div className="owner-panel muted">No properties yet</div>
+                  <div className="owner-panel muted">{t("dashboard.noProperties")}</div>
                 ) : (
                   <section className="owner-properties-grid">{properties.map(renderPropertyCard)}</section>
                 )
@@ -547,11 +551,11 @@ const OwnerDashboard: React.FC = () => {
 
               {activeSection === "map" ? (
                 loading ? (
-                  <div className="owner-panel muted">Chargement de la carte...</div>
+                  <div className="owner-panel muted">{t("general.loading")}</div>
                 ) : error ? (
                   <div className="owner-panel error">{error}</div>
                 ) : mappableProperties.length === 0 ? (
-                  <div className="owner-panel muted">Aucun bien geolocalise disponible pour la carte.</div>
+                  <div className="owner-panel muted">{t("map.noGeo")}</div>
                 ) : (
                   <section className="owner-map-stack">
                     <div className="owner-map-card relative">
@@ -565,7 +569,7 @@ const OwnerDashboard: React.FC = () => {
                             <Popup>
                               <div className="owner-map-popup">
                                 <div className="popup-ownership">
-                                  {isOwnedByCurrentUser(property) ? "My property" : "Other owner"}
+                                  {isOwnedByCurrentUser(property) ? t("status.myProperty") : t("status.otherOwner")}
                                 </div>
                                 <div className="popup-badge" style={{
                                   background: property.status === 'available' ? '#22c55e' : property.status === 'rented' ? '#3b82f6' : '#eab308',
@@ -587,7 +591,7 @@ const OwnerDashboard: React.FC = () => {
                                     onClick={() => history.push(`/property/${property._id}`)}
                                     style={{ background: '#f0f4ff', color: '#0066ff', border: 'none', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}
                                   >
-                                    Détails
+                                    {t("general.details")}
                                   </button>
                                 </div>
                               </div>
@@ -598,19 +602,19 @@ const OwnerDashboard: React.FC = () => {
 
                       {/* Legend like web version */}
                       <div className="map-legend-overlay">
-                        <div className="legend-title">Statuts</div>
+                        <div className="legend-title">{t("map.legend")}</div>
                         <div className="legend-items">
                           <div className="legend-item">
                             <span className="dot available"></span>
-                            <span>Disponible</span>
+                            <span>{t("status.available")}</span>
                           </div>
                           <div className="legend-item">
                             <span className="dot rented"></span>
-                            <span>Loué</span>
+                            <span>{t("status.rented")}</span>
                           </div>
                           <div className="legend-item">
                             <span className="dot maintenance"></span>
-                            <span>Entretien</span>
+                            <span>{t("status.maintenance")}</span>
                           </div>
                         </div>
                       </div>
@@ -618,7 +622,7 @@ const OwnerDashboard: React.FC = () => {
 
                     <div className="owner-map-list">
                       <div className="list-header">
-                        <h3>Liste des Biens ({mappableProperties.length})</h3>
+                        <h3>{t("map.listTitle")} ({mappableProperties.length})</h3>
                       </div>
                       <div className="list-scroll">
                         {mappableProperties.map((property) => (
@@ -630,7 +634,7 @@ const OwnerDashboard: React.FC = () => {
                             <div className="item-info">
                               <strong>{property.title}</strong>
                               <span className={`item-ownership ${isOwnedByCurrentUser(property) ? "self" : "other"}`}>
-                                {isOwnedByCurrentUser(property) ? "My property" : "Other owner"}
+                                {isOwnedByCurrentUser(property) ? t("status.myProperty") : t("status.otherOwner")}
                               </span>
                               <p>{property.address || property.city || "Monastir"}</p>
                             </div>
@@ -652,7 +656,7 @@ const OwnerDashboard: React.FC = () => {
                 <button type="button" className="owner-shortcut-card" onClick={() => history.push("/messages")}>
                   <IonIcon icon={chatbubblesOutline} />
                   <div>
-                    <strong>Messages</strong>
+                    <strong>{t("nav.messages")}</strong>
                     <p>Conversations locataires</p>
                   </div>
                   {unreadMessages > 0 ? <span>{unreadMessages > 99 ? "99+" : unreadMessages}</span> : null}
@@ -661,7 +665,7 @@ const OwnerDashboard: React.FC = () => {
                 <button type="button" className="owner-shortcut-card" onClick={() => history.push("/profile")}>
                   <IonIcon icon={settingsOutline} />
                   <div>
-                    <strong>Settings</strong>
+                    <strong>{t("general.settings")}</strong>
                     <p>Profil et securite</p>
                   </div>
                 </button>
@@ -669,8 +673,8 @@ const OwnerDashboard: React.FC = () => {
                 <button type="button" className="owner-shortcut-card" onClick={() => history.push("/tab2")}>
                   <IonIcon icon={searchOutline} />
                   <div>
-                    <strong>Public Listings</strong>
-                    <p>Explorer le catalogue</p>
+                    <strong>{t("dashboard.publicListings")}</strong>
+                    <p>{t("dashboard.exploreCatalog")}</p>
                   </div>
                 </button>
               </section>

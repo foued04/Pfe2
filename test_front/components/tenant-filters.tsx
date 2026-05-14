@@ -89,7 +89,7 @@ export function TenantFilters({
         <div className="space-y-6 p-6">
           {/* Location */}
           <div className="space-y-4">
-            <h3 className="font-medium text-foreground">Location</h3>
+            <h3 className="font-medium text-foreground">{t("form.location")}</h3>
             <div className="space-y-3">
               <div>
                 <Label htmlFor="city">{t("filter.city")}</Label>
@@ -116,7 +116,7 @@ export function TenantFilters({
 
           {/* Budget */}
           <div className="space-y-4">
-            <h3 className="font-medium text-foreground">Budget</h3>
+            <h3 className="font-medium text-foreground">{t("form.price")}</h3>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label htmlFor="minBudget">{t("filter.minBudget")}</Label>

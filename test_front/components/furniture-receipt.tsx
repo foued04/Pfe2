@@ -116,7 +116,7 @@ export function FurnitureReceipt({ order, onBack }: FurnitureReceiptProps) {
         date={order.date}
         infoLeft={
           <div className="space-y-2">
-            <p className="text-[10px] font-black uppercase tracking-widest text-[#f59e0b]">Information Proprietaire</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-[#f59e0b]">Information Locateur</p>
             <div className="flex items-center gap-2">
               <UserIcon className="h-3 w-3 text-[#2563eb]" />
               <p className="font-black text-[#2563eb]">Mohamed Ben Ali</p>
@@ -205,7 +205,7 @@ export function FurnitureReceipt({ order, onBack }: FurnitureReceiptProps) {
                 <p className="text-[10px] italic text-[#9ca3af]">Signer ici</p>
               </div>
               <div>
-                <p className="text-[12px] font-black text-[#2563eb]">Proprietaire</p>
+                <p className="text-[12px] font-black text-[#2563eb]">Locateur</p>
                 <p className="text-[10px] text-[#9ca3af]">Lu et Approuve</p>
               </div>
             </div>

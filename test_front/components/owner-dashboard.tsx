@@ -28,5 +28,5 @@ export function OwnerDashboard({ initialSection = "overview" }: { initialSection
     router.replace(targetPath)
   }, [router, targetPath])
 
-  return <div className="p-6 text-sm text-muted-foreground">Redirection vers le tableau de bord proprietaire...</div>
+  return <div className="p-6 text-sm text-muted-foreground">Redirection vers le tableau de bord locateur...</div>
 }

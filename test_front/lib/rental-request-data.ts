@@ -70,7 +70,7 @@ export const requestStatusConfig: Record<RequestStatus, { color: string; bgColor
 
 export const contractStatusConfig: Record<ContractStatus, { label_fr: string; label_en: string; color: string; bgColor: string }> = {
   "Draft":           { label_fr: "Brouillon",             label_en: "Draft",               color: "text-amber-700",   bgColor: "bg-amber-50" },
-  "SignedByOwner":   { label_fr: "Signé par propriétaire", label_en: "Signed by owner",     color: "text-blue-700",    bgColor: "bg-blue-50" },
+  "SignedByOwner":   { label_fr: "Signé par locateur", label_en: "Signed by owner",     color: "text-blue-700",    bgColor: "bg-blue-50" },
   "SentToTenant":    { label_fr: "Envoyé au locataire",    label_en: "Sent to tenant",      color: "text-violet-700",  bgColor: "bg-violet-50" },
   "SignedByTenant":  { label_fr: "Signé par locataire",    label_en: "Signed by tenant",    color: "text-blue-700",    bgColor: "bg-blue-50" },
   "SignedByBoth":    { label_fr: "Signé et actif",         label_en: "Signed & Active",     color: "text-emerald-700", bgColor: "bg-emerald-50" },

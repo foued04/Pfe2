@@ -379,7 +379,7 @@ const ProfilePage: React.FC = () => {
                 <div className="card-header">
                   <h3 className="card-title">Documents & Justificatifs</h3>
                   <p className="card-subtitle">
-                    Gerez les documents d'identite lies a votre profil {user?.role === "tenant" ? "locataire" : "proprietaire"}.
+                    Gerez les documents d'identite lies a votre profil {user?.role === "tenant" ? "locataire" : "locateur"}.
                   </p>
                 </div>
 
@@ -445,7 +445,7 @@ const ProfilePage: React.FC = () => {
           <div className="logout-section mt-4">
             <button className="logout-btn-full" onClick={handleLogout}>
               <IonIcon icon={logOutOutline} />
-              Se deconnecter de ImmoSmart
+              Deconnexion
             </button>
           </div>
         </div>

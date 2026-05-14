@@ -9,8 +9,8 @@ export const TUNISIA_GOVERNORATES: TunisiaGovernorate[] = [
     delegations: ["Ariana Ville", "Cite Ettadhamen", "Kalaat El Andalous", "La Soukra", "Mnihla", "Raoued", "Sidi Thabet"],
   },
   {
-    name: "Beja",
-    delegations: ["Amdoun", "Beja Nord", "Beja Sud", "Goubellat", "Medjez El Bab", "Nefza", "Teboursouk", "Testour", "Thibar"],
+    name: "Béja",
+    delegations: ["Amdoun", "Béja Nord", "Béja Sud", "Goubellat", "Medjez El Bab", "Nefza", "Téboursouk", "Testour", "Thibar"],
   },
   {
     name: "Ben Arous",
@@ -21,68 +21,68 @@ export const TUNISIA_GOVERNORATES: TunisiaGovernorate[] = [
     delegations: ["Bizerte Nord", "Bizerte Sud", "El Alia", "Ghar El Melh", "Ghezala", "Joumine", "Mateur", "Menzel Bourguiba", "Menzel Jemil", "Ras Jebel", "Sejnane", "Tinja", "Utique", "Zarzouna"],
   },
   {
-    name: "Gabes",
-    delegations: ["Dkhilet Toujane", "El Hamma", "Gabes Medina", "Gabes Ouest", "Gabes Sud", "Ghannouch", "Habib Thameur Bouatouch", "Mareth", "Matmata", "Menzel El Habib", "Metouia", "Nouvelle Matmata", "Oudhref"],
+    name: "Gabès",
+    delegations: ["Dkhilet Toujane", "El Hamma", "Gabès Médina", "Gabès Ouest", "Gabès Sud", "Ghannouch", "Habib Thameur Bouatouch", "Mareth", "Matmata", "Menzel El Habib", "Métouia", "Nouvelle Matmata", "Oudhref"],
   },
   {
     name: "Gafsa",
-    delegations: ["Belkhir", "El Guettar", "El Ksar", "Gafsa Nord", "Gafsa Sud", "Mdhila", "Metlaoui", "Moulares", "Redeyef", "Sened", "Sidi Aich", "Sidi Boubaker", "Zannouch"],
+    delegations: ["Belkhir", "El Guettar", "El Ksar", "Gafsa Nord", "Gafsa Sud", "Mdhila", "Métlaoui", "Moulares", "Redeyef", "Sened", "Sidi Aïch", "Sidi Boubaker", "Zannouch"],
   },
   {
     name: "Jendouba",
-    delegations: ["Ain Draham", "Balta Bou Aouane", "Bou Salem", "Fernana", "Ghardimaou", "Jendouba", "Jendouba Nord", "Oued Meliz", "Tabarka"],
+    delegations: ["Aïn Draham", "Balta Bou Aouane", "Bou Salem", "Fernana", "Ghardimaou", "Jendouba", "Jendouba Nord", "Oued Meliz", "Tabarka"],
   },
   {
     name: "Kairouan",
-    delegations: ["Ain Djeloula", "Bou Hajla", "Chebika", "Echrarda", "El Alaa", "Haffouz", "Hajeb El Ayoun", "Kairouan Nord", "Kairouan Sud", "Menzel Mehiri", "Nasrallah", "Oueslatia", "Sbikha"],
+    delegations: ["Aïn Djeloula", "Bou Hajla", "Chebika", "Echrarda", "El Alaa", "Haffouz", "Hajeb El Ayoun", "Kairouan Nord", "Kairouan Sud", "Menzel Mehiri", "Nasrallah", "Oueslatia", "Sbikha"],
   },
   {
     name: "Kasserine",
-    delegations: ["El Ayoun", "Ezzouhour", "Feriana", "Foussana", "Haidra", "Hassi El Ferid", "Jedelienne", "Kasserine Nord", "Kasserine Sud", "Majel Bel Abbes", "Sbeitla", "Sbiba", "Thala"],
+    delegations: ["El Ayoun", "Ezzouhour", "Fériana", "Foussana", "Haïdra", "Hassi El Ferid", "Jedelienne", "Kasserine Nord", "Kasserine Sud", "Majel Bel Abbès", "Sbeïtla", "Sbiba", "Thala"],
   },
   {
-    name: "Kebili",
-    delegations: ["Douz Nord", "Douz Sud", "Faouar", "Kebili Nord", "Kebili Sud", "Rjim Maatoug", "Souk Lahad"],
+    name: "Kébili",
+    delegations: ["Douz Nord", "Douz Sud", "Faouar", "Kébili Nord", "Kébili Sud", "Rjim Maatoug", "Souk Lahad"],
   },
   {
-    name: "Kef",
-    delegations: ["Dahmani", "El Ksour", "Jerissa", "Kalaat Khasba", "Kalaat Senan", "Kef Est", "Kef Ouest", "Nebeur", "Sakiet Sidi Youssef", "Sers", "Tajerouine", "Touiref"],
+    name: "Le Kef",
+    delegations: ["Dahmani", "El Ksour", "Jérissa", "Kalaat Khasba", "Kalaat Senan", "Le Kef Est", "Le Kef Ouest", "Nebeur", "Sakiet Sidi Youssef", "Sers", "Tajerouine", "Touiref"],
   },
   {
     name: "Mahdia",
-    delegations: ["Bou Merdes", "Chebba", "Chorbane", "El Bradaa", "El Jem", "Essouassi", "Hebira", "Ksour Essef", "Mahdia", "Mellouleche", "Ouled Chamekh", "Rejiche", "Sidi Alouane"],
+    delegations: ["Bou Merdes", "Chebba", "Chorbane", "El Bradaa", "El Jem", "Essouassi", "Hebira", "Ksour Essef", "Mahdia", "Melloulèche", "Ouled Chamekh", "Rejiche", "Sidi Alouane"],
   },
   {
-    name: "Manouba",
-    delegations: ["Borj El Amri", "Djedeida", "Douar Hicher", "El Batan", "Manouba", "Mornaguia", "Oued Ellil", "Tebourba"],
+    name: "La Manouba",
+    delegations: ["Borj El Amri", "Djedeida", "Douar Hicher", "El Batan", "La Manouba", "Mornaguia", "Oued Ellil", "Tébourba"],
   },
   {
-    name: "Medenine",
-    delegations: ["Ben Gardane", "Beni Khedache", "Djerba Ajim", "Djerba Houmt Souk", "Djerba Midoun", "Medenine Nord", "Medenine Sud", "Sidi Makhlouf", "Zarzis"],
+    name: "Médenine",
+    delegations: ["Ben Gardane", "Beni Khedache", "Djerba Ajim", "Djerba Houmt Souk", "Djerba Midoun", "Médenine Nord", "Médenine Sud", "Sidi Makhlouf", "Zarzis"],
   },
   {
     name: "Monastir",
-    delegations: ["Bekalta", "Bembla", "Beni Hassen", "Jemmal", "Ksar Hellal", "Ksibet El Mediouni", "Moknine", "Monastir", "Ouerdanine", "Sahline", "Sayada Lamta Bouhjar", "Teboulba", "Zeramdine"],
+    delegations: ["Bekalta", "Bembla", "Beni Hassen", "Jemmal", "Ksar Hellal", "Ksibet El Médiouni", "Moknine", "Monastir", "Ouerdanine", "Sahline", "Sayada Lamta Bouhjar", "Téboulba", "Zéramdine"],
   },
   {
     name: "Nabeul",
-    delegations: ["Beni Khalled", "Beni Khiar", "Bou Argoub", "Dar Chaabane El Fehri", "El Haouaria", "El Mida", "Grombalia", "Hammamet", "Hammam Ghezaze", "Kelibia", "Korba", "Menzel Bouzelfa", "Menzel Temime", "Nabeul", "Soliman", "Takelsa"],
+    delegations: ["Béni Khalled", "Béni Khiar", "Bou Argoub", "Dar Chaâbane El Fehri", "El Haouaria", "El Mida", "Grombalia", "Hammamet", "Hammam Ghezèze", "Kélibia", "Korba", "Menzel Bouzelfa", "Menzel Temime", "Nabeul", "Soliman", "Takelsa"],
   },
   {
     name: "Sfax",
-    delegations: ["Agareb", "Bir Ali Ben Khalifa", "El Amra", "El Hencha", "Graiba", "Jebiniana", "Kerkennah", "Mahres", "Menzel Chaker", "Sakiet Eddaier", "Sakiet Ezzit", "Sfax Ouest", "Sfax Sud", "Sfax Ville", "Skhira", "Thyna"],
+    delegations: ["Agareb", "Bir Ali Ben Khalifa", "El Amra", "El Hencha", "Graïba", "Jebiniana", "Kerkennah", "Mahrès", "Menzel Chaker", "Sakiet Eddaïer", "Sakiet Ezzit", "Sfax Ouest", "Sfax Sud", "Sfax Ville", "Skhira", "Thyna"],
   },
   {
     name: "Sidi Bouzid",
-    delegations: ["Bir El Hafey", "Cebbala Ouled Asker", "El Hichria", "Essaida", "Jilma", "Meknassy", "Menzel Bouzaiane", "Mezzouna", "Ouled Haffouz", "Regueb", "Sidi Ali Ben Aoun", "Sidi Bouzid Est", "Sidi Bouzid Ouest", "Souk Jedid"],
+    delegations: ["Bir El Hafey", "Cebbala Ouled Asker", "El Hichria", "Essaïda", "Jilma", "Meknassy", "Menzel Bouzaïane", "Mezzouna", "Ouled Haffouz", "Regueb", "Sidi Ali Ben Aoun", "Sidi Bouzid Est", "Sidi Bouzid Ouest", "Souk Jedid"],
   },
   {
     name: "Siliana",
-    delegations: ["Bargou", "Bou Arada", "El Aroussa", "El Krib", "Gaafour", "Kesra", "Makthar", "Rouhia", "Sidi Bou Rouis", "Siliana Nord", "Siliana Sud"],
+    delegations: ["Bargou", "Bou Arada", "El Aroussa", "El Krib", "Gaâfour", "Kesra", "Makthar", "Rouhia", "Sidi Bou Rouis", "Siliana Nord", "Siliana Sud"],
   },
   {
     name: "Sousse",
-    delegations: ["Akouda", "Bouficha", "Enfida", "Hammam Sousse", "Hergla", "Kalaa Kebira", "Kalaa Seghira", "Kondar", "Msaken", "Sidi Bou Ali", "Sidi El Hani", "Sousse Jawhara", "Sousse Medina", "Sousse Riadh", "Sousse Sidi Abdelhamid", "Zaouiet Ksibet Thrayet"],
+    delegations: ["Akouda", "Bouficha", "Enfidha", "Hammam Sousse", "Hergla", "Kalaâ Kebira", "Kalaâ Seghira", "Kondar", "M'saken", "Sidi Bou Ali", "Sidi El Hani", "Sousse Jawhara", "Sousse Médina", "Sousse Riadh", "Sousse Sidi Abdelhamid", "Zaouiet Ksibet Thrayet"],
   },
   {
     name: "Tataouine",
@@ -90,11 +90,11 @@ export const TUNISIA_GOVERNORATES: TunisiaGovernorate[] = [
   },
   {
     name: "Tozeur",
-    delegations: ["Degache", "El Hamma Du Jerid", "Hazoua", "Nefta", "Tamerza", "Tozeur"],
+    delegations: ["Degache", "El Hamma Du Jérid", "Hazoua", "Nefta", "Tamerza", "Tozeur"],
   },
   {
     name: "Tunis",
-    delegations: ["Bab El Bhar", "Bab Souika", "Carthage", "Cite El Khadra", "Djebel Jelloud", "El Hrairia", "El Kabaria", "El Menzah", "El Omrane", "El Omrane Superieur", "El Ouardia", "Ettahrir", "Ezzouhour", "La Goulette", "La Marsa", "Le Bardo", "Le Kram", "Medina", "Sejoumi", "Sidi El Bechir", "Sidi Hassine"],
+    delegations: ["Bab El Bhar", "Bab Souika", "Carthage", "Cité El Khadra", "Djebel Jelloud", "El Hraïria", "El Kabaria", "El Menzah", "El Omrane", "El Omrane Supérieur", "El Ouardia", "Ettahrir", "Ezzouhour", "La Goulette", "La Marsa", "Le Bardo", "Le Kram", "Médina", "Séjoumi", "Sidi El Béchir", "Sidi Hassine"],
   },
   {
     name: "Zaghouan",

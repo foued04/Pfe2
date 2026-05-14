@@ -166,7 +166,7 @@ export function RentalRequestCard({
             <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
           </div>
           <p className="text-[10px] text-yellow-800 font-bold uppercase tracking-[0.1em] text-center">
-            En attente de confirmation du propriétaire
+            En attente de confirmation du locateur
           </p>
           <div className="flex gap-1.5 items-center">
             <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />

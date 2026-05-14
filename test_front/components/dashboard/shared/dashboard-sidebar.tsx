@@ -25,41 +25,45 @@ import {
   Users,
   Heart,
   HousePlus,
+  CreditCard,
+  MessageSquare,
 } from "lucide-react"
 
-type NavItem = { href: string; label: string; icon: ComponentType<{ className?: string }> }
+type NavItem = { href: string; tKey: string; icon: ComponentType<{ className?: string }> }
 
 const ownerItems: NavItem[] = [
-  { href: "/dashboard/owner", label: "Dashboard", icon: Home },
-  { href: "/dashboard/owner/properties", label: "All Properties", icon: Building2 },
-  { href: "/dashboard/owner/properties/new", label: "Add Property", icon: Plus },
-  { href: "/dashboard/owner/map", label: "Map", icon: Map },
-  { href: "/dashboard/owner/requests", label: "Requests", icon: FileText },
-  { href: "/dashboard/owner/notifications", label: "Notifications", icon: Bell },
-  { href: "/dashboard/owner/furniture", label: "Furniture", icon: ShoppingBag },
+  { href: "/dashboard/owner", tKey: "sidebar.dashboard", icon: Home },
+  { href: "/dashboard/owner/properties", tKey: "sidebar.allProperties", icon: Building2 },
+  { href: "/dashboard/owner/properties/new", tKey: "sidebar.addProperty", icon: Plus },
+  { href: "/dashboard/owner/map", tKey: "sidebar.map", icon: Map },
+  { href: "/dashboard/owner/requests", tKey: "sidebar.requests", icon: FileText },
+  { href: "/dashboard/owner/messages", tKey: "sidebar.messages", icon: MessageSquare },
+  { href: "/dashboard/owner/notifications", tKey: "sidebar.notifications", icon: Bell },
+  { href: "/dashboard/owner/furniture", tKey: "sidebar.furniture", icon: ShoppingBag },
 ]
 
 const tenantItems: NavItem[] = [
-  { href: "/dashboard/tenant", label: "Dashboard", icon: Home },
-  { href: "/dashboard/tenant/my-home", label: "My Home", icon: KeyRound },
-  { href: "/dashboard/tenant/map", label: "Map", icon: Map },
-  { href: "/dashboard/tenant/requests", label: "Requests", icon: FileText },
-  { href: "/dashboard/tenant/reclamations", label: "Reclamation", icon: Megaphone },
-  { href: "/dashboard/tenant/favorites", label: "Favorites", icon: Heart },
-  { href: "/dashboard/tenant/housing-needs", label: "Housing Needs", icon: HousePlus },
-  { href: "/dashboard/tenant/furniture", label: "Furniture", icon: ShoppingBag },
-  { href: "/dashboard/tenant/notifications", label: "Notifications", icon: Bell },
+  { href: "/dashboard/tenant", tKey: "sidebar.dashboard", icon: Home },
+  { href: "/dashboard/tenant/my-home", tKey: "sidebar.myHome", icon: KeyRound },
+  { href: "/dashboard/tenant/map", tKey: "sidebar.map", icon: Map },
+  { href: "/dashboard/tenant/requests", tKey: "sidebar.requests", icon: FileText },
+  { href: "/dashboard/tenant/reclamations", tKey: "sidebar.reclamation", icon: Megaphone },
+  { href: "/dashboard/tenant/favorites", tKey: "sidebar.favorites", icon: Heart },
+  { href: "/dashboard/tenant/messages", tKey: "sidebar.messages", icon: MessageSquare },
+  { href: "/dashboard/tenant/housing-needs", tKey: "sidebar.housingNeeds", icon: HousePlus },
+  { href: "/dashboard/tenant/furniture", tKey: "sidebar.furniture", icon: ShoppingBag },
+  { href: "/dashboard/tenant/notifications", tKey: "sidebar.notifications", icon: Bell },
 ]
 
 const adminItems: NavItem[] = [
-  { href: "/dashboard/admin", label: "Dashboard", icon: Home },
-  { href: "/dashboard/admin/users", label: "Users", icon: Users },
-  { href: "/dashboard/admin/properties", label: "Properties", icon: Shield },
-  { href: "/dashboard/admin/furniture", label: "Furniture", icon: Sofa },
-  { href: "/dashboard/admin/map", label: "Map", icon: Map },
-  { href: "/dashboard/admin/verifications", label: "Verifications", icon: ShieldCheck },
-  { href: "/dashboard/admin/housing-needs", label: "Housing Needs", icon: HousePlus },
-  { href: "/dashboard/admin/reports", label: "Reports", icon: TrendingUp },
+  { href: "/dashboard/admin", tKey: "sidebar.dashboard", icon: Home },
+  { href: "/dashboard/admin/users", tKey: "sidebar.users", icon: Users },
+  { href: "/dashboard/admin/properties", tKey: "sidebar.properties", icon: Shield },
+  { href: "/dashboard/admin/furniture", tKey: "sidebar.furniture", icon: Sofa },
+  { href: "/dashboard/admin/map", tKey: "sidebar.map", icon: Map },
+  { href: "/dashboard/admin/verifications", tKey: "sidebar.verifications", icon: ShieldCheck },
+  { href: "/dashboard/admin/housing-needs", tKey: "sidebar.housingNeeds", icon: HousePlus },
+  { href: "/dashboard/admin/reports", tKey: "sidebar.reports", icon: TrendingUp },
 ]
 
 export function getNavItems(role: UserRole | null): NavItem[] {
@@ -79,13 +83,15 @@ export function DashboardSidebar({
   role,
   pendingRequests = 0,
   unreadNotifications = 0,
+  unreadMessages = 0,
 }: {
   role: UserRole | null
   pendingRequests?: number
   unreadNotifications?: number
+  unreadMessages?: number
 }) {
   const pathname = usePathname()
-  const { lang } = useI18n()
+  const { t } = useI18n()
   const items = getNavItems(role)
   const settingsHref =
     role === "owner"
@@ -116,37 +122,21 @@ export function DashboardSidebar({
               )}
             >
               <item.icon className="h-4 w-4" />
-              <span className="flex-1">
-                {item.label === "Dashboard" ? (lang === "fr" ? "Tableau de bord" : "Dashboard") :
-                 item.label === "All Properties" ? (lang === "fr" ? "Toutes les proprietes" : "All Properties") :
-                 item.label === "Add Property" ? (lang === "fr" ? "Ajouter un bien" : "Add Property") :
-                 item.label === "Map" ? (lang === "fr" ? "Carte" : "Map") :
-                 item.label === "Requests" ? (lang === "fr" ? "Demandes" : "Requests") :
-                 item.label === "Notifications" ? (lang === "fr" ? "Notifications" : "Notifications") :
-                 item.label === "Furniture" ? (lang === "fr" ? "Mobilier" : "Furniture") :
-                 item.label === "My Home" ? (lang === "fr" ? "Mon logement" : "My Home") :
-                 item.label === "Reclamation" ? (lang === "fr" ? "Reclamation" : "Reclamation") :
-                 item.label === "Favorites" ? (lang === "fr" ? "Favoris" : "Favorites") :
-                 item.label === "Housing Needs" ? (lang === "fr" ? "Besoin logement" : "Housing Needs") :
-                 item.label === "Users" ? (lang === "fr" ? "Utilisateurs" : "Users") :
-                 item.label === "Properties" ? (lang === "fr" ? "Proprietes" : "Properties") :
-                 item.label === "Verifications" ? (lang === "fr" ? "Verifications" : "Verifications") :
-                 item.label === "Reports" ? (lang === "fr" ? "Rapports" : "Reports") :
-                 item.label}
-              </span>
-              {role === "owner" && item.href === "/dashboard/owner/requests" && pendingRequests > 0 && (
-                <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white shadow-sm">
+              <span className="flex-1">{t(item.tKey)}</span>
+              {/* Dynamic Badges */}
+              {item.href.includes("requests") && pendingRequests > 0 && (
+                <span className="rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
                   {pendingRequests > 99 ? "99+" : pendingRequests}
                 </span>
               )}
-              {role === "owner" && item.href === "/dashboard/owner/notifications" && unreadNotifications > 0 && (
-                <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white shadow-sm">
+              {item.href.includes("notifications") && unreadNotifications > 0 && (
+                <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
                   {unreadNotifications > 99 ? "99+" : unreadNotifications}
                 </span>
               )}
-              {role === "tenant" && item.href === "/dashboard/tenant/notifications" && unreadNotifications > 0 && (
-                <span className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white shadow-sm">
-                  {unreadNotifications > 99 ? "99+" : unreadNotifications}
+              {item.href.includes("messages") && unreadMessages > 0 && (
+                <span className="rounded-full bg-blue-500 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+                  {unreadMessages > 99 ? "99+" : unreadMessages}
                 </span>
               )}
             </Link>
@@ -164,7 +154,7 @@ export function DashboardSidebar({
           )}
         >
           <Settings className="h-4 w-4" />
-          {lang === "fr" ? "Parametres" : "Settings"}
+          {t("sidebar.settings")}
         </Link>
       </div>
     </div>

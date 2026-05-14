@@ -4,6 +4,7 @@ import { useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { LogOut, Settings, User } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
+import { useI18n } from "@/lib/i18n"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,6 +17,7 @@ import { Button } from "@/components/ui/button"
 export function ProfileDropdown() {
   const router = useRouter()
   const { role, user, logout } = useAuth()
+  const { t } = useI18n()
 
   const initial = useMemo(() => user?.name?.trim()?.charAt(0)?.toUpperCase() || "U", [user?.name])
   const profileHref = useMemo(() => {
@@ -44,25 +46,25 @@ export function ProfileDropdown() {
               )}
             </span>
             <span className="hidden text-left sm:block">
-              <span className="block text-xs text-muted-foreground">Compte</span>
-              <span className="block max-w-32 truncate text-sm font-semibold text-foreground">{user?.name || "Utilisateur"}</span>
+              <span className="block text-xs text-muted-foreground">{t("general.account") || "Compte"}</span>
+              <span className="block max-w-32 truncate text-sm font-semibold text-foreground">{user?.name || t("general.user") || "Utilisateur"}</span>
             </span>
           </span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <div className="px-2 py-1.5">
-          <p className="text-sm font-semibold">{user?.name || "Utilisateur"}</p>
+          <p className="text-sm font-semibold">{user?.name || t("general.user") || "Utilisateur"}</p>
           <p className="text-xs text-muted-foreground">{user?.email || ""}</p>
         </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => router.push(profileHref)}>
           <User className="mr-2 h-4 w-4" />
-          Profile
+          {t("profile")}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => router.push(settingsHref)}>
           <Settings className="mr-2 h-4 w-4" />
-          Settings
+          {t("settings")}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
@@ -72,7 +74,7 @@ export function ProfileDropdown() {
           }}
         >
           <LogOut className="mr-2 h-4 w-4" />
-          Logout
+          {t("auth.deconnection") || "Deconnexion"}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

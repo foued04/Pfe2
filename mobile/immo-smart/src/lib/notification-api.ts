@@ -5,6 +5,14 @@ export const fetchNotifications = (token: string) => {
   return http.get<BackendNotification[]>("/notifications", token)
 }
 
+export const fetchUnreadNotificationsCount = (token: string) => {
+  return http.get<{ count: number }>("/notifications/unread-count", token)
+}
+
+export const markAllNotificationsRead = (token: string) => {
+  return http.patch<{ message: string }>("/notifications/read-all", {}, token)
+}
+
 export const createNotification = (
   data: {
     recipient: string
@@ -41,4 +49,16 @@ export const markNotificationRead = (notificationId: string, token: string) => {
     {},
     token,
   )
+}
+
+export const fetchSentReclamations = (token: string) => {
+  return http.get<BackendNotification[]>("/notifications/reclamations/sent", token)
+}
+
+export const updateReclamation = (id: string, data: any, token: string) => {
+  return http.put<BackendNotification>(`/notifications/reclamations/${id}`, data, token)
+}
+
+export const deleteReclamation = (id: string, token: string) => {
+  return http.delete<{ message: string }>(`/notifications/reclamations/${id}`, token)
 }

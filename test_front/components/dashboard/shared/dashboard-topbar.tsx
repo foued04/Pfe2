@@ -1,29 +1,28 @@
 "use client"
 
 import Link from "next/link"
-import { Bell, Menu } from "lucide-react"
+import { Bell, Menu, FileText } from "lucide-react"
 import { useI18n } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
 import { ProfileDropdown } from "@/components/shared/profile-dropdown"
+import type { UserRole } from "@/lib/auth-context"
 
 export function DashboardTopbar({
   title,
   onOpenMobileMenu,
   pendingRequests = 0,
   unreadNotifications = 0,
-  showOwnerNotifications = false,
-  showTenantNotifications = false,
+  role,
   eyebrow,
 }: {
   title: string
   onOpenMobileMenu: () => void
   pendingRequests?: number
   unreadNotifications?: number
-  showOwnerNotifications?: boolean
-  showTenantNotifications?: boolean
+  role: UserRole | null
   eyebrow?: string
 }) {
-  const { lang } = useI18n()
+  const { lang, t } = useI18n()
 
   return (
     <div className="sticky top-0 z-30 flex min-h-20 flex-wrap items-center justify-between gap-3 border-b border-border bg-background/95 px-3 py-3 backdrop-blur sm:px-4 md:px-6">
@@ -41,55 +40,41 @@ export function DashboardTopbar({
         </div>
       </div>
       <div className="flex w-full items-center justify-end gap-2 sm:w-auto sm:gap-3">
-        {showOwnerNotifications && (
+        {pendingRequests > 0 && (
           <Button
             asChild
             variant="outline"
             className="relative h-10 rounded-full px-3 text-sm font-semibold sm:h-11 sm:px-4"
-            title={
-              pendingRequests > 0
-                ? lang === "fr"
-                  ? `${pendingRequests} demande(s) en attente`
-                  : `${pendingRequests} pending request(s)`
-                : lang === "fr"
-                  ? "Aucune nouvelle demande"
-                  : "No new requests"
-            }
+            title={`${pendingRequests} ${t("dashboard.pendingRequests")}`}
           >
-            <Link href="/dashboard/owner/requests">
-              <Bell className="mr-2 h-4 w-4" />
-              <span className="hidden sm:inline">{lang === "fr" ? "Demandes" : "Requests"}</span>
-              {pendingRequests > 0 && (
-                <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-xs font-bold text-white shadow-md ring-2 ring-background">
-                  {pendingRequests > 99 ? "99+" : pendingRequests}
-                </span>
-              )}
+            <Link href={role === "owner" ? "/dashboard/owner/requests" : "/dashboard/tenant/requests"}>
+              <FileText className="mr-2 h-4 w-4" />
+              <span className="hidden sm:inline">{t("sidebar.requests")}</span>
+              <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-blue-600 px-1 text-xs font-bold text-white shadow-md ring-2 ring-background">
+                {pendingRequests > 99 ? "99+" : pendingRequests}
+              </span>
             </Link>
           </Button>
         )}
-        {showTenantNotifications && (
+        {unreadNotifications > 0 && (
           <Button
             asChild
             variant="outline"
-            className="relative h-11 rounded-full px-4 text-sm font-semibold"
-            title={
-              unreadNotifications > 0
-                ? lang === "fr"
-                  ? `${unreadNotifications} notification(s) non lue(s)`
-                  : `${unreadNotifications} unread notification(s)`
-                : lang === "fr"
-                  ? "Aucune nouvelle notification"
-                  : "No new notifications"
-            }
+            className="relative h-10 rounded-full px-3 text-sm font-semibold sm:h-11 sm:px-4"
+            title={`${unreadNotifications} ${t("notifications")}`}
           >
-            <Link href="/dashboard/tenant/notifications">
+            <Link href={
+              role === "admin" 
+                ? "/dashboard/admin/notifications" 
+                : role === "owner" 
+                  ? "/dashboard/owner/notifications" 
+                  : "/dashboard/tenant/notifications"
+            }>
               <Bell className="mr-2 h-4 w-4" />
-              <span className="hidden sm:inline">{lang === "fr" ? "Notifications" : "Notifications"}</span>
-              {unreadNotifications > 0 && (
-                <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-xs font-bold text-white shadow-md ring-2 ring-background">
-                  {unreadNotifications > 99 ? "99+" : unreadNotifications}
-                </span>
-              )}
+              <span className="hidden sm:inline">{t("notifications")}</span>
+              <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-xs font-bold text-white shadow-md ring-2 ring-background">
+                {unreadNotifications > 99 ? "99+" : unreadNotifications}
+              </span>
             </Link>
           </Button>
         )}

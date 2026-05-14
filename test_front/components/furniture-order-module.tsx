@@ -145,18 +145,10 @@ export function FurnitureOrderModule({ initialPropertyId }: FurnitureOrderModule
         if (data && data.length > 0) {
           setExistingFurniture(data)
         } else {
-          // Fallback to mock data
-          const mockProp = mockProperties.find(p => p.id === propertyId || (p as any)._id === propertyId)
-          if (mockProp?.furnishing?.items) {
-            setExistingFurniture(mockProp.furnishing.items as any)
-          }
+          setExistingFurniture([])
         }
       } else {
-        // Fallback to mock data
-        const mockProp = mockProperties.find(p => p.id === propertyId || (p as any)._id === propertyId)
-        if (mockProp?.furnishing?.items) {
-          setExistingFurniture(mockProp.furnishing.items as any)
-        }
+        setExistingFurniture([])
       }
     } catch (error) {
       console.error("Error fetching existing furniture:", error)

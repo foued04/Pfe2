@@ -27,7 +27,7 @@ import { Textarea } from "./ui/textarea"
 
 export function TenantNotificationsModule() {
   const { lang } = useI18n()
-  const [notifications, setNotifications] = useState<TenantNotification[]>(mockNotifications)
+  const [notifications, setNotifications] = useState<TenantNotification[]>([])
   const [activeType, setActiveType] = useState<NotificationType | "Tous">("Tous")
   const [activeNotifId, setActiveNotifId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
@@ -83,12 +83,12 @@ export function TenantNotificationsModule() {
     propertyAddress: data.property?.address || "...",
     propertyType: data.property?.type || "...",
     propertySurface: data.property?.surface || 0,
-    propertyRent: data.rentAmount,
-    propertyDeposit: data.depositAmount,
-    ownerName: data.owner?._id ? data.owner.fullName : "...",
+    propertyRent: data.rentAmount || 0,
+    propertyDeposit: data.depositAmount || 0,
+    ownerName: data.owner?.fullName || "...",
     ownerEmail: data.owner?.email || "...",
     ownerPhone: data.owner?.phone || "...",
-    tenantName: data.tenant?._id ? data.tenant.fullName : "...",
+    tenantName: data.tenant?.fullName || "...",
     tenantEmail: data.tenant?.email || "...",
     tenantPhone: data.tenant?.phone || "...",
     startDate: data.startDate || '',
@@ -113,10 +113,12 @@ export function TenantNotificationsModule() {
         },
         body: JSON.stringify({ signature })
       })
+
       if (response.ok) {
         const updatedContractData = await response.json()
         setContractToView(mapBackendContract(updatedContractData))
-        // Refresh notifications
+        
+        // Refresh notifications after signing
         const notifResponse = await fetch(`${API_URL}/notifications`, {
           headers: { Authorization: `Bearer ${token}` }
         })
@@ -178,7 +180,6 @@ export function TenantNotificationsModule() {
         if (response.ok) {
           const data = await response.json()
           const dataArray = Array.isArray(data) ? data : []
-          // Map backend notifications to frontend format
           const mapped = dataArray.map((n: any) => ({
             id: n._id,
             type: n.type as NotificationType,
@@ -203,7 +204,7 @@ export function TenantNotificationsModule() {
     }
     
     fetchNotifications()
-    const interval = setInterval(fetchNotifications, 30000) // Refresh every 30s
+    const interval = setInterval(fetchNotifications, 30000)
     return () => clearInterval(interval)
   }, [])
 
@@ -257,9 +258,25 @@ export function TenantNotificationsModule() {
     }
   }
 
+  const normalizeType = (type: string) => {
+    if (!type) return "Système"
+    const isMangledReclamation = type.includes('R\u00c3\u00a9') || type.includes('R\u00e9') || type.toLowerCase() === "reclamation"
+    const isMangledSystem = type.includes('Syst\u00c3\u00a8') || type.includes('Syst\u00e8') || type.toLowerCase() === "systeme" || type.toLowerCase() === "système"
+    const isMangledVerification = type.includes('V\u00c3\u00a9') || type.includes('V\u00e9') || type.toLowerCase() === "verification"
+    const isMangledMobilier = type.toLowerCase() === "mobilier" || type.toLowerCase() === "furniture"
+    const isMangledContrat = type.toLowerCase() === "contrat" || type.toLowerCase() === "contract"
+
+    if (isMangledReclamation) return 'Réclamation'
+    if (isMangledSystem) return 'Système'
+    if (isMangledVerification) return 'Vérification'
+    if (isMangledMobilier) return 'Mobilier'
+    if (isMangledContrat) return 'Contrat'
+    return type as any
+  }
+
   const filteredNotifs = useMemo(() => {
     return notifications
-      .filter(n => activeType === "Tous" || n.type === activeType)
+      .filter(n => activeType === "Tous" || normalizeType(n.type) === activeType)
       .filter(n => n.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                    n.preview.toLowerCase().includes(searchQuery.toLowerCase()))
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -284,8 +301,24 @@ export function TenantNotificationsModule() {
         method: "PATCH",
         headers: { Authorization: `Bearer ${token}` },
       })
+      // Refresh sidebar counts immediately
+      window.dispatchEvent(new CustomEvent("refresh-dashboard-counts"))
     } catch (err) {
       console.error("Mark notification as read error:", err)
+    }
+  }
+
+  const markAllAsRead = async () => {
+    try {
+      const token = localStorage.getItem("accessToken")
+      await fetch(`${API_URL}/notifications/read-all`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
+      window.dispatchEvent(new CustomEvent("refresh-dashboard-counts"))
+    } catch (err) {
+      console.error("Mark all as read error:", err)
     }
   }
 
@@ -337,7 +370,7 @@ export function TenantNotificationsModule() {
   }
 
   const getTypeConfig = (type: NotificationType) => {
-    switch (type) {
+    switch (normalizeType(type)) {
       case "Mobilier":
         return { color: "text-blue-700 bg-blue-50 border-blue-200", icon: Armchair }
       case "Réclamation":
@@ -481,7 +514,7 @@ export function TenantNotificationsModule() {
                   </span>
                   <span className={cn(
                     "px-2 py-0.5 rounded-full border",
-                    activeNotif.status === "Vue par le propriétaire" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-yellow-50 text-yellow-700 border-yellow-200"
+                    activeNotif.status === "Vue par le locateur" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-yellow-50 text-yellow-700 border-yellow-200"
                   )}>
                     {activeNotif.status}
                   </span>
@@ -513,7 +546,7 @@ export function TenantNotificationsModule() {
             </div>
 
             {/* Conditional Content */}
-            {activeNotif.type === "Réclamation" && activeNotif.claimResponse && (
+            {(normalizeType(activeNotif.type) === "Réclamation") && activeNotif.claimResponse && (
               <div className="space-y-6">
                 <div className="relative pl-12 before:absolute before:left-6 before:top-0 before:bottom-0 before:w-[2px] before:bg-primary/20">
                   <div className="absolute left-0 top-0 w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20 ring-4 ring-background">
@@ -522,7 +555,7 @@ export function TenantNotificationsModule() {
                   <div className="bg-primary/5 p-6 rounded-3xl border border-primary/20">
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <p className="text-xs font-black text-primary uppercase tracking-widest mb-1">Propriétaire</p>
+                        <p className="text-xs font-black text-primary uppercase tracking-widest mb-1">Locateur</p>
                         <h4 className="text-xl font-black text-foreground">Réponse Reçue</h4>
                       </div>
                     </div>
@@ -645,7 +678,7 @@ export function TenantNotificationsModule() {
                         </Badge>
                       </div>
                       <div>
-                        <p className="text-[10px] font-black text-muted-foreground uppercase mb-2">Propriétaire</p>
+                        <p className="text-[10px] font-black text-muted-foreground uppercase mb-2">Locateur</p>
                         <p className="text-sm font-bold text-slate-900">{activeNotif.furnitureMeta?.ownerName || "---"}</p>
                       </div>
                     </div>
@@ -658,10 +691,10 @@ export function TenantNotificationsModule() {
                     <div>
                       <h4 className="text-xl font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
                         <Send className="w-5 h-5 text-primary" />
-                        Repondre au propriétaire
+                        Repondre au locateur
                       </h4>
                       <p className="mt-1 text-xs text-muted-foreground font-medium">
-                        Votre message sera visible par le propriétaire dans les détails de la demande.
+                        Votre message sera visible par le locateur dans les détails de la demande.
                       </p>
                     </div>
                     <Textarea
@@ -687,38 +720,75 @@ export function TenantNotificationsModule() {
               </div>
             )}
 
-            {activeNotif.type === "Système" && (
-              <div className="space-y-5">
-                <div className="flex gap-4 p-8 bg-blue-50 border border-blue-200 rounded-3xl">
-                  <Info className="w-10 h-10 text-blue-500 flex-shrink-0" />
-                  <div>
-                    <h4 className="text-xl font-black text-blue-900 mb-2">Information Système</h4>
-                    <p className="text-blue-800/80 leading-relaxed font-medium">
-                      {activeNotif.content}
+            {(activeNotif.type === "Système" || (activeNotif.type as any) === "Systeme") && (
+              <div className="space-y-6">
+                <div className="flex gap-4 p-8 bg-blue-50/50 border border-blue-100 rounded-3xl relative overflow-hidden group">
+                  <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+                    <Mail className="w-20 h-20 text-primary" />
+                  </div>
+                  <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-primary shadow-sm flex-shrink-0 relative z-10">
+                    <Info className="w-6 h-6" />
+                  </div>
+                  <div className="relative z-10">
+                    <h4 className="text-xl font-black text-blue-900 mb-2">
+                      {activeNotif.title === 'Nouveau message' ? 'Message du locateur' : 'Information Système'}
+                    </h4>
+                    <p className="text-blue-800/80 leading-relaxed font-medium text-lg italic">
+                      "{activeNotif.content}"
                     </p>
                   </div>
                 </div>
 
                 {activeNotif.messageMeta?.conversationId && (
-                  <form onSubmit={handleReplyToMessage} className="rounded-3xl border border-border bg-white p-6 shadow-sm">
-                    <div className="mb-4">
-                      <h4 className="text-xl font-black text-foreground">Repondre au message</h4>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        Votre reponse sera envoyee dans la conversation avec {activeNotif.messageMeta.senderName || "le proprietaire"}.
-                      </p>
+                  <form onSubmit={handleReplyToMessage} className="rounded-3xl border border-border bg-white p-8 shadow-xl shadow-slate-200/50 space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-2xl font-black text-foreground tracking-tight">Répondre</h4>
+                        <p className="mt-1 text-sm text-muted-foreground font-medium">
+                          Votre réponse sera envoyée directement à <span className="text-primary font-bold">{activeNotif.messageMeta.senderName || "votre locateur"}</span>.
+                        </p>
+                      </div>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm" 
+                        className="rounded-full gap-2 border-primary/20 text-primary hover:bg-primary/5"
+                        onClick={() => window.location.href = '/dashboard/tenant/messages'}
+                      >
+                        Voir dans Messenger
+                        <Send className="w-3 h-3 rotate-45" />
+                      </Button>
                     </div>
+                    
                     <Textarea
                       value={replyText}
                       onChange={(event) => setReplyText(event.target.value)}
-                      placeholder="Ecrivez votre reponse..."
-                      className="min-h-28 resize-none"
+                      placeholder="Tapez votre message ici..."
+                      className="min-h-32 resize-none bg-slate-50 border-slate-200 focus:bg-white focus:ring-primary/20 rounded-2xl p-4 text-base font-medium transition-all"
                     />
-                    {replyError && <p className="mt-3 text-sm font-semibold text-destructive">{replyError}</p>}
-                    {replySuccess && <p className="mt-3 text-sm font-semibold text-emerald-700">{replySuccess}</p>}
-                    <div className="mt-4 flex justify-end">
-                      <Button type="submit" className="gap-2" disabled={isReplying}>
-                        {isReplying ? "Envoi..." : "Envoyer la reponse"}
-                        {!isReplying && <Send className="h-4 w-4" />}
+                    
+                    {replyError && (
+                      <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm font-bold flex items-center gap-2">
+                        <Info className="w-4 h-4" />
+                        {replyError}
+                      </div>
+                    )}
+                    
+                    {replySuccess && (
+                      <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-bold flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4" />
+                        {replySuccess}
+                      </div>
+                    )}
+                    
+                    <div className="flex justify-end pt-2">
+                      <Button 
+                        type="submit" 
+                        className="rounded-2xl h-14 px-10 bg-primary text-white font-black uppercase tracking-widest text-sm gap-3 shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:-translate-y-0.5 active:translate-y-0" 
+                        disabled={isReplying || !replyText.trim()}
+                      >
+                        {isReplying ? "Envoi en cours..." : "Envoyer la réponse"}
+                        {!isReplying && <Send className="h-5 w-5" />}
                       </Button>
                     </div>
                   </form>

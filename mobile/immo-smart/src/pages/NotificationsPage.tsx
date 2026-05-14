@@ -6,6 +6,7 @@ import {
   mailOutline,
   notificationsOutline,
   sendOutline,
+  calendarOutline,
 } from "ionicons/icons"
 import { useEffect, useMemo, useState } from "react"
 import EmptyState from "../components/EmptyState"
@@ -74,30 +75,52 @@ const NotificationsPage: React.FC = () => {
 
 
   const activeNotification = useMemo(
-    () => notifications.find((notification) => notification._id === activeId) || null,
-    [activeId, notifications],
+    () => normalizedNotifications.find((notification) => notification._id === activeId) || null,
+    [activeId, normalizedNotifications],
   )
 
   const unreadCount = notifications.filter((notification) => !notification.isRead).length
 
+  const normalizeType = (type?: string) => {
+    if (!type) return "Système"
+    const isMangledReclamation = type.includes('R\u00c3\u00a9') || type.includes('R\u00e9') || type.toLowerCase() === "reclamation"
+    const isMangledSystem = type.includes('Syst\u00c3\u00a8') || type.includes('Syst\u00e8') || type.toLowerCase() === "systeme" || type.toLowerCase() === "système"
+    const isMangledVerification = type.includes('V\u00c3\u00a9') || type.includes('V\u00e9') || type.toLowerCase() === "verification"
+    const isMangledMobilier = type.toLowerCase() === "mobilier" || type.toLowerCase() === "furniture"
+    const isMangledContrat = type.toLowerCase() === "contrat" || type.toLowerCase() === "contract"
+
+    if (isMangledReclamation) return 'Réclamation'
+    if (isMangledSystem) return 'Système'
+    if (isMangledVerification) return 'Vérification'
+    if (isMangledMobilier) return 'Mobilier'
+    if (isMangledContrat) return 'Contrat'
+    return type
+  }
+
+  const normalizedNotifications = useMemo(() => {
+    return notifications.map(n => ({ ...n, type: normalizeType(n.type) }))
+  }, [notifications])
+
   const getIcon = (notification: BackendNotification) => {
+    const type = normalizeType(notification.type)
     const haystack = `${notification.title} ${notification.preview || ""} ${notification.message || ""}`.toLowerCase()
 
     if (haystack.includes("accep")) return checkmarkCircleOutline
     if (haystack.includes("refus")) return alertCircleOutline
-    if (notification.type === "Contrat" || notification.contractData) return documentTextOutline
+    if (type === "Contrat" || notification.contractData) return documentTextOutline
     if (notification.messageMeta?.conversationId) return mailOutline
-    if (notification.type === "success") return checkmarkCircleOutline
-    if (notification.type === "warning") return alertCircleOutline
+    if (type === "success") return checkmarkCircleOutline
+    if (type === "warning") return alertCircleOutline
     return informationCircleOutline
   }
 
   const getTone = (notification: BackendNotification) => {
+    const type = normalizeType(notification.type)
     const haystack = `${notification.title} ${notification.preview || ""} ${notification.message || ""}`.toLowerCase()
 
     if (haystack.includes("accep")) return "success"
     if (haystack.includes("refus")) return "danger"
-    if (notification.type === "Contrat" || notification.contractData) return "success"
+    if (type === "Contrat" || notification.contractData) return "success"
     if (notification.messageMeta?.conversationId) return "info"
     return "neutral"
   }
@@ -159,7 +182,7 @@ const NotificationsPage: React.FC = () => {
       setReplySuccess(
         user?.role === "owner"
           ? "Votre reponse a ete envoyee au locataire."
-          : "Votre reponse a ete envoyee au proprietaire."
+          : "Votre reponse a ete envoyee au locateur."
       )
     } catch (err) {
       setReplyError(err instanceof Error ? err.message : "Impossible d'envoyer la reponse.")
@@ -178,7 +201,7 @@ const NotificationsPage: React.FC = () => {
             subtitle={
               user?.role === "owner"
                 ? "Consultez les messages, reclamations et alertes recus depuis vos locataires."
-                : "Consultez les reponses du proprietaire, les decisions sur vos demandes et repondez depuis Alertes."
+                : "Consultez les reponses du locateur, les decisions sur vos demandes et repondez depuis Alertes."
             }
           />
 
@@ -197,7 +220,7 @@ const NotificationsPage: React.FC = () => {
           ) : (
             <>
               <div className="notifications-stack">
-                {notifications.map((notification) => {
+                {normalizedNotifications.map((notification) => {
                   const tone = getTone(notification)
                   const isActive = activeId === notification._id
 
@@ -291,6 +314,39 @@ const NotificationsPage: React.FC = () => {
                         <IonIcon icon={documentTextOutline} />
                         Consulter la Demande
                       </button>
+                    </div>
+                  ) : activeNotification.claimResponse ? (
+                    <div className="notification-response-block">
+                      <div className="response-message-card">
+                        <IonIcon icon={checkmarkCircleOutline} className="response-icon" />
+                        <div className="response-content">
+                          <p className="response-label">Réponse du locateur</p>
+                          <p className="response-text">{activeNotification.claimResponse.message}</p>
+                        </div>
+                      </div>
+                      
+                      {activeNotification.claimResponse.intervention && (
+                        <div className="intervention-details-card">
+                          <div className="intervention-header">
+                            <IonIcon icon={calendarOutline} />
+                            <span>Intervention programmée</span>
+                          </div>
+                          <div className="intervention-grid">
+                            <div className="grid-item">
+                              <small>Date</small>
+                              <p>{activeNotification.claimResponse.intervention.date}</p>
+                            </div>
+                            <div className="grid-item">
+                              <small>Heure</small>
+                              <p>{activeNotification.claimResponse.intervention.time}</p>
+                            </div>
+                            <div className="grid-item">
+                              <small>Technicien</small>
+                              <p>{activeNotification.claimResponse.intervention.technician}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : activeNotification.messageMeta?.conversationId ? (
                     <form className="notification-reply-form" onSubmit={handleReply}>

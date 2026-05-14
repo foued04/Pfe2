@@ -995,9 +995,95 @@
 }
 
 .contract-mini-info p {
-  margin: 3px 0;
-  font-size: 11px;
   color: var(--brand-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Notification Response Block ── */
+
+.notification-response-block {
+  margin-top: 10px;
+  display: grid;
+  gap: 12px;
+}
+
+.response-message-card {
+  background: rgba(46, 196, 199, 0.06);
+  border: 1px solid rgba(46, 196, 199, 0.15);
+  border-radius: 18px;
+  padding: 16px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.response-icon {
+  font-size: 24px;
+  color: #2EC4C7;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.response-content {
+  flex: 1;
+}
+
+.response-label {
+  margin: 0 0 4px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #2EC4C7;
+}
+
+.response-text {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--brand-text);
+  line-height: 1.5;
+}
+
+.intervention-details-card {
+  background: linear-gradient(135deg, #1D4ED8, #3B82F6);
+  border-radius: 18px;
+  padding: 16px;
+  color: #ffffff;
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.18);
+}
+
+.intervention-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.intervention-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.grid-item small {
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  opacity: 0.8;
+  margin-bottom: 3px;
+}
+
+.grid-item p {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+}
   font-weight: 600;
 }
 
@@ -2802,4 +2888,126 @@
 .status-pill.moderation-rejected {
   background: #ef4444;
   border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+/* ── Contract Details Premium ── */
+
+.request-contract-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex: 1;
+}
+
+.request-contract-id {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.request-contract-id ion-icon {
+  font-size: 20px;
+  color: var(--brand-primary);
+  opacity: 0.8;
+}
+
+.request-contract-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--brand-muted);
+  margin-bottom: 2px;
+}
+
+.request-contract-id strong {
+  font-size: 15px;
+  font-weight: 900;
+  color: var(--brand-text);
+  letter-spacing: -0.01em;
+}
+
+.contract-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mini-tool-btn {
+  background: var(--brand-surface);
+  border: 1px solid var(--brand-border);
+  border-radius: 10px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--brand-primary);
+  box-shadow: 0 4px 12px rgba(46, 196, 199, 0.08);
+  transition: all 0.2s ease;
+}
+
+.mini-tool-btn:active {
+  transform: scale(0.95);
+  background: var(--brand-primary);
+  color: #fff;
+}
+
+.mini-tool-btn:disabled {
+  opacity: 0.5;
+}
+
+.mini-tool-btn ion-icon {
+  font-size: 14px;
+}
+
+.request-contract-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  background: rgba(46, 196, 199, 0.04);
+  padding: 16px;
+  border-radius: 16px;
+  margin-top: 16px;
+  border: 1px solid rgba(46, 196, 199, 0.1);
+}
+
+.request-contract-grid strong {
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--brand-primary-deep);
+}
+
+.action-btn {
+  width: 100%;
+  background: linear-gradient(135deg, var(--brand-primary-deep), var(--brand-primary));
+  color: #fff;
+  border: none;
+  border-radius: 16px;
+  padding: 16px;
+  font-size: 15px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 12px 24px rgba(46, 196, 199, 0.25);
+  transition: all 0.2s ease;
+}
+
+.action-btn:active {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+
+.action-btn:disabled {
+  background: #cbd5e1;
+  box-shadow: none;
+}
+
+.action-btn ion-icon {
+  font-size: 20px;
 }

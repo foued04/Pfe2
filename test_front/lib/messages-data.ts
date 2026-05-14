@@ -91,7 +91,7 @@ export const mockConversations: Conversation[] = [
   {
     id: "conv-004",
     category: "Admin",
-    contextTitle: "Validation de votre compte propriétaire",
+    contextTitle: "Validation de votre compte locateur",
     participants: [
       mockCurrentUser,
       { id: "admin-1", name: "Équipe ImmoSmart", role: "admin" }
@@ -193,7 +193,7 @@ export const mockMessages: Message[] = [
     id: "msg-401",
     conversationId: "conv-004",
     senderId: "admin-1",
-    content: "L'administration a envoyé un message : \"Bienvenue sur ImmoSmart ! Vos documents d'identité ont bien été vérifiés. Votre compte propriétaire est maintenant 100% actif. Vous pouvez publier vos annonces.\"",
+    content: "L'administration a envoyé un message : \"Bienvenue sur ImmoSmart ! Vos documents d'identité ont bien été vérifiés. Votre compte locateur est maintenant 100% actif. Vous pouvez publier vos annonces.\"",
     timestamp: "2026-03-15T11:00:00Z",
     isRead: true,
     source: "platform",

@@ -18,6 +18,7 @@ import {
   personOutline,
 } from "ionicons/icons"
 import { AuthProvider, useAuth } from "./lib/auth-context"
+import { I18nProvider, useI18n } from "./lib/i18n"
 
 import Tab1 from "./pages/Tab1"
 import Tab2 from "./pages/Tab2"
@@ -37,6 +38,7 @@ import AdminHousingNeedsPage from "./pages/AdminHousingNeedsPage"
 import AdminUsersPage from "./pages/AdminUsersPage"
 import MessagesPage from "./pages/MessagesPage"
 import MobileChatbot from "./components/MobileChatbot"
+import NotificationsBadge from "./components/NotificationsBadge"
 import VerifyEmailPage from "./pages/VerifyEmailPage"
 
 import "@ionic/react/css/core.css"
@@ -80,97 +82,107 @@ const ProtectedRoute: React.FC<{ component: React.FC }> = ({ component: Componen
   return isAuthenticated ? <Component /> : <Redirect to="/login" />
 }
 
-const AppTabs: React.FC = () => (
-  <IonTabs>
-    <IonRouterOutlet>
-      <Route exact path="/tab1" component={Tab1} />
-      <Route exact path="/tab2" component={Tab2} />
-      <Route exact path="/tab3">
-        <DashboardRoute />
-      </Route>
-      <Route exact path="/login" component={Tab3} />
-      <Route exact path="/register" component={Tab3} />
-      <Route exact path="/verify-email" component={VerifyEmailPage} />
-      <Route exact path="/notifications">
-        <ProtectedRoute component={NotificationsPage} />
-      </Route>
-      <Route exact path="/account" component={Tab3} />
-      <Route exact path="/profile">
-        <ProtectedRoute component={ProfilePage} />
-      </Route>
-      <Route exact path="/property/:id" component={PropertyDetailPage} />
-      <Route exact path="/property-form">
-        <ProtectedRoute component={PropertyFormPage} />
-      </Route>
-      <Route exact path="/property-form/:id" component={PropertyFormPage} />
-      <Route exact path="/rental-requests">
-        <ProtectedRoute component={RentalRequestsPage} />
-      </Route>
-      <Route exact path="/favorites">
-        <ProtectedRoute component={FavoritesPage} />
-      </Route>
-      <Route exact path="/furniture">
-        <ProtectedRoute component={FurniturePage} />
-      </Route>
-      <Route exact path="/messages">
-        <ProtectedRoute component={MessagesPage} />
-      </Route>
-      <Route exact path="/maintenance">
-        <ProtectedRoute component={MaintenancePage} />
-      </Route>
-      <Route exact path="/housing-needs">
-        <ProtectedRoute component={HousingNeedsPage} />
-      </Route>
-      <Route exact path="/admin/housing-needs">
-        <ProtectedRoute component={AdminHousingNeedsPage} />
-      </Route>
-      <Route exact path="/admin/users">
-        <ProtectedRoute component={AdminUsersPage} />
-      </Route>
-      <Route exact path="/">
-        <Redirect to="/tab1" />
-      </Route>
-    </IonRouterOutlet>
+const AppTabs: React.FC = () => {
+  const { t } = useI18n()
+  
+  return (
+    <IonTabs>
+      <IonRouterOutlet>
+        <Route exact path="/tab1" component={Tab1} />
+        <Route exact path="/tab2" component={Tab2} />
+        <Route exact path="/tab3">
+          <DashboardRoute />
+        </Route>
+        <Route exact path="/login" component={Tab3} />
+        <Route exact path="/register" component={Tab3} />
+        <Route exact path="/verify-email" component={VerifyEmailPage} />
+        <Route exact path="/notifications">
+          <ProtectedRoute component={NotificationsPage} />
+        </Route>
+        <Route exact path="/account" component={Tab3} />
+        <Route exact path="/profile">
+          <ProtectedRoute component={ProfilePage} />
+        </Route>
+        <Route exact path="/property/:id" component={PropertyDetailPage} />
+        <Route exact path="/property-form">
+          <ProtectedRoute component={PropertyFormPage} />
+        </Route>
+        <Route exact path="/property-form/:id" component={PropertyFormPage} />
+        <Route exact path="/rental-requests">
+          <ProtectedRoute component={RentalRequestsPage} />
+        </Route>
+        <Route exact path="/favorites">
+          <ProtectedRoute component={FavoritesPage} />
+        </Route>
+        <Route exact path="/furniture">
+          <ProtectedRoute component={FurniturePage} />
+        </Route>
+        <Route exact path="/messages">
+          <ProtectedRoute component={MessagesPage} />
+        </Route>
+        <Route exact path="/maintenance">
+          <ProtectedRoute component={MaintenancePage} />
+        </Route>
+        <Route exact path="/housing-needs">
+          <ProtectedRoute component={HousingNeedsPage} />
+        </Route>
+        <Route exact path="/admin/housing-needs">
+          <ProtectedRoute component={AdminHousingNeedsPage} />
+        </Route>
+        <Route exact path="/admin/users">
+          <ProtectedRoute component={AdminUsersPage} />
+        </Route>
+        <Route exact path="/">
+          <Redirect to="/tab1" />
+        </Route>
+      </IonRouterOutlet>
 
-    <IonTabBar slot="bottom" className="immosmart-glass-tabbar">
-      <IonTabButton tab="tab1" href="/tab1">
-        <IonIcon icon={homeOutline} />
-        <IonLabel>Accueil</IonLabel>
-      </IonTabButton>
-      <IonTabButton tab="tab2" href="/tab2">
-        <IonIcon icon={searchOutline} />
-        <IonLabel>Biens</IonLabel>
-      </IonTabButton>
-      <IonTabButton tab="tab3" href="/tab3">
-        <IonIcon icon={gridOutline} />
-        <IonLabel>Dashboard</IonLabel>
-      </IonTabButton>
-      <IonTabButton tab="notifications" href="/notifications">
-        <IonIcon icon={notificationsOutline} />
-        <IonLabel>Alertes</IonLabel>
-      </IonTabButton>
-      <IonTabButton tab="account" href="/account">
-        <IonIcon icon={personOutline} />
-        <IonLabel>Compte</IonLabel>
-      </IonTabButton>
-    </IonTabBar>
-  </IonTabs>
-)
+      <IonTabBar slot="bottom" className="immosmart-glass-tabbar">
+        <IonTabButton tab="tab1" href="/tab1">
+          <IonIcon icon={homeOutline} />
+          <IonLabel>{t("nav.home")}</IonLabel>
+        </IonTabButton>
+        <IonTabButton tab="tab2" href="/tab2">
+          <IonIcon icon={searchOutline} />
+          <IonLabel>{t("nav.search")}</IonLabel>
+        </IonTabButton>
+        <IonTabButton tab="tab3" href="/tab3">
+          <IonIcon icon={gridOutline} />
+          <IonLabel>{t("nav.dashboard")}</IonLabel>
+        </IonTabButton>
+        <IonTabButton tab="notifications" href="/notifications">
+          <IonIcon icon={notificationsOutline} />
+          <IonLabel>{t("nav.notifications")}</IonLabel>
+          <NotificationsBadge />
+        </IonTabButton>
+        <IonTabButton tab="account" href="/account">
+          <IonIcon icon={personOutline} />
+          <IonLabel>{t("nav.profile")}</IonLabel>
+        </IonTabButton>
+      </IonTabBar>
+    </IonTabs>
+  )
+}
 
 import { SocketProvider } from "./lib/socket-context"
 
 const App: React.FC = () => (
   <IonApp>
-    <AuthProvider>
-      <SocketProvider>
-        <IonReactRouter>
-          <AppTabs />
-        </IonReactRouter>
-        <MobileChatbot />
-      </SocketProvider>
-    </AuthProvider>
+    <I18nProvider>
+      <AuthProvider>
+        <SocketProvider>
+          <IonReactRouter>
+            <AppTabs />
+          </IonReactRouter>
+          <MobileChatbot />
+        </SocketProvider>
+      </AuthProvider>
+    </I18nProvider>
   </IonApp>
 )
+
+
+export default App
 
 
 export default App

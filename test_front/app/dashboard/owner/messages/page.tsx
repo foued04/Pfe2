@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation"
+import { OwnerMessagesPage } from "@/components/dashboard/owner/owner-messages-page"
 
 export default function OwnerMessagesRoute() {
-  redirect("/dashboard/owner/notifications")
+  return <OwnerMessagesPage />
 }

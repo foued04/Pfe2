@@ -14,8 +14,9 @@ import {
 import { useEffect, useMemo, useState } from "react"
 import { useAuth } from "../lib/auth-context"
 import { fetchRentalRequests } from "../lib/rental-api"
-import { fetchNotifications } from "../lib/notification-api"
-import type { BackendRentalRequest, BackendNotification } from "../types/api"
+import { fetchUnreadNotificationsCount } from "../lib/notification-api"
+import { fetchUnreadMessagesCount } from "../lib/messages-api"
+import type { BackendRentalRequest } from "../types/api"
 import { useHistory } from "react-router-dom"
 import "./TenantDashboard.css"
 
@@ -23,7 +24,8 @@ const TenantDashboard: React.FC = () => {
   const { user, token, logout } = useAuth()
   const history = useHistory()
   const [requests, setRequests] = useState<BackendRentalRequest[]>([])
-  const [notifications, setNotifications] = useState<BackendNotification[]>([])
+  const [unreadNotifications, setUnreadNotifications] = useState(0)
+  const [unreadMessages, setUnreadMessages] = useState(0)
 
   useEffect(() => {
     if (!token) return
@@ -31,13 +33,15 @@ const TenantDashboard: React.FC = () => {
     let active = true
     const load = async () => {
       try {
-        const [reqData, notifData] = await Promise.all([
+        const [reqData, notifData, messagesData] = await Promise.all([
           fetchRentalRequests(token).catch(() => [] as BackendRentalRequest[]),
-          fetchNotifications(token).catch(() => [] as BackendNotification[]),
+          fetchUnreadNotificationsCount(token).catch(() => ({ count: 0 })),
+          fetchUnreadMessagesCount(token).catch(() => ({ count: 0 })),
         ])
         if (active) {
           setRequests(reqData)
-          setNotifications(notifData)
+          setUnreadNotifications(Number(notifData?.count || 0))
+          setUnreadMessages(Number(messagesData?.count || 0))
         }
       } catch (err) {
         // Handle error silently
@@ -45,14 +49,17 @@ const TenantDashboard: React.FC = () => {
     }
 
     load()
-    return () => { active = false }
+    const interval = setInterval(load, 30000)
+    return () => { 
+      active = false
+      clearInterval(interval)
+    }
   }, [token])
 
   const stats = useMemo(() => {
-    const unreadNotifs = notifications.filter((n) => !n.isRead).length
     const pendingReqs = requests.filter((r) => !r.status || r.status === "En attente").length
-    return { unreadNotifs, pendingReqs }
-  }, [requests, notifications])
+    return { pendingReqs }
+  }, [requests])
 
   const menuItems = [
     { title: "Recherche", icon: searchOutline, route: "/tab2?view=list", color: "blue", stat: 0 },
@@ -62,7 +69,8 @@ const TenantDashboard: React.FC = () => {
     { title: "Mobilier", icon: bedOutline, route: "/furniture", color: "indigo", stat: 0 },
     { title: "Réclamations", icon: buildOutline, route: "/maintenance", color: "orange", stat: 0 },
     { title: "Besoins Logement", icon: homeOutline, route: "/housing-needs", color: "green", stat: 0 },
-    { title: "Messages", icon: notificationsOutline, route: "/notifications", color: "purple", stat: stats.unreadNotifs },
+    { title: "Messages", icon: notificationsOutline, route: "/messages", color: "purple", stat: unreadMessages },
+    { title: "Notifications", icon: notificationsOutline, route: "/notifications", color: "orange", stat: unreadNotifications },
     { title: "Profil", icon: personOutline, route: "/profile", color: "slate", stat: 0 },
   ]
 

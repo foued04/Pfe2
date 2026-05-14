@@ -281,7 +281,7 @@ export function AdminPropertiesManagement() {
         { label: "Description detaillee", ok: selectedProperty.description.trim().length > 60 },
         { label: "Galerie suffisante", ok: gallery.length >= 3 },
         { label: "Tarification renseignee", ok: selectedProperty.rent > 0 && selectedProperty.deposit >= 0 },
-        { label: "Coordonnees proprietaire", ok: Boolean(selectedProperty.ownerName && selectedProperty.ownerEmail && selectedProperty.ownerPhone) },
+        { label: "Coordonnees locateur", ok: Boolean(selectedProperty.ownerName && selectedProperty.ownerEmail && selectedProperty.ownerPhone) },
       ]
     : []
 
@@ -329,7 +329,7 @@ export function AdminPropertiesManagement() {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Rechercher par titre, proprietaire, ville ou adresse"
+              placeholder="Rechercher par titre, locateur, ville ou adresse"
               className="w-full rounded-2xl bg-muted/50 py-2.5 pl-10 pr-4 text-sm font-medium outline-none ring-0 transition focus:bg-muted"
               value={filter.search}
               onChange={(e) => setFilter((prev) => ({ ...prev, search: e.target.value }))}
@@ -403,7 +403,7 @@ export function AdminPropertiesManagement() {
                   </div>
 
                   <div className="mt-6 grid gap-4 border-y border-border/50 py-4 md:grid-cols-4">
-                    <MetaBlock icon={User} label="Proprietaire" value={property.ownerName} accent="text-orange-500" />
+                    <MetaBlock icon={User} label="Locateur" value={property.ownerName} accent="text-orange-500" />
                     <MetaBlock icon={Calendar} label="Ajoute le" value={property.createdAt || "-"} accent="text-emerald-500" />
                     <MetaBlock icon={Home} label="Surface" value={`${property.surface} m2`} accent="text-blue-500" />
                     <div className="md:col-span-1">
@@ -600,7 +600,7 @@ export function AdminPropertiesManagement() {
                             {selectedProperty.ownerName[0]}
                           </div>
                           <div className="min-w-0">
-                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary/80">Proprietaire declarant</p>
+                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary/80">Locateur declarant</p>
                             <h4 className="truncate text-lg font-black tracking-tight text-foreground">{selectedProperty.ownerName}</h4>
                           </div>
                         </div>

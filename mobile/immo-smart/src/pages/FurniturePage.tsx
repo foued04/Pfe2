@@ -58,8 +58,8 @@ type ReceiptOrder = {
   status: string
 }
 
-const categories = ["Tous", "Salon", "Chambre", "Salle a manger", "Cuisine", "Decoration", "Bureau"] as const
-const changeTypes = ["Changement", "Remplacement", "Ajout", "Suppression", "Reparation", "Echange"]
+const categories = ["Tous", "Salon", "Chambre", "Salle à manger", "Cuisine", "Décoration", "Bureau"] as const
+const changeTypes = ["Changement", "Remplacement", "Ajout", "Suppression", "Réparation", "Echange"]
 
 const isMongoObjectId = (value?: string) => Boolean(value && /^[a-f\d]{24}$/i.test(value))
 
@@ -251,7 +251,7 @@ const FurniturePage: React.FC = () => {
   const handleCheckout = async () => {
     if (!token) return
     if (!selectedPropertyId) {
-      setError("Veuillez selectionner un logement avant de confirmer la commande.")
+      setError("Veuillez sélectionner un logement avant de confirmer la commande.")
       return
     }
     if (cartItems.length === 0) {
@@ -259,7 +259,7 @@ const FurniturePage: React.FC = () => {
       return
     }
     if (!paymentMethod.trim()) {
-      setError("Veuillez selectionner ou saisir un mode de paiement.")
+      setError("Veuillez sélectionner ou saisir un mode de paiement.")
       return
     }
 
@@ -307,7 +307,7 @@ const FurniturePage: React.FC = () => {
       setCurrentReceipt(receipt)
       setView("receipt")
       setCart({})
-      setSuccess("Commande enregistree avec succes.")
+      setSuccess("Commande enregistrée avec succès.")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Impossible de confirmer la commande.")
     } finally {
@@ -342,11 +342,11 @@ const FurniturePage: React.FC = () => {
   const handleSubmitChangeRequest = async () => {
     if (!token) return
     if (!selectedPropertyId) {
-      setError("Veuillez selectionner un logement avant d'envoyer votre demande.")
+      setError("Veuillez sélectionner un logement avant d'envoyer votre demande.")
       return
     }
     if (!changeFurnitureName.trim() && !changeFurnitureId) {
-      setError("Veuillez indiquer le meuble concerne.")
+      setError("Veuillez indiquer le meuble concerné.")
       return
     }
     if (!changeReason.trim()) {
@@ -372,7 +372,7 @@ const FurniturePage: React.FC = () => {
         token
       )
 
-      setSuccess("Demande de changement envoyee avec succes.")
+      setSuccess("Demande de changement envoyée avec succès.")
       resetChangeForm()
       setIsChangeModalOpen(false)
     } catch (err) {
@@ -409,7 +409,7 @@ const FurniturePage: React.FC = () => {
 
     try {
       await addFurnitureItem(newFurniture, token)
-      setSuccess("Votre proposition a ete envoyee pour validation.")
+      setSuccess("Votre proposition a été envoyée pour validation.")
       setIsAddModalOpen(false)
       setNewFurniture({ name: "", category: "Salon", price: 0, description: "", image: "" })
     } catch (err) {
@@ -461,8 +461,8 @@ const FurniturePage: React.FC = () => {
                 <IonIcon icon={sparklesOutline} />
                 Mobilier premium
               </span>
-              <h1>{user?.role === 'owner' ? "Valorisez vos biens immobiliers." : "Equipez votre logement comme sur la version web."}</h1>
-              <p>{user?.role === 'owner' ? "Proposez du mobilier de qualite pour attirer plus de locataires." : "Consultez le catalogue, achetez du mobilier, demandez un changement et recuperez votre bon PDF."}</p>
+              <h1>{user?.role === 'owner' ? "Valorisez vos biens immobiliers." : "Équipez votre logement comme sur la version web."}</h1>
+              <p>{user?.role === 'owner' ? "Proposez du mobilier de qualité pour attirer plus de locataires." : "Consultez le catalogue, achetez du mobilier, demandez un changement et récupérez votre bon PDF."}</p>
             </div>
             <div className="furniture-hero-actions">
               {user?.role === 'tenant' && (
@@ -526,8 +526,8 @@ const FurniturePage: React.FC = () => {
                 {filteredCatalogue.length === 0 ? (
                   <EmptyState
                     icon={cubeOutline}
-                    title="Aucun meuble trouve"
-                    message="Essayez une autre recherche ou categorie."
+                    title="Aucun meuble trouvé"
+                    message="Essayez une autre recherche ou catégorie."
                   />
                 ) : (
                   <div className="furniture-catalog-grid">
@@ -644,7 +644,7 @@ const FurniturePage: React.FC = () => {
                 <div className="furniture-panel-header">
                   <div>
                     <h3>Historique des commandes</h3>
-                    <p>Retrouvez vos achats et reouvrez le bon PDF.</p>
+                    <p>Retrouvez vos achats et réouvrez le bon PDF.</p>
                   </div>
                   <span className="furniture-count-pill">{mappedOrders.length}</span>
                 </div>
@@ -653,7 +653,7 @@ const FurniturePage: React.FC = () => {
                   <EmptyState
                     icon={listOutline}
                     title="Aucune commande"
-                    message="Vos futures commandes de mobilier apparaitront ici."
+                    message="Vos futures commandes de mobilier apparaîtront ici."
                   />
                 ) : (
                   <div className="furniture-orders-list">
@@ -725,10 +725,10 @@ const FurniturePage: React.FC = () => {
               </button>
               <div className="furniture-modal-body">
                 <h3>Demande de changement</h3>
-                <p>Si un meuble ne convient pas ou est endommage, envoyez une demande au proprietaire.</p>
+                <p>Si un meuble ne convient pas ou est endommagé, envoyez une demande au locateur.</p>
 
                 <label className="furniture-field">
-                  <span>Meuble concerne</span>
+                  <span>Meuble concerné</span>
                   <select
                     value={changeFurnitureId}
                     onChange={(event) => {
@@ -751,7 +751,7 @@ const FurniturePage: React.FC = () => {
                   <input
                     value={changeFurnitureName}
                     onChange={(event) => setChangeFurnitureName(event.target.value)}
-                    placeholder="Ex: Canape, Table, Lit..."
+                    placeholder="Ex: Canapé, Table, Lit..."
                   />
                 </label>
 
@@ -771,7 +771,7 @@ const FurniturePage: React.FC = () => {
                   <input
                     value={changeReason}
                     onChange={(event) => setChangeReason(event.target.value)}
-                    placeholder="Ex: meuble endommage, trop grand..."
+                    placeholder="Ex: meuble endommagé, trop grand..."
                   />
                 </label>
 
@@ -780,17 +780,17 @@ const FurniturePage: React.FC = () => {
                   <textarea
                     value={changeDescription}
                     onChange={(event) => setChangeDescription(event.target.value)}
-                    placeholder="Plus de details..."
+                    placeholder="Plus de détails..."
                   />
                 </label>
 
                 <div className="furniture-upload-box" onClick={() => photoInputRef.current?.click()}>
                   <IonIcon icon={cameraOutline} />
-                  <span>{changePhoto ? "Photo ajoutee, toucher pour remplacer" : "Ajouter une photo (optionnel)"}</span>
+                  <span>{changePhoto ? "Photo ajoutée, toucher pour remplacer" : "Ajouter une photo (optionnel)"}</span>
                   <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
                 </div>
 
-                {changePhoto ? <img className="furniture-upload-preview" src={changePhoto} alt="Apercu de la photo" /> : null}
+                {changePhoto ? <img className="furniture-upload-preview" src={changePhoto} alt="Aperçu de la photo" /> : null}
 
                 <button type="button" className="furniture-primary-btn" disabled={changeBusy} onClick={handleSubmitChangeRequest}>
                   <IonIcon icon={mailOpenOutline} />

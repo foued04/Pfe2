@@ -127,7 +127,7 @@ const PropertyDetailPage: React.FC = () => {
   const isMyProperty = isOwner && ownerId === user?.id
 
   const ownerInfo = property?.owner && typeof property.owner === "object" ? property.owner : null
-  const ownerName = property?.ownerName || ownerInfo?.fullName || "Proprietaire"
+  const ownerName = property?.ownerName || ownerInfo?.fullName || "Locateur"
   const ownerPhone = property?.ownerPhone || ownerInfo?.phone || "-"
   const ownerEmail = property?.ownerEmail || ownerInfo?.email || "-"
 
@@ -332,7 +332,7 @@ const PropertyDetailPage: React.FC = () => {
 
           {isOwner || isAdmin ? (
             <div className="detail-owner-info">
-              <h3>Informations Proprietaire</h3>
+              <h3>Informations Locateur</h3>
               <div className="owner-info-grid">
                 <div className="owner-info-item">
                   <IonIcon icon={personOutline} />
@@ -347,7 +347,7 @@ const PropertyDetailPage: React.FC = () => {
                   <span>{ownerEmail}</span>
                 </div>
               </div>
-              {!isMyProperty && (
+                {!isMyProperty && (
                 <div className="owner-readonly-tag">
                   Visible uniquement (Lecture seule)
                 </div>
@@ -413,7 +413,7 @@ const PropertyDetailPage: React.FC = () => {
                   <div className="rental-request-header">
                     <span className="type-chip">Demande de location</span>
                     <h3>Choisissez votre periode</h3>
-                    <p>Selectionnez vos dates, ajoutez un message et envoyez la demande au proprietaire.</p>
+                    <p>Selectionnez vos dates, ajoutez un message et envoyez la demande au locateur.</p>
                   </div>
 
                   <div className="rental-request-property">
@@ -468,7 +468,7 @@ const PropertyDetailPage: React.FC = () => {
                       <textarea
                         value={requestMessage}
                         onChange={(event) => setRequestMessage(event.target.value)}
-                        placeholder="Ajoutez un message pour le proprietaire..."
+                        placeholder="Ajoutez un message pour le locateur..."
                         rows={5}
                       />
                     </label>

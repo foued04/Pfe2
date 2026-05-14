@@ -25,9 +25,9 @@ export function PublishPage() {
         <div style={{ width: "70px", height: "70px", margin: "0 auto", borderRadius: "20px", display: "grid", placeItems: "center", background: "rgba(245, 158, 11, 0.12)", color: "#d97706" }}>
           <ShieldAlert size={30} />
         </div>
-        <h1 style={{ margin: "18px 0 12px", fontSize: "34px", lineHeight: 1.1 }}>Publication reservee aux proprietaires</h1>
+        <h1 style={{ margin: "18px 0 12px", fontSize: "34px", lineHeight: 1.1 }}>Publication reservee aux locateurs</h1>
         <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-          La route de publication existe maintenant dans la navbar. Pour ajouter une annonce, il faut etre connecte avec un compte proprietaire.
+          La route de publication existe maintenant dans la navbar. Pour ajouter une annonce, il faut etre connecte avec un compte locateur.
         </p>
         <button
           type="button"

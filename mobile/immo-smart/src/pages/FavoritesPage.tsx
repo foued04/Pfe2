@@ -98,7 +98,7 @@ const FavoritesPage: React.FC = () => {
             <EmptyState
               icon={heartOutline}
               title="Aucun favori"
-              message="Vous n'avez pas encore ajoute de biens a vos favoris."
+              message="Vous n'avez pas encore ajouté de biens à vos favoris."
               actionLabel="Explorer les biens"
               onAction={() => history.push("/tab2?view=list")}
             />

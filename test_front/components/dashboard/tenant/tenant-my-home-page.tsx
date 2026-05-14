@@ -53,7 +53,7 @@ export function TenantMyHomePage() {
             <div>
               <h2 className="text-2xl font-bold">Aucun logement loué pour le moment</h2>
               <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-                Quand votre contrat sera signé et renvoyé au propriétaire, votre logement apparaîtra ici.
+                Quand votre contrat sera signé et renvoyé au locateur, votre logement apparaîtra ici.
               </p>
             </div>
             <Button asChild variant="outline" className="gap-2">

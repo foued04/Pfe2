@@ -399,12 +399,72 @@ export function MaintenanceForm() {
                 <Wrench className="w-8 h-8 text-cyan-300" />
                 {t("maintenance.title")}
               </h2>
+          claimMeta: {
+            ...sharedClaimMeta,
+            source: "tenant",
+          },
+        }),
+      }).catch(() => null)
+
+      await fetch(`${API_URL}/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          recipientId: selectedUnit.ownerId,
+          category: "Maintenance",
+          contextId: `maintenance-${selectedUnit.propertyId}`,
+          contextTitle: `Maintenance - ${selectedUnit.title}`,
+          content: `${subject}\n${description}${attachments.length > 0 ? `\n\nPhotos: ${attachments.length}` : ""}`,
+        }),
+      }).catch(() => null)
+
+      setIsSubmitted(true)
+      setSubject("")
+      setDescription("")
+      setCategory("plumbing")
+      setPriority("medium")
+      setAttachments([])
+      await fetchClaims()
+    } catch (err) {
+      console.error("Submit maintenance error:", err)
+      setSubmitError("Erreur de connexion.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const formatDate = (value: string) => {
+    if (!value) return "-"
+    const d = new Date(value)
+    if (Number.isNaN(d.getTime())) return value
+    return d.toLocaleString(lang === "fr" ? "fr-FR" : "en-US", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  }
+
+  return (
+    <div className="p-6 max-w-5xl mx-auto space-y-6">
+      <Card className="border-0 shadow-xl bg-gradient-to-r from-slate-900 to-blue-900 text-white">
+        <CardContent className="py-8">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="text-3xl font-black tracking-tight flex items-center gap-3">
+                <Wrench className="w-8 h-8 text-cyan-300" />
+                {t("maintenance.title")}
+              </h2>
               <p className="mt-2 text-slate-200">{t("maintenance.subtitle")}</p>
             </div>
             <div className="flex gap-3 text-xs font-bold uppercase tracking-wider">
               <div className="rounded-full bg-white/10 px-3 py-1.5 flex items-center gap-1.5">
                 <ShieldCheck className="w-4 h-4 text-emerald-300" />
-                Suivi propriétaire
+                Suivi locateur
               </div>
               <div className="rounded-full bg-white/10 px-3 py-1.5 flex items-center gap-1.5">
                 <Clock3 className="w-4 h-4 text-amber-300" />
@@ -427,7 +487,7 @@ export function MaintenanceForm() {
           {isSubmitted && (
             <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800 flex items-start gap-3">
               <CheckCircle2 className="w-5 h-5 mt-0.5" />
-              <p className="text-sm font-medium">Votre Réclamation a bien Ã©tÃ© envoyÃ©e. Vous pouvez suivre son Ã©tat ci-dessous.</p>
+              <p className="text-sm font-medium">Votre Réclamation a bien été envoyée. Vous pouvez suivre son état ci-dessous.</p>
             </div>
           )}
 
@@ -585,14 +645,14 @@ export function MaintenanceForm() {
             Suivi de mes Réclamations
           </CardTitle>
           <CardDescription>
-            Consultez l&apos;Ã©tat de traitement de vos Réclamations, les Réponses du propriÃ©taire et les interventions pRévues.
+            Consultez l&apos;état de traitement de vos Réclamations, les Réponses du locateur et les interventions prévues.
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
           {isClaimsLoading ? (
             <p className="text-sm text-muted-foreground">Chargement des Réclamations...</p>
           ) : claims.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Aucune Réclamation enregistRée pour le moment.</p>
+            <p className="text-sm text-muted-foreground">Aucune Réclamation enregistrée pour le moment.</p>
           ) : (
             <div className="space-y-4">
               {claims.map((claim) => {
@@ -604,55 +664,6 @@ export function MaintenanceForm() {
                   photosFromAttachments.length > 0
                     ? photosFromAttachments
                     : claim.claimMeta?.photos?.filter(Boolean) || []
-                const isSeen = claim.status === "Vue par le propriÃ©taire" || claim.status === "Vue par le propriétaire"
-
-                return (
-                  <div key={claim.id} className="rounded-xl border p-4 bg-background">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <h4 className="font-bold text-base">{claim.title}</h4>
-                        <p className="text-xs text-muted-foreground mt-1">{formatDate(claim.createdAt)}</p>
-                      </div>
-                      <span
-                        className={`text-xs font-bold px-3 py-1 rounded-full border ${
-                          isSeen
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                            : "bg-amber-50 text-amber-700 border-amber-200"
-                        }`}
-                      >
-                        {claim.status}
-                      </span>
-                    </div>
-
-                    <p className="text-sm mt-3 whitespace-pre-wrap">{claim.content}</p>
-
-                    {(claim.claimMeta?.category || claim.claimMeta?.priority || claim.claimMeta?.propertyTitle) && (
-                      <div className="mt-3 text-xs text-muted-foreground flex flex-wrap gap-3">
-                        {claim.claimMeta?.propertyTitle && <span>Bien: {claim.claimMeta.propertyTitle}</span>}
-                        {claim.claimMeta?.category && <span>CatÃ©gorie: {claim.claimMeta.category}</span>}
-                        {claim.claimMeta?.priority && <span>PrioritÃ©: {claim.claimMeta.priority}</span>}
-                      </div>
-                    )}
-
-                    {photos.length > 0 && (
-                      <div className="mt-3 grid grid-cols-3 md:grid-cols-6 gap-2">
-                        {photos.map((url, index) => (
-                          <a key={`${claim.id}-photo-${index}`} href={url} target="_blank" rel="noreferrer" className="block">
-                            <img src={url} alt={`photo reclamation ${index + 1}`} className="h-16 w-full rounded-md border object-cover" />
-                          </a>
-                        ))}
-                      </div>
-                    )}
-
-                    {claim.claimResponse?.message && (
-                      <div className="mt-4 rounded-lg bg-emerald-50 border border-emerald-100 p-3">
-                        <p className="text-xs font-bold uppercase text-emerald-700">Réponse propriÃ©taire</p>
-                        <p className="text-sm text-emerald-900 mt-1">{claim.claimResponse.message}</p>
-                        {claim.claimResponse.intervention && (
-                          <p className="text-xs text-emerald-700 mt-2">
-                            Intervention: {claim.claimResponse.intervention.date || "-"} {claim.claimResponse.intervention.time || ""}
-                            {claim.claimResponse.intervention.technician ? ` - ${claim.claimResponse.intervention.technician}` : ""}
-                          </p>
                         )}
                       </div>
                     )}

@@ -105,7 +105,7 @@ export function TenantSidebar({ activeSection, onSectionChange, unreadMessageCou
             className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-white/85 transition-all duration-200 hover:bg-red-500/20 hover:text-red-100"
           >
             <LogOut className="h-5 w-5" />
-            <span>{lang === "fr" ? "Deconnexion" : "Logout"}</span>
+            <span>{t("auth.deconnection")}</span>
           </button>
         </div>
       </div>

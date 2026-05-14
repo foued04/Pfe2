@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Plus } from "lucide-react"
+import { useI18n } from "@/lib/i18n"
 import { apiFetch } from "@/lib/api/client"
 import { useOwnerDashboard } from "@/hooks/api/use-owner-dashboard"
 import { PageHeader } from "@/components/dashboard/shared/page-header"
@@ -12,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Building2 } from "lucide-react"
 
 export function OwnerPropertiesPage() {
+  const { t, lang } = useI18n()
   const router = useRouter()
   const { properties, setProperties, isLoading, error } = useOwnerDashboard()
 
@@ -27,22 +29,35 @@ export function OwnerPropertiesPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Owner"
-        title="All Properties"
-        description="Consultez toutes les proprietes de l'application. Vos biens restent entierement gerables, ceux des autres proprietaires sont en lecture seule."
+        eyebrow={t("role.owner")}
+        title={t("nav.allProperties")}
+        description={
+          lang === "fr" 
+            ? "Consultez toutes les proprietes de l'application. Vos biens restent entierement gerables, ceux des autres proprietaires sont en lecture seule."
+            : "View all properties in the application. Your properties remain fully manageable, while others are read-only."
+        }
         actions={
           <Button asChild>
-            <Link href="/dashboard/owner/properties/new"><Plus className="mr-2 h-4 w-4" />Add Property</Link>
+            <Link href="/dashboard/owner/properties/new">
+              <Plus className="mr-2 h-4 w-4" />
+              {t("nav.addProperty")}
+            </Link>
           </Button>
         }
       />
 
       {isLoading ? (
-        <div className="rounded-3xl border border-border bg-card p-8 text-sm text-muted-foreground">Chargement des proprietes...</div>
+        <div className="rounded-3xl border border-border bg-card p-8 text-sm text-muted-foreground">
+          {t("general.loading") || "Chargement des proprietes..."}
+        </div>
       ) : error ? (
         <div className="rounded-3xl border border-destructive/20 bg-destructive/5 p-8 text-sm text-destructive">{error}</div>
       ) : properties.length === 0 ? (
-        <EmptyState icon={Building2} title="No properties yet" description="Ajoutez votre premiere propriete pour commencer votre activite sur ImmoSmart." />
+        <EmptyState 
+          icon={Building2} 
+          title={t("dashboard.noProperties")} 
+          description={t("dashboard.noPropertiesDesc")} 
+        />
       ) : (
         <OwnerPropertiesGrid
           properties={properties}

@@ -96,7 +96,7 @@ export function AdminVerificationModule({ compact = false }: { compact?: boolean
         <>
           <div>
             <h1 className="text-3xl font-black text-foreground tracking-tight">Vérifications de documents</h1>
-            <p className="text-muted-foreground font-medium">Modérez les identités des propriétaires pour garantir la confiance</p>
+            <p className="text-muted-foreground font-medium">Modérez les identités des locateurs pour garantir la confiance</p>
           </div>
 
           <div className="grid gap-6 sm:grid-cols-3">
@@ -118,7 +118,7 @@ export function AdminVerificationModule({ compact = false }: { compact?: boolean
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input 
             type="text" 
-            placeholder="Rechercher un propriétaire..."
+            placeholder="Rechercher un locateur..."
             className="w-full pl-10 pr-4 py-3 rounded-xl bg-muted/50 border-none text-sm focus:ring-2 focus:ring-primary/20"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}

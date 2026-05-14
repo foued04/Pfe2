@@ -56,7 +56,7 @@ export function RentalRequestDetailsModal({
           color: "bg-yellow-100 text-yellow-700 border-yellow-200",
           icon: Clock,
           description: lang === "fr" 
-            ? "Votre demande est en cours d'examen par le propriétaire." 
+            ? "Votre demande est en cours d'examen par le locateur." 
             : "Your request is being reviewed by the owner."
         }
       case "accepted":
@@ -83,7 +83,7 @@ export function RentalRequestDetailsModal({
           color: "bg-blue-100 text-blue-700 border-blue-200",
           icon: FileText,
           description: lang === "fr" 
-            ? "Le propriétaire a généré le contrat. Vous pouvez maintenant le consulter et le signer." 
+            ? "Le locateur a généré le contrat. Vous pouvez maintenant le consulter et le signer." 
             : "The owner has generated the contract. You can now view and sign it."
         }
       case "active":
@@ -187,7 +187,7 @@ export function RentalRequestDetailsModal({
               <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
                 <MessageSquare className="h-3.5 w-3.5 text-primary" />
               </div>
-              <h4 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">{lang === "fr" ? "Discuter avec le propriétaire" : "Chat with Owner"}</h4>
+              <h4 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">{lang === "fr" ? "Discuter avec le locateur" : "Chat with Owner"}</h4>
             </div>
             <ChatModule 
               contextId={request.id}
