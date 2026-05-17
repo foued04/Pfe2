@@ -500,8 +500,9 @@ const MaintenancePage: React.FC = () => {
               ) : (
                 <div className="reclamations-list">
                   {myReclamations.map((rec) => {
-                    const status = statusConfig[rec.status] || { label: rec.status, class: "status-default" }
-                    const isModifiable = !["Resolue", "Refusee"].includes(rec.status)
+                    const statusStr = rec.status || ""
+                    const status = statusConfig[statusStr] || { label: statusStr, class: "status-default" }
+                    const isModifiable = !["Resolue", "Refusee"].includes(statusStr)
 
                     return (
                       <div key={rec._id} className="reclamation-item-card">
@@ -527,7 +528,7 @@ const MaintenancePage: React.FC = () => {
                         <div className="item-meta">
                           <div className="meta-row">
                             <IonIcon icon={calendarOutline} />
-                            <span>Envoyé le {new Date(rec.createdAt).toLocaleDateString()}</span>
+                            <span>Envoyé le {rec.createdAt ? new Date(rec.createdAt).toLocaleDateString() : ""}</span>
                           </div>
                           <div className="meta-row">
                             <IonIcon icon={chevronForwardOutline} />
@@ -549,7 +550,7 @@ const MaintenancePage: React.FC = () => {
                         
                         {(rec.claimMeta?.photos || []).length > 0 && (
                           <div className="item-photos-preview">
-                            {rec.claimMeta?.photos.slice(0, 3).map((p, i) => (
+                            {(rec.claimMeta?.photos || []).slice(0, 3).map((p, i) => (
                               <img key={i} src={p} alt="Attachment" />
                             ))}
                             {(rec.claimMeta?.photos || []).length > 3 && (

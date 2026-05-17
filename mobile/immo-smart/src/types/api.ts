@@ -127,6 +127,9 @@ export type BackendProperty = {
     items: FurnishingItem[]
   }
   meuble: boolean
+  ownerName?: string
+  ownerPhone?: string
+  ownerEmail?: string
   lat?: number
   lng?: number
   createdAt?: string
@@ -191,6 +194,13 @@ export type BackendContract = {
   tenantSignature?: string
   ownerSignature?: string
   status?: string
+  request?: string | any
+  ownerName?: string
+  ownerEmail?: string
+  tenantName?: string
+  tenantEmail?: string
+  rentAmount?: number
+  depositAmount?: number
   createdAt?: string
   updatedAt?: string
 }
@@ -199,6 +209,7 @@ export type BackendContract = {
 
 export type BackendHousingNeed = {
   _id?: string
+  tenant?: BackendAuthUser | any
   desiredCity: string
   department?: string
   minBudget?: number
@@ -274,6 +285,14 @@ export type BackendNotification = {
     tenantName: string
     propertyId: string
     propertyTitle: string
+  }
+  claimResponse?: {
+    message?: string
+    intervention?: {
+      date?: string
+      time?: string
+      technician?: string
+    }
   }
   createdAt?: string
   updatedAt?: string

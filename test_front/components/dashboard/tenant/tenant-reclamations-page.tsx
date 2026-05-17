@@ -83,17 +83,17 @@ const MAX_PHOTO_SIZE = 5 * 1024 * 1024
 
 const categories = [
   { value: "maintenance", label: "Maintenance" },
-  { value: "payment", label: "Payment" },
-  { value: "contract", label: "Contract" },
-  { value: "neighborhood", label: "Neighborhood" },
-  { value: "other", label: "Other" },
+  { value: "payment", label: "Paiement" },
+  { value: "contract", label: "Contrat" },
+  { value: "neighborhood", label: "Voisinage" },
+  { value: "other", label: "Autre" },
 ]
 
 const priorities = [
-  { value: "low", label: "Low" },
-  { value: "medium", label: "Medium" },
-  { value: "high", label: "High" },
-  { value: "urgent", label: "Urgent" },
+  { value: "low", label: "Faible" },
+  { value: "medium", label: "Moyenne" },
+  { value: "high", label: "Haute" },
+  { value: "urgent", label: "Urgente" },
 ]
 
 const statusConfig: Record<string, { label: string, color: string }> = {
@@ -168,7 +168,7 @@ export function TenantReclamationsPage() {
       
       setMyReclamations(Array.isArray(reclamations) ? reclamations : [])
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load data.")
+      setError(err instanceof Error ? err.message : "Impossible de charger les données.")
     } finally {
       setIsLoading(false)
     }
@@ -179,8 +179,8 @@ export function TenantReclamationsPage() {
     return units.find((unit) => unit.propertyId === propertyId && unit.ownerId === ownerId) || null
   }, [unitKey, units])
 
-  const selectedCategory = categories.find((item) => item.value === category)?.label || "Other"
-  const selectedPriority = priorities.find((item) => item.value === priority)?.label || "Medium"
+  const selectedCategory = categories.find((item) => item.value === category)?.label || "Autre"
+  const selectedPriority = priorities.find((item) => item.value === priority)?.label || "Moyenne"
 
   const handlePhotosChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || [])
@@ -193,7 +193,7 @@ export function TenantReclamationsPage() {
     const filesToRead = files.slice(0, availableSlots)
 
     if (files.length > availableSlots) {
-      setError(`You can attach up to ${MAX_PHOTOS} photos.`)
+      setError(`Vous pouvez joindre jusqu'à ${MAX_PHOTOS} photos.`)
     }
 
     try {
@@ -219,11 +219,11 @@ export function TenantReclamationsPage() {
       setPhotos((current) => [...current, ...nextPhotos])
     } catch (err) {
       if (err instanceof Error && err.message === "INVALID_TYPE") {
-        setError("Please select image files only.")
+        setError("Veuillez sélectionner uniquement des images.")
       } else if (err instanceof Error && err.message === "TOO_LARGE") {
-        setError("Each photo must be smaller than 5 MB.")
+        setError("Chaque photo doit faire moins de 5 Mo.")
       } else {
-        setError("Unable to import the selected photos.")
+        setError("Impossible d'importer les photos sélectionnées.")
       }
     } finally {
       event.target.value = ""
@@ -250,7 +250,7 @@ export function TenantReclamationsPage() {
     setError(null)
 
     if (!selectedUnit) {
-      setError("Please choose the property related to this reclamation.")
+      setError("Veuillez choisir le logement concerné par cette réclamation.")
       return
     }
 
@@ -259,14 +259,14 @@ export function TenantReclamationsPage() {
     try {
       const cleanSubject = subject.trim()
       const cleanDescription = description.trim()
-      const title = cleanSubject || `Reclamation - ${selectedCategory}`
+      const title = cleanSubject || `Réclamation - ${selectedCategory}`
       const photoDataUrls = photos.map((photo) => photo.dataUrl)
       const content = [
-        `Tenant: ${user?.name || "-"}`,
-        `Property: ${selectedUnit.title}`,
-        `Address: ${selectedUnit.address || "-"}`,
-        `Category: ${selectedCategory}`,
-        `Priority: ${selectedPriority}`,
+        `Locataire: ${user?.name || "-"}`,
+        `Bien: ${selectedUnit.title}`,
+        `Adresse: ${selectedUnit.address || "-"}`,
+        `Catégorie: ${selectedCategory}`,
+        `Priorité: ${selectedPriority}`,
         "",
         cleanDescription,
       ].join("\n")
@@ -303,7 +303,7 @@ export function TenantReclamationsPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         })
-        setSuccess("Your reclamation has been updated.")
+        setSuccess("Votre réclamation a été mise à jour.")
       } else {
         await apiFetch("/notifications", {
           auth: true,
@@ -311,14 +311,14 @@ export function TenantReclamationsPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         })
-        setSuccess("Your reclamation has been sent to the home owner.")
+        setSuccess("Votre réclamation a été envoyée au propriétaire.")
       }
 
       resetForm()
       fetchData()
       setActiveTab("list")
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to process the reclamation.")
+      setError(err instanceof Error ? err.message : "Impossible de traiter la réclamation.")
     } finally {
       setIsSending(false)
     }
@@ -344,10 +344,10 @@ export function TenantReclamationsPage() {
         auth: true,
         method: "DELETE"
       })
-      setSuccess("Reclamation deleted successfully.")
+      setSuccess("Réclamation supprimée avec succès.")
       fetchData()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to delete.")
+      setError(err instanceof Error ? err.message : "Impossible de supprimer.")
     } finally {
       setDeleteId(null)
     }
@@ -356,20 +356,20 @@ export function TenantReclamationsPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Tenant"
-        title="Reclamations"
-        description="Manage and track your reclamations directly with the property owner."
+        eyebrow="Locataire"
+        title="Réclamations"
+        description="Gérez et suivez vos réclamations directement avec le propriétaire."
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-2">
           <TabsTrigger value="new" className="gap-2">
             <Megaphone className="h-4 w-4" />
-            {editingId ? "Edit Reclamation" : "New Reclamation"}
+            {editingId ? "Modifier Réclamation" : "Nouvelle Réclamation"}
           </TabsTrigger>
           <TabsTrigger value="list" className="gap-2">
             <History className="h-4 w-4" />
-            My Reclamations
+            Mes Réclamations
             {myReclamations.length > 0 && (
               <Badge variant="secondary" className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center">
                 {myReclamations.length}
@@ -384,10 +384,10 @@ export function TenantReclamationsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl">
                   {editingId ? <Edit2 className="h-5 w-5 text-primary" /> : <Megaphone className="h-5 w-5 text-primary" />}
-                  {editingId ? "Modify your reclamation" : "Submit a new reclamation"}
+                  {editingId ? "Modifier votre réclamation" : "Soumettre une nouvelle réclamation"}
                 </CardTitle>
                 <CardDescription>
-                  {editingId ? "You can update the details of your pending reclamation." : "Fill out the form below to report an issue to your property owner."}
+                  {editingId ? "Vous pouvez mettre à jour les détails de votre réclamation en attente." : "Remplissez le formulaire ci-dessous pour signaler un problème à votre propriétaire."}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -413,15 +413,15 @@ export function TenantReclamationsPage() {
                   <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="grid gap-5 md:grid-cols-2">
                       <div className="space-y-2">
-                        <Label htmlFor="reclamation-property">Property</Label>
+                        <Label htmlFor="reclamation-property">Logement</Label>
                         <Select value={unitKey} onValueChange={setUnitKey} disabled={!!editingId}>
                           <SelectTrigger id="reclamation-property">
-                            <SelectValue placeholder="Choose a property" />
+                            <SelectValue placeholder="Choisir un logement" />
                           </SelectTrigger>
                           <SelectContent>
                             {units.length === 0 ? (
                               <SelectItem value="none" disabled>
-                                No property available
+                                Aucun logement disponible
                               </SelectItem>
                             ) : (
                               units.map((unit) => (
@@ -436,12 +436,12 @@ export function TenantReclamationsPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="reclamation-subject">Subject</Label>
+                        <Label htmlFor="reclamation-subject">Sujet</Label>
                         <Input
                           id="reclamation-subject"
                           value={subject}
                           onChange={(event) => setSubject(event.target.value)}
-                          placeholder="Example: Water leak in kitchen"
+                          placeholder="Exemple : Fuite d'eau dans la cuisine"
                           required
                         />
                       </div>
@@ -449,7 +449,7 @@ export function TenantReclamationsPage() {
 
                     <div className="grid gap-5 md:grid-cols-2">
                       <div className="space-y-2">
-                        <Label htmlFor="reclamation-category">Category</Label>
+                        <Label htmlFor="reclamation-category">Catégorie</Label>
                         <Select value={category} onValueChange={setCategory}>
                           <SelectTrigger id="reclamation-category">
                             <SelectValue />
@@ -465,7 +465,7 @@ export function TenantReclamationsPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="reclamation-priority">Priority</Label>
+                        <Label htmlFor="reclamation-priority">Priorité</Label>
                         <Select value={priority} onValueChange={setPriority}>
                           <SelectTrigger id="reclamation-priority">
                             <SelectValue />
@@ -488,7 +488,7 @@ export function TenantReclamationsPage() {
                         className="min-h-40 resize-none"
                         value={description}
                         onChange={(event) => setDescription(event.target.value)}
-                        placeholder="Describe the problem and what you need from the home owner."
+                        placeholder="Décrivez le problème et ce dont vous avez besoin du propriétaire."
                         required
                       />
                     </div>
@@ -521,7 +521,7 @@ export function TenantReclamationsPage() {
                         ) : (
                           <>
                             <ImageIcon className="mb-2 h-8 w-8 text-muted-foreground" />
-                            <span className="text-sm font-medium">Import photos of the reclamation</span>
+                            <span className="text-sm font-medium">Importer des photos de la réclamation</span>
                           </>
                         )}
                         <input
@@ -539,11 +539,11 @@ export function TenantReclamationsPage() {
                     <div className="flex justify-end gap-3">
                       {editingId && (
                         <Button type="button" variant="outline" onClick={resetForm}>
-                          Cancel
+                          Annuler
                         </Button>
                       )}
                       <Button type="submit" disabled={isSending || units.length === 0} className="gap-2">
-                        {isSending ? (editingId ? "Updating..." : "Sending...") : (editingId ? "Update reclamation" : "Send reclamation")}
+                        {isSending ? (editingId ? "Mise à jour..." : "Envoi...") : (editingId ? "Mettre à jour la réclamation" : "Envoyer la réclamation")}
                         {!isSending && <Send className="h-4 w-4" />}
                       </Button>
                     </div>
@@ -558,10 +558,10 @@ export function TenantReclamationsPage() {
               {myReclamations.length === 0 ? (
                 <Card className="flex flex-col items-center justify-center py-12 text-center">
                   <History className="h-12 w-12 text-muted-foreground/30 mb-4" />
-                  <CardTitle className="text-muted-foreground">No reclamations yet</CardTitle>
-                  <CardDescription>You haven't submitted any reclamations yet.</CardDescription>
+                  <CardTitle className="text-muted-foreground">Aucune réclamation pour le moment</CardTitle>
+                  <CardDescription>Vous n'avez soumis aucune réclamation pour le moment.</CardDescription>
                   <Button variant="outline" className="mt-6" onClick={() => setActiveTab("new")}>
-                    Submit my first reclamation
+                    Soumettre ma première réclamation
                   </Button>
                 </Card>
               ) : (
@@ -583,8 +583,8 @@ export function TenantReclamationsPage() {
                               </div>
                               <p className="text-sm text-muted-foreground flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
-                                Submitted on {new Date(rec.createdAt).toLocaleDateString()}
-                                {rec.updatedAt !== rec.createdAt && ` (Modified: ${new Date(rec.updatedAt).toLocaleDateString()})`}
+                                Soumise le {new Date(rec.createdAt).toLocaleDateString()}
+                                {rec.updatedAt !== rec.createdAt && ` (Modifiée le : ${new Date(rec.updatedAt).toLocaleDateString()})`}
                               </p>
                             </div>
                             <div className="flex items-center gap-2">
@@ -613,12 +613,12 @@ export function TenantReclamationsPage() {
 
                           <div className="grid gap-4 md:grid-cols-2 mb-4">
                             <div className="bg-muted/30 rounded-lg p-3">
-                              <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest">Property</Label>
+                              <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest">Logement</Label>
                               <p className="text-sm font-bold truncate">{rec.claimMeta.propertyTitle}</p>
                               <p className="text-xs text-muted-foreground truncate">{rec.claimMeta.propertyAddress}</p>
                             </div>
                             <div className="bg-muted/30 rounded-lg p-3">
-                              <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest">Type & Priority</Label>
+                              <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest">Type & Priorité</Label>
                               <div className="flex items-center gap-2 mt-0.5">
                                 <Badge variant="outline" className="text-[10px]">{rec.claimMeta.category}</Badge>
                                 <Badge variant="outline" className={cn(
@@ -643,17 +643,17 @@ export function TenantReclamationsPage() {
                               <div className="flex items-start gap-3 rounded-xl bg-primary/5 p-4 border border-primary/10">
                                 <MessageSquare className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                                 <div className="space-y-1">
-                                  <p className="text-xs font-black uppercase text-primary tracking-widest">Owner Response</p>
+                                  <p className="text-xs font-black uppercase text-primary tracking-widest">Réponse du Locateur</p>
                                   <p className="text-sm text-slate-700">{rec.claimResponse.message}</p>
                                   {rec.claimResponse.intervention && (
                                     <div className="mt-2 flex flex-wrap gap-3">
                                       <Badge variant="secondary" className="text-[10px] gap-1">
                                         <Clock className="h-3 w-3" />
-                                        Intervention: {rec.claimResponse.intervention.date} at {rec.claimResponse.intervention.time}
+                                        Intervention : {rec.claimResponse.intervention.date} à {rec.claimResponse.intervention.time}
                                       </Badge>
                                       {rec.claimResponse.intervention.technician && (
                                         <Badge variant="secondary" className="text-[10px]">
-                                          Technician: {rec.claimResponse.intervention.technician}
+                                          Technicien : {rec.claimResponse.intervention.technician}
                                         </Badge>
                                       )}
                                     </div>
@@ -666,7 +666,7 @@ export function TenantReclamationsPage() {
 
                         {rec.claimMeta.photos && rec.claimMeta.photos.length > 0 && (
                           <div className="w-full md:w-64 bg-muted/20 p-4 border-l">
-                            <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest mb-2 block">Attached Photos</Label>
+                            <Label className="text-[10px] uppercase text-muted-foreground font-black tracking-widest mb-2 block">Photos Jointes</Label>
                             <div className="grid grid-cols-2 gap-2">
                               {rec.claimMeta.photos.slice(0, 4).map((photo, i) => (
                                 <div key={i} className="aspect-square rounded-lg overflow-hidden border bg-background group cursor-pointer relative">
@@ -694,15 +694,15 @@ export function TenantReclamationsPage() {
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure you want to delete this reclamation?</AlertDialogTitle>
+            <AlertDialogTitle>Êtes-vous sûr de vouloir supprimer cette réclamation ?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. The property owner will no longer see this reclamation in their dashboard.
+              Cette action est irréversible. Le propriétaire ne verra plus cette réclamation dans son tableau de bord.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete
+              Supprimer
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

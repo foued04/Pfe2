@@ -39,9 +39,8 @@ import SectionHeader from "../components/SectionHeader"
 import { useAuth } from "../lib/auth-context"
 import { activateContract, fetchContract, generateContract, sendContractBackToOwner, sendContractToTenant, signContract } from "../lib/contract-api"
 import { fetchRentalRequests, updateRentalRequestStatus } from "../lib/rental-api"
+import { http } from "../lib/api"
 import type { BackendContract, BackendProperty, BackendRentalRequest, RentalRequestStatus } from "../types/api"
-import { resolveApiUrl } from "../lib/api/client"
-import http from "../lib/http"
 
 const mockPayments = [
   { id: "pay-001", reference: "FAC-2026-001", tenantName: "Mohamed Jlassi", propertyTitle: "Villa Luxe S+4 Khnis", amount: 1500, date: "2026-04-01", status: "Payé", method: "Virement" },
@@ -427,51 +426,91 @@ const RentalRequestsPage: React.FC = () => {
   const renderRentalSection = () => (
     <div className="request-list-grid">
       {requests.filter(r => activeTab === "all" || r.status === activeTab).length === 0 ? (
-        <EmptyState icon={documentTextOutline} title="Aucune demande" message="Aucune demande de location dans cette catégorie." />
+        <EmptyState icon={documentTextOutline} title="Aucune demande de location" message="Aucune demande de location dans cette catégorie." />
       ) : (
         requests.filter(r => activeTab === "all" || r.status === activeTab).map((request) => (
-          <button key={request._id} type="button" className="request-card request-card-button" onClick={() => openRequestDetail(request)}>
-            <div className="request-card-top">
-              <div>
-                <h4>{getPropertyTitle(request)}</h4>
-                <p>{request.message || (isOwner ? "Demande de location reçue" : "Votre demande de location")}</p>
+          <div key={request._id} className="request-card" style={{ background: '#fff', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div className="request-card-top" style={{ alignItems: 'flex-start' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: '#1e293b' }}>{getPropertyTitle(request)}</h4>
+                  <span style={{ fontSize: '10px', fontWeight: '800', padding: '2px 8px', borderRadius: '12px', background: '#f1f5f9', color: '#64748b' }}>
+                    LOCATION
+                  </span>
+                </div>
+                <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#475569', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <IonIcon icon={personOutline} /> {getTenantName(request)}
+                </p>
               </div>
               <span className={`request-status ${requestStatusClass(request.status || "En attente")}`}>
                 <IonIcon icon={statusIcon(request.status || "En attente")} />
                 {statusLabel(request.status || "En attente")}
               </span>
             </div>
-            <p className="request-card-meta">{getPropertyAddress(request)}</p>
-            <p className="request-card-meta">{formatDate(request.createdAt || request.date)}</p>
-            {isOwner && (request.status === "En attente" || !request.status) ? (
-              <div className="request-actions">
+
+            <div style={{ padding: '10px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
+              <p style={{ margin: 0, fontSize: '13px', color: '#475569', fontStyle: 'italic', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                "{request.message || "Aucun message complémentaire."}"
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#64748b', fontWeight: '600' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><IonIcon icon={calendarOutline} /> {formatDate(request.createdAt || request.date)}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><IonIcon icon={timerOutline} /> {request.duration || "-"}</span>
+            </div>
+
+            <div className="request-actions" style={{ marginTop: '4px', paddingTop: '12px', borderTop: '1px solid #f1f5f9', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="action-btn-outline"
+                style={{ flex: 1, padding: '8px', borderRadius: '10px', background: '#fff', border: '1px solid #e2e8f0', color: '#1e293b', fontSize: '13px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                onClick={() => openRequestDetail(request)}
+              >
+                <IonIcon icon={documentTextOutline} />
+                Détails
+              </button>
+              
+              {isOwner && (request.status === "En attente" || !request.status) ? (
+                <>
+                  <button
+                    type="button"
+                    disabled={actionBusy === request._id}
+                    style={{ flex: 1, padding: '8px', borderRadius: '10px', background: '#059669', border: 'none', color: '#fff', fontSize: '13px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      handleStatusUpdate(request._id, "Acceptée")
+                    }}
+                  >
+                    <IonIcon icon={checkmarkCircleOutline} />
+                    {actionBusy === request._id ? "..." : "Accepter"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={actionBusy === request._id}
+                    style={{ flex: 1, padding: '8px', borderRadius: '10px', background: '#fff', border: '1px solid #fecaca', color: '#ef4444', fontSize: '13px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      handleStatusUpdate(request._id, "Refusée")
+                    }}
+                  >
+                    <IonIcon icon={closeCircleOutline} />
+                    Refuser
+                  </button>
+                </>
+              ) : null}
+
+              {request.status === "Contrat généré" && (
                 <button
                   type="button"
-                  className="approve-btn"
-                  disabled={actionBusy === request._id}
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    handleStatusUpdate(request._id, "Acceptée")
-                  }}
+                  style={{ flex: 1, padding: '8px', borderRadius: '10px', background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#334155', fontSize: '13px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                  onClick={() => openRequestDetail(request)}
                 >
-                  <IonIcon icon={checkmarkCircleOutline} />
-                  {actionBusy === request._id ? "..." : "Approuver"}
+                  <IonIcon icon={documentTextOutline} />
+                  Voir contrat
                 </button>
-                <button
-                  type="button"
-                  className="reject-btn"
-                  disabled={actionBusy === request._id}
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    handleStatusUpdate(request._id, "Refusée")
-                  }}
-                >
-                  <IonIcon icon={closeCircleOutline} />
-                  Refuser
-                </button>
-              </div>
-            ) : null}
-          </button>
+              )}
+            </div>
+          </div>
         ))
       )}
     </div>
@@ -480,43 +519,71 @@ const RentalRequestsPage: React.FC = () => {
   const renderMaintenanceSection = () => (
     <div className="request-list-grid">
       {maintenanceRequests.length === 0 ? (
-        <EmptyState icon={constructOutline} title="Aucune maintenance" message="Aucune demande de maintenance reçue." />
+        <EmptyState icon={constructOutline} title="Aucune maintenance" message="Aucune demande de maintenance (réclamation) reçue." />
       ) : (
         maintenanceRequests.map((item) => (
-          <button key={item._id} type="button" className="request-card request-card-button" onClick={() => {
-            setSelectedMaintenance(item)
-            setIsMaintenanceModalOpen(true)
-          }}>
-            <div className="request-card-top">
-              <div>
-                <h4 style={{ color: '#0891b2' }}>{item.title}</h4>
-                <p>{item.claimMeta?.propertyTitle || "Maintenance"}</p>
+          <div key={item._id} className="request-card" style={{ background: '#fff', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div className="request-card-top" style={{ alignItems: 'flex-start' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: '#0891b2' }}>{item.title}</h4>
+                  <span style={{ fontSize: '10px', fontWeight: '800', padding: '2px 8px', borderRadius: '12px', background: '#ecfeff', color: '#0891b2' }}>
+                    MAINTENANCE
+                  </span>
+                  {item.claimMeta?.priority && (
+                    <span style={{ 
+                      fontSize: '10px', fontWeight: '900', padding: '2px 8px', borderRadius: '12px', 
+                      background: item.claimMeta.priority === 'High' || item.claimMeta.priority === 'Urgent' || item.claimMeta.priority === 'Haute' ? '#fee2e2' : '#f1f5f9',
+                      color: item.claimMeta.priority === 'High' || item.claimMeta.priority === 'Urgent' || item.claimMeta.priority === 'Haute' ? '#ef4444' : '#64748b'
+                    }}>
+                      {item.claimMeta.priority === 'High' ? 'Haute' : item.claimMeta.priority}
+                    </span>
+                  )}
+                </div>
+                <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#475569', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <IonIcon icon={personOutline} /> {item.claimMeta?.tenantName || "Locataire inconnu"}
+                </p>
+                <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                  <IonIcon icon={homeOutline} /> {item.claimMeta?.propertyTitle || "Propriété"}
+                </p>
               </div>
-              <span className={`request-status ${item.status === 'Resolue' || item.status === 'Résolue' ? 'approved' : 'pending'}`}>
+              <span className={`request-status ${item.status === 'Resolue' || item.status === 'Résolue' ? 'approved' : item.status === 'Refusee' || item.status === 'Refusée' ? 'rejected' : 'pending'}`}>
                 <IonIcon icon={item.status === 'Resolue' || item.status === 'Résolue' ? checkmarkCircleOutline : timeOutline} />
                 {item.status}
               </span>
             </div>
-            <p className="request-card-meta" style={{ marginTop: '8px', color: '#64748b' }}>
-              <IonIcon icon={personOutline} style={{ marginRight: '4px', verticalAlign: 'middle' }} />
-              {item.claimMeta?.tenantName || "Locataire"}
-            </p>
-            <p className="request-card-meta" style={{ color: '#94a3b8', fontSize: '11px' }}>
-              {formatDate(item.createdAt)}
-            </p>
-            <div className="request-card-footer" style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-               <span style={{ fontSize: '12px', fontWeight: '800', color: '#0891b2' }}>Consulter & Répondre</span>
-               {item.claimMeta?.priority && (
-                 <span style={{ 
-                   fontSize: '10px', fontWeight: '900', padding: '3px 10px', borderRadius: '12px', 
-                   background: item.claimMeta.priority === 'High' || item.claimMeta.priority === 'Urgent' ? '#fee2e2' : '#ecfeff',
-                   color: item.claimMeta.priority === 'High' || item.claimMeta.priority === 'Urgent' ? '#ef4444' : '#0891b2'
-                 }}>
-                   {item.claimMeta.priority}
-                 </span>
-               )}
+
+            <div style={{ padding: '10px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
+              <p style={{ margin: 0, fontSize: '13px', color: '#475569', fontStyle: 'italic', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                "{item.message || item.description || "Aucune description fournie."}"
+              </p>
             </div>
-          </button>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#64748b', fontWeight: '600' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><IonIcon icon={calendarOutline} /> {formatDate(item.createdAt)}</span>
+              {item.claimMeta?.category && (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Catégorie: {item.claimMeta.category}</span>
+              )}
+            </div>
+
+            {item.response && (
+              <div style={{ marginTop: '4px', padding: '8px 12px', background: '#eff6ff', borderRadius: '8px', borderLeft: '3px solid #3b82f6' }}>
+                <p style={{ margin: 0, fontSize: '11px', fontWeight: '800', color: '#1e40af', marginBottom: '2px' }}>Réponse du propriétaire</p>
+                <p style={{ margin: 0, fontSize: '12px', color: '#1e3a8a', fontStyle: 'italic' }}>"{item.response}"</p>
+              </div>
+            )}
+
+            <div className="request-actions" style={{ marginTop: '4px', paddingTop: '12px', borderTop: '1px solid #f1f5f9', display: 'flex' }}>
+              <button
+                type="button"
+                style={{ flex: 1, padding: '8px', borderRadius: '10px', background: '#fff', border: '1px solid #0891b2', color: '#0891b2', fontSize: '13px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                onClick={() => handleOpenMaintenanceDetail(item)}
+              >
+                <IonIcon icon={chatbubblesOutline} />
+                Consulter & Répondre
+              </button>
+            </div>
+          </div>
         ))
       )}
     </div>
@@ -529,46 +596,95 @@ const RentalRequestsPage: React.FC = () => {
       ) : (
         <>
           {furnitureChangeRequests.map((item) => (
-            <button key={item._id} type="button" className="request-card request-card-button" onClick={() => {
-              setSelectedFurniture(item)
-              setFurnitureModalType("change")
-              setIsFurnitureModalOpen(true)
-            }}>
-              <div className="request-card-top">
-                <div>
-                  <h4 style={{ color: '#ea580c' }}>{item.furnitureName}</h4>
-                  <p>Demande de changement</p>
+            <div key={item._id} className="request-card" style={{ background: '#fff', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div className="request-card-top" style={{ alignItems: 'flex-start' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: '#ea580c' }}>{item.furnitureName}</h4>
+                    <span style={{ fontSize: '10px', fontWeight: '800', padding: '2px 8px', borderRadius: '12px', background: '#fff7ed', color: '#ea580c' }}>
+                      CHANGEMENT MOBILIER
+                    </span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <IonIcon icon={homeOutline} /> {item.propertyId?.title || "Propriété"}
+                  </p>
+                  {item.tenantName && (
+                    <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#475569', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                      <IonIcon icon={personOutline} /> {item.tenantName}
+                    </p>
+                  )}
                 </div>
-                <span className={`request-status ${item.status === 'Approuvé' || item.status === 'Terminé' ? 'approved' : 'pending'}`}>
+                <span className={`request-status ${item.status === 'Approuvé' || item.status === 'Terminé' ? 'approved' : item.status === 'Refusé' ? 'rejected' : 'pending'}`}>
                   {item.status}
                 </span>
               </div>
-              <p className="request-card-meta">{item.propertyId?.title || "..."}</p>
-              <div className="request-card-footer" style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '12px', fontWeight: '800', color: '#ea580c' }}>Voir les détails</span>
-                <span style={{ fontSize: '10px', fontWeight: '900', padding: '3px 10px', borderRadius: '12px', background: '#fff7ed', color: '#ea580c' }}>
-                  {item.type}
-                </span>
+
+              <div style={{ padding: '10px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
+                <p style={{ margin: 0, fontSize: '13px', color: '#475569', fontStyle: 'italic', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                  "{item.reason || item.message || "Aucune raison spécifiée."}"
+                </p>
               </div>
-            </button>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#64748b', fontWeight: '600' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><IonIcon icon={calendarOutline} /> {formatDate(item.createdAt || item.date)}</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>Type: {item.type}</span>
+              </div>
+
+              <div className="request-actions" style={{ marginTop: '4px', paddingTop: '12px', borderTop: '1px solid #f1f5f9', display: 'flex' }}>
+                <button
+                  type="button"
+                  style={{ flex: 1, padding: '8px', borderRadius: '10px', background: '#fff', border: '1px solid #ea580c', color: '#ea580c', fontSize: '13px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                  onClick={() => {
+                    setSelectedFurniture(item)
+                    setFurnitureModalType("change")
+                    setIsFurnitureModalOpen(true)
+                  }}
+                >
+                  <IonIcon icon={documentTextOutline} />
+                  Consulter les détails
+                </button>
+              </div>
+            </div>
           ))}
+
           {furnitureSuggestions.map((item) => (
-            <button key={item._id} type="button" className="request-card request-card-button" onClick={() => {
-              setSelectedFurniture(item)
-              setFurnitureModalType("suggestion")
-              setIsFurnitureModalOpen(true)
-            }}>
-              <div className="request-card-top">
-                <div>
-                  <h4 style={{ color: '#64748b' }}>{item.name}</h4>
-                  <p>Suggestion au catalogue</p>
+            <div key={item._id} className="request-card" style={{ background: '#fff', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div className="request-card-top" style={{ alignItems: 'flex-start' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: '#64748b' }}>{item.name}</h4>
+                    <span style={{ fontSize: '10px', fontWeight: '800', padding: '2px 8px', borderRadius: '12px', background: '#f1f5f9', color: '#64748b' }}>
+                      SUGGESTION CATALOGUE
+                    </span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '13px', fontWeight: '900', color: '#059669', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    {item.price} DT
+                  </p>
                 </div>
-                <span className={`request-status ${item.status === 'approved' ? 'approved' : 'pending'}`}>
-                  {item.status === 'approved' ? 'Approuvé' : 'En attente'}
+                <span className={`request-status ${item.status === 'approved' ? 'approved' : item.status === 'rejected' ? 'rejected' : 'pending'}`}>
+                  {item.status === 'approved' ? 'Approuvé' : item.status === 'rejected' ? 'Rejeté' : 'En attente'}
                 </span>
               </div>
-              <p className="request-card-meta">{item.price} DT</p>
-            </button>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#64748b', fontWeight: '600' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><IonIcon icon={calendarOutline} /> {formatDate(item.createdAt)}</span>
+              </div>
+
+              <div className="request-actions" style={{ marginTop: '4px', paddingTop: '12px', borderTop: '1px solid #f1f5f9', display: 'flex' }}>
+                <button
+                  type="button"
+                  style={{ flex: 1, padding: '8px', borderRadius: '10px', background: '#fff', border: '1px solid #94a3b8', color: '#64748b', fontSize: '13px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                  onClick={() => {
+                    setSelectedFurniture(item)
+                    setFurnitureModalType("suggestion")
+                    setIsFurnitureModalOpen(true)
+                  }}
+                >
+                  <IonIcon icon={documentTextOutline} />
+                  Détails
+                </button>
+              </div>
+            </div>
           ))}
         </>
       )}
@@ -578,22 +694,32 @@ const RentalRequestsPage: React.FC = () => {
   const renderPaymentsSection = () => (
     <div className="request-list-grid">
       {mockPayments.map((payment) => (
-        <div key={payment.id} className="request-card" style={{ background: '#fff' }}>
-          <div className="request-card-top">
-            <div>
-              <span style={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8' }}>{payment.reference}</span>
-              <h4 style={{ marginTop: '4px' }}>{payment.propertyTitle}</h4>
+        <div key={payment.id} className="request-card" style={{ background: '#fff', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div className="request-card-top" style={{ alignItems: 'flex-start' }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                <span style={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', fontFamily: 'monospace' }}>{payment.reference}</span>
+              </div>
+              <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: '#1e293b' }}>{payment.propertyTitle}</h4>
+              <p style={{ margin: 0, fontSize: '13px', fontWeight: '600', color: '#475569', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                <IonIcon icon={personOutline} /> {payment.tenantName}
+              </p>
             </div>
-            <span className={`request-status ${payment.status === 'Payé' ? 'approved' : payment.status === 'Refusé' ? 'rejected' : 'pending'}`}>
+            <span className={`request-status ${payment.status === 'Payé' ? 'approved' : payment.status === 'Refusé' ? 'rejected' : payment.status === 'En retard' ? 'rejected' : 'pending'}`}>
               {payment.status}
             </span>
           </div>
-          <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-             <div>
-                <p style={{ margin: 0, fontSize: '13px', fontWeight: '800', color: '#1e293b' }}>{payment.tenantName}</p>
-                <p style={{ margin: 0, fontSize: '11px', color: '#64748b' }}>{formatDate(payment.date)} • {payment.method}</p>
-             </div>
-             <span style={{ fontSize: '16px', fontWeight: '900', color: '#059669' }}>{payment.amount} DT</span>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '4px', paddingTop: '12px', borderTop: '1px solid #f1f5f9' }}>
+            <div>
+              <p style={{ margin: 0, fontSize: '12px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <IonIcon icon={calendarOutline} /> {formatDate(payment.date)}
+              </p>
+              <span style={{ fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', color: '#94a3b8', marginTop: '4px', display: 'inline-block' }}>
+                Méthode: {payment.method}
+              </span>
+            </div>
+            <span style={{ fontSize: '18px', fontWeight: '900', color: '#059669' }}>{payment.amount} DT</span>
           </div>
         </div>
       ))}
@@ -883,7 +1009,7 @@ const RentalRequestsPage: React.FC = () => {
                       id="mobile-contract-pdf-content"
                       title="Contrat de Location"
                       documentId={selectedContract._id}
-                      date={new Date(selectedContract.createdAt).toLocaleDateString("fr-FR")}
+                      date={selectedContract.createdAt ? new Date(selectedContract.createdAt as string | number).toLocaleDateString("fr-FR") : new Date().toLocaleDateString("fr-FR")}
                       infoLeft={
                         <div style={{ padding: '10px' }}>
                            <p style={{ fontSize: '10px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Locateur</p>
@@ -904,11 +1030,11 @@ const RentalRequestsPage: React.FC = () => {
                          <div style={{ marginTop: '15px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                             <div>
                                <p style={{ fontSize: '11px', color: '#64748b', margin: 0 }}>Loyer Mensuel</p>
-                               <p style={{ fontSize: '16px', fontWeight: 'bold', margin: '4px 0' }}>{selectedContract.monthlyRent || selectedContract.rentAmount} TND</p>
+                               <p style={{ fontSize: '16px', fontWeight: 'bold', margin: '4px 0' }}>{selectedContract.monthlyRent || selectedContract.rentAmount || 0} TND</p>
                             </div>
                             <div>
                                <p style={{ fontSize: '11px', color: '#64748b', margin: 0 }}>Caution</p>
-                               <p style={{ fontSize: '16px', fontWeight: 'bold', margin: '4px 0' }}>{selectedContract.depositAmount || (selectedContract.monthlyRent * 2)} TND</p>
+                               <p style={{ fontSize: '16px', fontWeight: 'bold', margin: '4px 0' }}>{selectedContract.depositAmount || ((selectedContract.monthlyRent || selectedContract.rentAmount || 0) * 2)} TND</p>
                             </div>
                          </div>
 

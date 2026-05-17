@@ -74,11 +74,6 @@ const NotificationsPage: React.FC = () => {
   }, [socket])
 
 
-  const activeNotification = useMemo(
-    () => normalizedNotifications.find((notification) => notification._id === activeId) || null,
-    [activeId, normalizedNotifications],
-  )
-
   const unreadCount = notifications.filter((notification) => !notification.isRead).length
 
   const normalizeType = (type?: string) => {
@@ -100,6 +95,11 @@ const NotificationsPage: React.FC = () => {
   const normalizedNotifications = useMemo(() => {
     return notifications.map(n => ({ ...n, type: normalizeType(n.type) }))
   }, [notifications])
+
+  const activeNotification = useMemo(
+    () => normalizedNotifications.find((notification) => notification._id === activeId) || null,
+    [activeId, normalizedNotifications],
+  )
 
   const getIcon = (notification: BackendNotification) => {
     const type = normalizeType(notification.type)

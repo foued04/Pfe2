@@ -23,7 +23,7 @@ export const createNotification = (
     status: string
     attachments: string[]
     claimMeta: {
-      claimId: string
+      claimId?: string
       tenantId: string
       tenantName: string
       ownerId: string
