@@ -35,19 +35,21 @@ const getMe = asyncHandler(async (req, res) => {
 // ─── Password Reset Endpoints ──────────────────────────────────────────────
 
 const forgotPassword = asyncHandler(async (req, res) => {
-  const { email } = req.body;
+  const email = req.body.email?.trim().toLowerCase();
   await authService.generateResetCode(email);
-  res.send({ message: 'Si cette adresse existe, un code de réinitialisation vous sera envoyé (voir console serveur).' });
+  res.send({ message: 'Si cette adresse existe, un code de réinitialisation vous a été envoyé.' });
 });
 
 const verifyResetCode = asyncHandler(async (req, res) => {
-  const { email, code } = req.body;
+  const email = req.body.email?.trim().toLowerCase();
+  const { code } = req.body;
   await authService.verifyResetCode(email, code);
   res.send({ valid: true, message: 'Code valide' });
 });
 
 const resetPassword = asyncHandler(async (req, res) => {
-  const { email, code, newPassword } = req.body;
+  const email = req.body.email?.trim().toLowerCase();
+  const { code, newPassword } = req.body;
   await authService.resetPassword(email, code, newPassword);
   res.send({ message: 'Mot de passe réinitialisé avec succès.' });
 });

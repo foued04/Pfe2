@@ -186,7 +186,9 @@ const Tab3: React.FC = () => {
   }, [location.pathname])
 
   useEffect(() => {
-    resetFields()
+    if (view === "login" || view === "register") {
+      resetFields()
+    }
     setIsCaptchaVerified(false)
   }, [view])
 
@@ -258,16 +260,21 @@ const Tab3: React.FC = () => {
       }
 
       if (view === "forgot-password") {
-        const data = await http.post<{ message: string }>("/auth/forgot-password", { email })
-        setSuccessMsg(data.message)
+        await http.post<{ message: string }>("/auth/forgot-password", { email })
+        setSuccessMsg("")
         setView("verify-code")
         return
       }
 
       if (view === "verify-code") {
         await http.post<{ message: string }>("/auth/verify-reset-code", { email, code: resetCode })
-        setSuccessMsg("Code vérifié avec succès.")
+        setSuccessMsg("")
         setView("reset-password")
+        return
+      }
+
+      if (newPassword.length < 6) {
+        setError("Le mot de passe doit contenir au moins 6 caractères.")
         return
       }
 
@@ -281,8 +288,14 @@ const Tab3: React.FC = () => {
         code: resetCode,
         newPassword,
       })
-      setSuccessMsg("Mot de passe mis à jour. Vous pouvez vous connecter.")
-      navigateToAuthRoute("login")
+      
+      const loginResult = await login(email, newPassword);
+      if (loginResult.success) {
+        history.replace(resolveRedirect(loginResult.role));
+      } else {
+        setSuccessMsg("Mot de passe mis à jour. Veuillez vous connecter.");
+        navigateToAuthRoute("login");
+      }
     } catch {
       setError("Une erreur de connexion est survenue")
     } finally {

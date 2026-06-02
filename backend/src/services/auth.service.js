@@ -67,7 +67,7 @@ const loginUserWithEmailAndPassword = async (email, password) => {
 const generateResetCode = async (email) => {
   const user = await User.findOne({ email });
   if (!user) {
-    throw new ApiError(404, 'Aucun utilisateur trouvé avec cette adresse email');
+    return null;
   }
   
   // Generate a random 6-digit code

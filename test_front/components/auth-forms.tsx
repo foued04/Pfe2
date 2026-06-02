@@ -168,7 +168,9 @@ export function AuthForms({ initialView = "login", onClose }: { initialView?: Vi
   useEffect(() => setIsMounted(true), [])
   useEffect(() => setView(initialView), [initialView])
   useEffect(() => {
-    resetFields()
+    if (view === "login" || view === "register") {
+      resetFields()
+    }
     setIsCaptchaVerified(false)
   }, [view])
 
@@ -240,17 +242,22 @@ export function AuthForms({ initialView = "login", onClose }: { initialView?: Vi
         const res = await fetch(`${API_URL}/auth/forgot-password`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) })
         const data = await res.json()
         if (res.ok) {
-          setSuccessMsg(data.message)
+          setSuccessMsg("")
           setView("verify-code")
         } else setError(data.message || "Erreur lors de la demande")
       } else if (view === "verify-code") {
         const res = await fetch(`${API_URL}/auth/verify-reset-code`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, code: resetCode }) })
         const data = await res.json()
         if (res.ok) {
-          setSuccessMsg("Code verifie avec succes.")
+          setSuccessMsg("")
           setView("reset-password")
         } else setError(data.message || "Code invalide ou expire")
       } else {
+        if (newPassword.length < 6) {
+          setError("Le mot de passe doit contenir au moins 6 caractères.")
+          setIsLoading(false)
+          return
+        }
         if (newPassword !== confirmNewPassword) {
           setError("Les nouveaux mots de passe ne correspondent pas.")
           setIsLoading(false)
@@ -259,9 +266,14 @@ export function AuthForms({ initialView = "login", onClose }: { initialView?: Vi
         const res = await fetch(`${API_URL}/auth/reset-password`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, code: resetCode, newPassword }) })
         const data = await res.json()
         if (res.ok) {
-          setSuccessMsg("Mot de passe mis a jour. Vous pouvez vous connecter.")
-          setView("login")
-        } else setError(data.message || "Erreur lors de la reinitialisation")
+          const loginResult = await login(email, newPassword);
+          if (loginResult.success) {
+            router.replace(getDashboardPath(loginResult.role));
+          } else {
+            setSuccessMsg("Mot de passe mis à jour. Veuillez vous connecter.");
+            setView("login");
+          }
+        } else setError(data.message || "Erreur lors de la réinitialisation")
       }
     } catch {
       setError("Une erreur de connexion est survenue")

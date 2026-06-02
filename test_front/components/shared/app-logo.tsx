@@ -1,13 +1,14 @@
 import Link from "next/link"
-import { Home } from "lucide-react"
+import Image from "next/image"
 
 export function AppLogo() {
   return (
-    <Link href="/" className="inline-flex items-center gap-3 text-foreground no-underline">
-      <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-        <Home className="h-5 w-5" />
+    <Link href="/" className="inline-flex items-center gap-2.5 no-underline">
+      <Image src="/logo.svg" alt="ImmoSmart Logo" width={38} height={38} className="object-contain" />
+      <span className="text-2xl font-black tracking-tight">
+        <span style={{ color: "#002147" }}>Immo</span>
+        <span style={{ color: "#0076D6" }}>Smart</span>
       </span>
-      <span className="text-lg font-black tracking-tight">ImmoSmart</span>
     </Link>
   )
 }

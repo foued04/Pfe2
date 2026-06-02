@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
+import Image from "next/image"
 import { useGoogleLogin } from "@react-oauth/google"
-import { ArrowRight, Home } from "lucide-react"
+import { ArrowRight } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -132,9 +133,7 @@ export function RequestAccessPage() {
         <Card className={styles.card}>
           <CardContent className={styles.content}>
             <div className={styles.logoWrap}>
-              <div className={styles.logo} aria-hidden="true">
-                <Home className="h-8 w-8" />
-              </div>
+              <Image src="/logo.svg" alt="ImmoSmart Logo" width={160} height={160} className="object-contain" priority />
             </div>
 
             <div className={styles.header}>

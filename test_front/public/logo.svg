@@ -1,0 +1,8 @@
+<svg viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Roof -->
+  <polygon points="256,100 76,280 106,310 256,160 406,310 436,280" fill="#002147" />
+  <!-- Body -->
+  <polygon points="146,440 146,290 256,180 366,290 366,440" fill="#0076D6" />
+  <!-- Door -->
+  <rect x="216" y="300" width="80" height="140" fill="#002147" />
+</svg>
