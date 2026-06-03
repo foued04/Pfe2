@@ -7,6 +7,26 @@ export interface PropertyImage {
   bedroom: string
   livingRoom: string
   exterior: string
+  gallery?: string[]
+}
+
+const FALLBACK_PROPERTY_IMAGE = "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80"
+
+function normalizeImageUrl(value: unknown): string {
+  if (typeof value !== "string") return ""
+
+  const trimmed = value.trim()
+  if (!trimmed) return ""
+
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("data:")) {
+    return trimmed
+  }
+
+  if (trimmed.startsWith("//")) {
+    return `https:${trimmed}`
+  }
+
+  return trimmed
 }
 
 export interface Property {
@@ -116,6 +136,16 @@ function extractPropertyCoordinates(p: any): { lat: number; lng: number } {
 
 export function mapBackendProperty(p: any): Property {
   const coordinates = extractPropertyCoordinates(p)
+  const coverImage =
+    normalizeImageUrl(p?.images?.cover) ||
+    normalizeImageUrl(p?.coverImage) ||
+    normalizeImageUrl(p?.image) ||
+    normalizeImageUrl(Array.isArray(p?.images?.gallery) ? p.images.gallery[0] : "") ||
+    FALLBACK_PROPERTY_IMAGE
+
+  const galleryImages = Array.isArray(p?.images?.gallery)
+    ? p.images.gallery.map(normalizeImageUrl).filter(Boolean)
+    : []
 
   return {
     id: p._id || p.id,
@@ -138,12 +168,13 @@ export function mapBackendProperty(p: any): Property {
     availability: p.availability || "-",
     status: p.status || "available",
     images: {
-      cover: p.images?.cover || "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80",
-      kitchen: p.images?.kitchen || "",
-      bathroom: p.images?.bathroom || "",
-      bedroom: p.images?.bedroom || "",
-      livingRoom: p.images?.livingRoom || "",
-      exterior: p.images?.exterior || ""
+      cover: coverImage,
+      kitchen: normalizeImageUrl(p?.images?.kitchen),
+      bathroom: normalizeImageUrl(p?.images?.bathroom),
+      bedroom: normalizeImageUrl(p?.images?.bedroom),
+      livingRoom: normalizeImageUrl(p?.images?.livingRoom),
+      exterior: normalizeImageUrl(p?.images?.exterior),
+      gallery: galleryImages,
     },
     owner: p.owner && typeof p.owner === 'object' ? p.owner : undefined,
     ownerId: typeof p.owner === "string" ? p.owner : p.owner?._id,

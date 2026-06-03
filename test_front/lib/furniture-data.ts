@@ -28,6 +28,26 @@ export interface FurnitureOrder {
   status: OrderStatus
 }
 
+const DELETED_CATALOG_IDS_KEY = "deletedFurnitureCatalogIds"
+
+function getDeletedCatalogIds() {
+  if (typeof window === "undefined") return new Set<string>()
+  try {
+    const raw = localStorage.getItem(DELETED_CATALOG_IDS_KEY)
+    const parsed = raw ? JSON.parse(raw) : []
+    return new Set(Array.isArray(parsed) ? parsed.filter((id) => typeof id === "string") : [])
+  } catch {
+    return new Set<string>()
+  }
+}
+
+function rememberDeletedCatalogId(id: string) {
+  if (typeof window === "undefined") return
+  const deletedIds = getDeletedCatalogIds()
+  deletedIds.add(id)
+  localStorage.setItem(DELETED_CATALOG_IDS_KEY, JSON.stringify(Array.from(deletedIds)))
+}
+
 const normalizeCategory = (category: string): FurnitureCategory => {
   if (!category) return "Salon"
   if (category.includes("manger")) return "Salle à manger"
@@ -160,7 +180,10 @@ export async function fetchFurniture() {
     image: item.image || getFurnitureFallbackImage(item),
   }))
   const backendNames = new Set(backendItems.map((item: FurnitureItem) => item.name.toLowerCase()))
-  const curatedItems = furnitureCatalog.filter((item) => !backendNames.has(item.name.toLowerCase()))
+  const deletedCatalogIds = getDeletedCatalogIds()
+  const curatedItems = furnitureCatalog.filter(
+    (item) => !backendNames.has(item.name.toLowerCase()) && !deletedCatalogIds.has(item.id)
+  )
   return [...backendItems, ...curatedItems]
 }
 
@@ -193,6 +216,10 @@ export async function updateFurnitureItem(id: string, itemData: Partial<Furnitur
 }
 
 export async function deleteFurnitureItem(id: string) {
+  if (id.startsWith("catalog-")) {
+    rememberDeletedCatalogId(id)
+    return { message: "Furniture removed from catalog" }
+  }
   const token = localStorage.getItem("accessToken")
   const response = await fetch(`${resolveApiUrl()}/furniture/${id}`, {
     method: "DELETE",

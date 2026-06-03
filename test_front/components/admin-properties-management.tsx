@@ -35,6 +35,30 @@ import { Button } from "./ui/button"
 import { Card, CardContent } from "./ui/card"
 
 type ValidationStatus = "pending" | "approved" | "rejected"
+const FALLBACK_PROPERTY_IMAGE = "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80"
+
+const getPropertyCoverImage = (property: Partial<ManagedProperty> | null | undefined) => {
+  const candidates = [
+    property?.images?.cover,
+    (property as any)?.coverImage,
+    (property as any)?.image,
+    property?.images?.gallery?.[0],
+  ]
+
+  for (const candidate of candidates) {
+    if (typeof candidate !== "string") continue
+    const trimmed = candidate.trim()
+    if (!trimmed) continue
+    if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("data:")) {
+      return trimmed
+    }
+    if (trimmed.startsWith("//")) {
+      return `https:${trimmed}`
+    }
+  }
+
+  return FALLBACK_PROPERTY_IMAGE
+}
 
 interface ManagedProperty extends Property {
   validationStatus: ValidationStatus
@@ -240,7 +264,7 @@ export function AdminPropertiesManagement() {
 
   const openProperty = (property: ManagedProperty) => {
     setSelectedProperty(property)
-    setActiveImage(property.images.cover)
+    setActiveImage(getPropertyCoverImage(property))
     setRejectionReason(property.rejectionReason || "")
   }
 
@@ -376,7 +400,7 @@ export function AdminPropertiesManagement() {
           <Card key={property.id} className="overflow-hidden border-none bg-card shadow-xl transition-all duration-300 hover:shadow-2xl">
             <div className="flex flex-col lg:flex-row">
               <div className="relative h-52 w-full shrink-0 overflow-hidden lg:h-auto lg:w-72">
-                <img src={property.images.cover} alt={property.title} className="h-full w-full object-cover" />
+                <img src={getPropertyCoverImage(property)} alt={property.title} className="h-full w-full object-cover" />
                 <div className="absolute left-4 top-4">{getStatusBadge(property.validationStatus)}</div>
               </div>
 
@@ -508,7 +532,11 @@ export function AdminPropertiesManagement() {
                 </div>
 
                 <div className="mt-4 flex-1 overflow-hidden rounded-[1.75rem] border border-white/10">
-                  <img src={activeImage || selectedProperty.images.cover} alt={selectedProperty.title} className="h-full min-h-[320px] w-full object-cover lg:min-h-0" />
+                  <img
+                    src={activeImage || getPropertyCoverImage(selectedProperty)}
+                    alt={selectedProperty.title}
+                    className="h-full min-h-[320px] w-full object-cover lg:min-h-0"
+                  />
                 </div>
 
                 <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6">

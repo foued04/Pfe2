@@ -363,6 +363,7 @@ export function AdminFurnitureManagement() {
                       type="button"
                       onClick={() => item.id && handleDelete(item.id)}
                       variant="outline" 
+                      title="Delete item"
                       className="w-10 h-10 rounded-2xl border-red-100 text-red-500 hover:bg-red-50 p-0 border-2"
                     >
                       <Trash2 className="w-4 h-4" />

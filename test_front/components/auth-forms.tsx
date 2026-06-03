@@ -12,9 +12,6 @@ import styles from "./auth-forms.module.css"
 
 type View = "login" | "register" | "forgot-password" | "verify-code" | "reset-password"
 
-const ADMIN_EMAIL = "admin@immosmart.tn"
-const ADMIN_PASSWORD = "admin123"
-
 function Field({
   label,
   value,
@@ -341,7 +338,7 @@ export function AuthForms({ initialView = "login", onClose }: { initialView?: Vi
 
             <form className={styles.form} onSubmit={submit}>
               {view === "register" && <Field label={t("auth.fullName")} value={name} onChange={handleFieldChange(setName)} placeholder={t("auth.fullNamePlaceholder")} icon={<BadgeCheck size={18} />} autoComplete="name" />}
-              {(view === "login" || view === "register" || view === "forgot-password") && <Field label={t("auth.email")} value={email} onChange={handleFieldChange(setEmail)} placeholder={isAdminLogin ? ADMIN_EMAIL : t("auth.emailPlaceholder")} type="email" icon={<Home size={18} />} autoComplete="email" />}
+              {(view === "login" || view === "register" || view === "forgot-password") && <Field label={t("auth.email")} value={email} onChange={handleFieldChange(setEmail)} placeholder={t("auth.emailPlaceholder")} type="email" icon={<Home size={18} />} autoComplete="email" />}
               {(view === "login" || view === "register") && <Field label={t("auth.password")} value={password} onChange={handleFieldChange(setPassword)} placeholder={t("auth.passwordPlaceholder")} type={showPassword ? "text" : "password"} icon={<KeyRound size={18} />} autoComplete={view === "login" ? "current-password" : "new-password"} action={<button type="button" className={styles.eye} onClick={() => setShowPassword(!showPassword)}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>} />}
               {view === "register" && <Field label={t("auth.confirmPassword")} value={confirmPassword} onChange={handleFieldChange(setConfirmPassword)} placeholder={t("auth.confirmPasswordPlaceholder")} type={showConfirmPassword ? "text" : "password"} icon={<ShieldCheck size={18} />} autoComplete="new-password" action={<button type="button" className={styles.eye} onClick={() => setShowConfirmPassword(!showConfirmPassword)}>{showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>} />}
               {view === "register" && <Field label={t("auth.phone")} value={phone} onChange={(val) => handleFieldChange(setPhone)(val.replace(/\D/g, "").slice(0, 8))} placeholder={t("auth.phonePlaceholder")} type="tel" icon={<Building2 size={18} />} autoComplete="tel" />}
@@ -379,20 +376,6 @@ export function AuthForms({ initialView = "login", onClose }: { initialView?: Vi
                 {view === "register" && <p>{t("auth.alreadyRegistered")} <button type="button" className={styles.linkAccent} onClick={() => { setView("login"); setError("") }}>{t("nav.login")}</button></p>}
                 {(view === "forgot-password" || view === "verify-code" || view === "reset-password") && <button type="button" className={styles.back} onClick={() => { setView("login"); setError(""); setSuccessMsg("") }}>{t("auth.backToLogin")}</button>}
               </div>
-              {(view === "login" || view === "register") && <button type="button" className={styles.admin} onClick={() => {
-                const next = !isAdminLogin
-                setIsAdminLogin(next)
-                setView("login")
-                setError("")
-                setSuccessMsg("")
-                if (next) {
-                  setEmail(ADMIN_EMAIL)
-                  setPassword(ADMIN_PASSWORD)
-                } else {
-                  setEmail("")
-                  setPassword("")
-                }
-              }}><ShieldCheck size={16} /> {isAdminLogin ? t("auth.backToPublic") : t("auth.adminAccessReserve")}</button>}
             </form>
           </div>
         </section>
